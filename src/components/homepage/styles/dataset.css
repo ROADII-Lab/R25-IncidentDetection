@@ -1,0 +1,59 @@
+@import "../../../data/styles.css";
+
+.homepage-dataset {
+	width: 90%;
+	mix-blend-mode: normal;
+	border-radius: 20px;
+	opacity: 0.8;
+}
+
+.homepage-dataset:hover {
+	background: #fafafa;
+	opacity: 1;
+	transition: background-color 0.3s ease-in-out;
+}
+
+.homepage-dataset-content {
+	padding: 30px;
+}
+
+.homepage-dataset-date {
+	opacity: 1;
+	color: var(--tertiary-color);
+	font-size: 12px;
+	margin-bottom: 1em;
+}
+
+.homepage-dataset-title {
+	opacity: 1;
+	color: var(--primary-color);
+	font-size: 16px;
+	margin-bottom: 1em;
+	font-weight: 700;
+}
+
+.homepage-dataset-description {
+	opacity: 1;
+	color: var(--secondary-color);
+	font-size: 15px;
+	font-weight: 500;
+	line-height: 1.5;
+}
+
+.homepage-dataset-link {
+	opacity: 1;
+	padding-top: 20px;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.homepage-dataset-link a {
+	color: var(--link-color);
+	text-decoration: none;
+}
+
+@media (max-width: 600px) {
+	.homepage-dataset {
+		width: 100%;
+	}
+}
