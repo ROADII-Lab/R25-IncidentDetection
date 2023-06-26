@@ -1,0 +1,52 @@
+:root {
+	/* ------- colors ------- */
+	--primary-color: #27272a;
+	--secondary-color: #65656d;
+	--tertiary-color: #acacb4;
+	--quaternary-color: #e4e4e7;
+	--link-color: #14b8a6;
+	/* ---------------------- */
+
+	/* ------- fonts ------- */
+	--primary-font: "Heebo", sans-serif;
+	--secondary-font: "Roboto", sans-serif;
+	/* --------------------- */
+}
+
+.About-Paragraph, .First-About-Paragraph{
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.About-Top {
+	display: flex;
+}
+
+.First-About-Paragraph {
+	flex-basis: 1000px;
+	flex-direction: column;
+	display: block;
+}
+
+.about-left-side {
+	display: flex;
+	flex-direction: column;
+	flex-basis: 300px;
+}
+
+.about-image-container {
+	width: 200px;
+	padding: 20px 20px 20px, 20px;
+}
+
+.about-image-wrapper {
+	display: inline-block;
+	overflow: hidden;
+	width: 100%;
+	border-radius: 10%;
+}
+
+.about-image-wrapper img {
+	display: block;
+	width: 100%;
+}
