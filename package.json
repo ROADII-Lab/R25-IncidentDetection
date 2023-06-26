@@ -2,7 +2,7 @@
 	"name": "r25trafficincidentdetection",
 	"version": "1.1.0",
 	"description": "Use Case for Traffic Incident Detection through AI and real time traffic datasets",
-	"homepage": "/",
+	"homepage": "/R25-IncidentDetection/",
 	"license": "MIT",
 	"private": true,
 	"dependencies": {
