@@ -24,6 +24,8 @@ The ROADII organization is working to define the specific problem statements wit
 
 The ROADII-Lab team will focus on generalization of the solutions developed previously so they may be used by other stakeholders, as well as solving issues with deployment so these solutions may be more easily transformed into production level systems.
 
+This repository and associated "README" files will be updated as the ROADII development team produces results for the traffic incident use case. Stay tuned!
+
 ## Datasets
 The internal ROADII team has explored a number of datasets that may suport the development of AI models to improve and generalize traffic incident detection systems. Some of these datasets are real-time and crowd sourced while others are historical and based on measurements of traffic characteristics over time.
 
