@@ -1,11 +1,11 @@
-# R25-TrafficIncidentDetectionGeneralization
+# TrafficIncidentDetectionGeneralization
 ROADII Use Case 25 - Traffic Incident Detection through ML methods
 
 This repository contains code and documentation for explorations in the generalization and deployment of
 techniques for detecting traffic incidents and assessing roadway network vulnerabilities using 
 real-time and historical datasets. Intended audiences are state DOTs and traffic management centers 
-wanting to improve incident response rates and understand how traffic incidents affect the larger
-roadway network.
+wanting to improve their ability to respond quickly to incidents on their roadways, as well as to better
+understand how traffic incidents affect the larger roadway network.
 
 ## Contents
 1. Code
@@ -18,7 +18,7 @@ roadway network.
     This folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and perforamance metrics for the solutions developed for this use case.
 
 ## Current Status
-This use case is currently in the exploratory phase. The ROADII use case evaluation process defined [here](https://itsjpo-trims.github.io/about) has been conducted using information from various sources. This evaluation process resulted in a finding that this would be an appropriate use case for the ROADII-Lab Development Team to take on. USDOT is a logical place for coordination and development of a standardized data exchange for transportation incident management relevant to all state and local DOTs and potentially incorporating several input data streams across public and private sources.
+This use case is currently in the exploratory phase. The ROADII use case evaluation process defined [here](https://itsjpo-trims.github.io/#/about) has been conducted using information from various sources. This evaluation process resulted in a finding that this would be an appropriate use case for the ROADII-Lab Development Team to take on. USDOT is a logical place for coordination and development of a standardized data exchange for transportation incident management relevant to all state and local DOTs and potentially incorporating several input data streams across public and private sources.
 
 The ROADII organization is working to define the specific problem statements with associated stakeholder groups who have explored similar problems in the past. This involves targetting stakeholder outreach efforts to state DOTs who have explored solutions to these problems in the past. 
 
