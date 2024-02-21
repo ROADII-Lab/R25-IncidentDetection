@@ -20,7 +20,7 @@ understand how traffic incidents affect the larger roadway network.
     This folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and perforamance metrics for the solutions developed for this use case.
 
 ## Current Status
-This use case is currently in the exploratory phase. The ROADII team has been updating 2019 work with the Tennessee Highway Patrol to forecast crash probability over the next week. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOTs Traffic Managment Centers to evaluate interest and feasibility of the use case. The ROADII team will be updating this repository as stable developments are created. 
+This use case is currently in the exploratory phase. The ROADII team has been updating 2019 work with the Tennessee Highway Patrol to forecast crash probability over the next week. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOT Traffic Managment Centers to evaluate interest and feasibility of the use case. The ROADII team will be updating this repository as stable developments are created. 
 
 This repository and associated "README" files will be updated as the ROADII development team produces results for the traffic incident use case. 
 
