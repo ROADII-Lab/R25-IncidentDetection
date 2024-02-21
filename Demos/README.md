@@ -15,4 +15,4 @@ The project is currently updating TN forecasts. Some major outputs include the f
 ### Interim figure of crash probability 
 This is an initial output of the crash probability at large grid cells in Tennessee, assuming ideal weather conditions. 
 
-[crash prob figure](https://github.com/ITSJPO-TRIMS/R25-IncidentDetection/blob/main/Demos/TN/Crash_prob_TN_01dd_fishnet_2024-02-02.pdf)
+[crash prob figure](https://github.com/ITSJPO-TRIMS/R25-IncidentDetection/blob/main/Demos/TN/crash_prob.JPG)
