@@ -1,5 +1,5 @@
 # TrafficIncidentDetectionGeneralization
-ROADII Use Case 25 - Traffic Incident Detection through ML methods\
+ROADII Use Case 25 - Traffic Incident Detection through ML methods
 
 For more information on TRIMS and ROADII see the TRIMS organization home page [here](https://github.com/ITSJPO-TRIMS)
 
@@ -26,7 +26,10 @@ The ROADII organization is working to define the specific problem statements wit
 
 The ROADII-Lab team will focus on generalization of the solutions developed previously so they may be used by other stakeholders, as well as solving issues with deployment so these solutions may be more easily transformed into production level systems.
 
-This repository and associated "README" files will be updated as the ROADII development team produces results for the traffic incident use case. Stay tuned!
+This repository and associated "README" files will be updated as the ROADII development team produces results for the traffic incident use case. 
+
+## Context on Previous Related Work
+This use case builds on 2019 work that the Volpe Center did with Tennessee Highway Patrol under the U.S. DOT [Safety Data Initiative](https://www.transportation.gov/SafetyDataInitiative/Pilots).  The [Tennessee Integrated Traffic Analysis Network](https://www.transportation.gov/office-policy/transportation-policy/sdi-waze-project-summary-documents) (TITAN) crash model was built to be used by the Tennessee Highway Patrol (TN HP) to prioritize patrol locations. The model combined historical data such as fatal crashes and DUI arrests with current data including weather forecasts, and scheduled special events to generate heat maps that identifies areas of high likelihood for crashes. The TITAN model estimates crash propensity in 42 square mile grids. This resolution provides the most accurate estimates of fatal crash propensity in four hour time windows over the upcoming week, based on scheduled special events and weather forecasts. The objective of the TN HP and U.S. DOT SDI partnership was to test if Waze alerts can improve the spatial resolution of the TITAN model, particularly in urban areas. TN HP provided training data from the TITAN model, and the Volpe team quantitatively assessed the value that Waze data adds to the existing TITAN model.
 
 ## Datasets
 The internal ROADII team has explored a number of datasets that may suport the development of AI models to improve and generalize traffic incident detection systems. Some of these datasets are real-time and crowd sourced while others are historical and based on measurements of traffic characteristics over time.
@@ -44,6 +47,5 @@ The Highway Safety Information System (HSIS) was developed by the Federal Highwa
 
 The HSIS is a roadway-based system that provides quality data on a large number of accident, roadway, and traffic variables. It uses data already being collected by the States for managing the highway system and studying highway safety. HSIS can be used to analyze a wide range of safety problems, from basic "problem identification" issues to modeling efforts that attempt to predict future crashes from roadway characteristics and traffic factors. It is used in support of the FHWA safety research program and provides input for program policy decisions. HSIS is also available to professionals conducting research under the National Cooperative Highway Research Program, universities, and others studying highway safety.
 
-### NPMRDS Data
-The NPMRDS contains field-observed travel time and speed data collected anonymously from a fleet of probe vehicles (cars and trucks) equipped with mobile devices. Using time and location information from probe vehicles, the NPMRDS generates speed and travel time data aggregated in 5-minute, 15-minute, or 1-hour increments. The data are available across the National Highway System (NHS), with a spatial resolution defined by Traffic Message Channel (TMC) location codes. A TMC represents a unique, directional roadway segment that is about half a mile to a mile long in urban and suburban areas and could be as long as five to ten miles long in rural areas. The NPMRDS covers more than 400,000 TMCs and includes several billions of speed and travel time observations across the NHS for both freeways and arterials. The NPMRDS has been available since 2013, with freeway data dating back as far as 2008.
-
+### OpenStreetMap (OSM) Data
+The updated use case will use OSM road segments, rather than grid cells. OSM is nationally available and includes all roads in the U.S. This use case will focus on [OSM's road classification](https://wiki.openstreetmap.org/wiki/United_States/Road_classification) on motorways (generally aligned to the National Highway System), but will eventually include all highway and arterial roads. 
