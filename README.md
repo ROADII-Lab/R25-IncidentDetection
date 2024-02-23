@@ -29,7 +29,6 @@ Requires:
 - Data on Waze, crashes by roadway, and historical weather 
 
 # Usage
-*Provide users with detailed instructions for how to use your software. The specifics of this section will vary between projects, but should adhere to the following minimum outline:*
 
 ## Building
 
@@ -58,7 +57,6 @@ a.	Install packages with install.packages(“[package name]”) as needed
 
 
 # Additional Notes
-*Optional - Any additional information that would be useful to someone wanting to use this code. If there are datasets and associated Data Management Plans that interact with this source code, please provide them here*
 
 The [Demos](https://github.com/ITSJPO-TRIMS/R25-IncidentDetection/tree/main/Demos) folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and performance metrics for the solutions developed for this use case. This will be updated once more work is created with partner organizations. 
 
@@ -134,7 +132,7 @@ When you copy or adapt from this code, please include the original URL you copie
 
 ## Contributors
 
-- Eric Englin (Volpe) Eric.Englin@dot.gov
+- Eric Englin (Volpe) 
 - Dan Flynn (Volpe)
 - Andrew Breck (Volpe)
 - Joey Reed (Volpe)
