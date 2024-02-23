@@ -101,6 +101,9 @@ The updated use case will use OSM road segments, rather than grid cells. OSM is 
 
 **Retention:** This project will likely remain publicly accessible indefinitely. 
 
+**Release History:**  See [CHANGELOG.md](CHANGELOG.md)**
+
+
 # License
 This project is licensed under the Creative Commons 1.0 Universal (CC0 1.0) License - see the [License.MD](https://github.com/usdot-jpo-codehub/codehub-readme-template/blob/master/LICENSE) for more details. 
 
