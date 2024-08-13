@@ -7,9 +7,18 @@ wx.avg.jan.T <- wx %>%
   summarize(avgtempmax = mean(TMAX, na.rm=T),
             avgtempmin = mean(TMIN, na.rm=T)
   )
-wx.jan.proj <- spTransform(SpatialPointsDataFrame(wx.avg.jan.T[c("lon", "lat")], 
-                                                  wx.avg.jan.T,
-                                                  proj4string = CRS("+proj=longlat +datum=WGS84")), CRS(proj.USGS))
+
+# wx.jan.proj <- spTransform(SpatialPointsDataFrame(wx.avg.jan.T[c("lon", "lat")], 
+#                                                   wx.avg.jan.T,
+#                                                   proj4string = CRS("+proj=longlat +datum=WGS84")), CRS(proj.USGS))
+
+wx.jan.proj <- st_transform(st_as_sf(x = wx.avg.jan.T, 
+                                     coords = c("lon", "lat"),
+                                     crs = "+proj=longlat +datum=WGS84"), 
+                            crs = st_crs(proj.USGS)
+                            )
+
+st_as_sf(x = wx, coords = c("lon", "lat"), crs = "+proj=longlat +datum=WGS84")
 
 wx.avg.jun.T <- wx %>%
   group_by(STATION, lon, lat) %>%
@@ -17,16 +26,30 @@ wx.avg.jun.T <- wx %>%
   summarize(avgtempmax = mean(TMAX, na.rm=T),
             avgtempmin = mean(TMIN, na.rm=T)
   )
-wx.jun.proj <- spTransform(SpatialPointsDataFrame(wx.avg.jun.T[c("lon", "lat")], 
-                                                  wx.avg.jun.T,
-                                                  proj4string = CRS("+proj=longlat +datum=WGS84")), CRS(proj.USGS))
+
+# wx.jun.proj <- spTransform(SpatialPointsDataFrame(wx.avg.jun.T[c("lon", "lat")], 
+#                                                   wx.avg.jun.T,
+#                                                   proj4string = CRS("+proj=longlat +datum=WGS84")), CRS(proj.USGS))
+
+wx.jun.proj <- st_transform(st_as_sf(x = wx.avg.jun.T, 
+                                     coords = c("lon", "lat"),
+                                     crs = "+proj=longlat +datum=WGS84"), 
+                            crs = st_crs(proj.USGS)
+                            )
 
 wx.avg.ann.P <- wx %>%
   group_by(STATION, lon, lat) %>%
   summarize(sumprecip = sum(PRCP, na.rm=T))
-wx.prcp.proj <- spTransform(SpatialPointsDataFrame(wx.avg.ann.P[c("lon", "lat")], 
-                                                   wx.avg.ann.P,
-                                                   proj4string = CRS("+proj=longlat +datum=WGS84")), CRS(proj.USGS))
+
+# wx.prcp.proj <- spTransform(SpatialPointsDataFrame(wx.avg.ann.P[c("lon", "lat")], 
+#                                                    wx.avg.ann.P,
+#                                                    proj4string = CRS("+proj=longlat +datum=WGS84")), CRS(proj.USGS))
+
+wx.prcp.proj <- st_transform(st_as_sf(x = wx.avg.ann.P, 
+                                     coords = c("lon", "lat"),
+                                     crs = "+proj=longlat +datum=WGS84"), 
+                             crs = st_crs(proj.USGS)
+                             )
 
 # Check with plot
 pdf(file = paste0("Figures/WX_example_Maps_", g, ".pdf"), width = 10, height = 8)

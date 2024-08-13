@@ -5,6 +5,7 @@ loadpacks <- c(
             "aws.s3", # AWS convenience functions s3save and s3load
             "circular", # circular transformation of magvar
             "corrplot",
+            "data.table",
             "doParallel",
             "DT",
             "foreach", # for parallel implementation
@@ -16,22 +17,28 @@ loadpacks <- c(
             "kableExtra",
             "lubridate",
             "maps",
-            "maptools",
             "mapproj",  # for coord_map, 
             "maptree", # for better graphing of decision trees
             "mlbench",
+            "osmdata",
             "pander",
             "party",
             "partykit",
             "pROC",
+            "performanceEstimation",
             "randomForest",
+            "RANN",
             "raster", 
-            "rgdal",  # for readOGR, , needed for reading in ArcM shapefiles
+            "ROSE",
+            "RPostgres",
             "sf",  # for gIntersection, to clip two shapefiles
             "sp",
+            "stringr",
+            "terra",
             "tidyverse",
+            "tigris",
             "utils",
-			"dplyr")
+			      "dplyr")
 
 
 for(i in loadpacks){if(length(grep(i, (.packages(all.available=T))))==0) install.packages(i, dependencies =TRUE)}

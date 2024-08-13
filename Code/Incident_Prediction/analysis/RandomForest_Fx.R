@@ -87,6 +87,7 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
     test.dat <- test.dat[cc,]
     
     test.dat.use = test.dat
+    
     comb.dat <- rbind(train.dat, test.dat)
   }
   
@@ -114,7 +115,7 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   Nobs <- data.frame(nrow(rundat),
                      sum(as.numeric(as.character(rundat[,response.var])) == 0),
                      sum(as.numeric(as.character(rundat[,response.var])) > 0),
-                     length(rundat$nWazeAccident[train.dat$nWazeAccident>0]) )
+                     length(rundat$alert_type[rundat$alert_type == "ACCIDENT"]) )
   
   colnames(Nobs) = c("N", "No Crash", "Crash present", "Waze accident present")
   
@@ -148,9 +149,10 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   
   dev.off()
 
-  out.df <- data.frame(test.dat.use[, c("GRID_ID", "Year", "day", "hour", response.var)], rf.pred, rf.prob)
-  out.df$day <- as.numeric(out.df$day)
-  names(out.df)[5:8] <- c("Obs", "Pred", "Prob.Noncrash", "Prob.Crash")
+ out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob)
+ save(out.df, file = 'Intermediate/outdf.Rdata')
+ out.df$Day <- as.numeric(out.df$Day)
+ names(out.df)[ncol(out.df)-3:ncol(out.df)] <- c("Obs", "Pred", "Prob.Noncrash", "Prob.Crash")
   out.df = data.frame(out.df,
                       TN = out.df$Obs == 0 &  out.df$Pred == "NoCrash",
                       FP = out.df$Obs == 0 &  out.df$Pred == "Crash",
@@ -167,7 +169,7 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
 
     rf.pred <- cut(rf.prob, breaks = c(-100, cutoff[2], 100), include.lowest = T, labels = c("NoCrash","Crash"))
 
-    out.df <- data.frame(test.dat.use[, c("GRID_ID", "Year", "day", "hour", response.var)], rf.pred, rf.prob)
+    out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob)
     out.df$day <- as.numeric(out.df$day)
     names(out.df)[5:7] <- c("Obs", "Pred", "Prob.Crash")
     out.df = data.frame(out.df,
@@ -272,7 +274,7 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
   Nobs <- data.frame(nrow(rundat),
                      sum(as.numeric(as.character(rundat[,response.var])) == 0),
                      sum(as.numeric(as.character(rundat[,response.var])) > 0),
-                     length(rundat$nWazeAccident[train.dat$nWazeAccident>0]) )
+                     length(rundat$alert_type[rundat$alert_type == "ACCIDENT"]))
   
   colnames(Nobs) = c("N", "No EDT", "EDT present", "Waze accident present")
 
@@ -309,7 +311,7 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
     #dev.print(device = jpeg, file = paste0("AUC_", model.no, ".jpg"), width = 500, height = 500)
     dev.off()
     
-    out.df <- data.frame(test.dat.use[, c("GRID_ID", "day", "hour", response.var)], rf.pred, rf.prob)
+    out.df <- data.frame(test.dat.use[, c("osm_id", "Day", "Hour", response.var)], rf.pred, rf.prob)
     out.df$day <- as.numeric(out.df$day)
     names(out.df)[4:7] <- c("Obs", "Pred", "Prob.Noncrash", "Prob.Crash")
     out.df = data.frame(out.df,
@@ -326,7 +328,7 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
     
     rf.pred <- cut(rf.prob, breaks = c(-100, cutoff[2], 100), include.lowest = T, labels = c("NoCrash","Crash"))
     
-    out.df <- data.frame(test.dat.use[, c("GRID_ID", "day", "hour", response.var)], rf.pred, rf.prob)
+    out.df <- data.frame(test.dat.use[, c("osm_id", "Day", "Hour", response.var)], rf.pred, rf.prob)
     out.df$day <- as.numeric(out.df$day)
     names(out.df)[4:6] <- c("Obs", "Pred", "Prob.Crash")
     out.df = data.frame(out.df,
