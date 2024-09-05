@@ -30,8 +30,8 @@ if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
   # Get weather forecast for the next week
   # First check to see if forecast has been run already from today (to not over-user API call)
   
-  if(file.exists(file.path(inputdir, 'Weather', paste0("TN_Forecasts_", Sys.Date(), ".RData")))) {
-    load(file.path(inputdir, 'Weather', paste0("TN_Forecasts_", Sys.Date(), ".RData")))
+  if(file.exists(file.path(inputdir, 'Weather', paste0(state,"Weather_Forecasts_", Sys.Date(), ".RData")))) {
+    load(file.path(inputdir, 'Weather', paste0(state,"Weather_Forecasts_", Sys.Date(), ".RData")))
   } else {
     source('datacleaning/Get_weather_forecasts.R')
   }

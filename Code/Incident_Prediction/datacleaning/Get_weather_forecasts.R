@@ -1,15 +1,8 @@
 # Get weather forecasts for state of interest
 
 # Setup ----
-inputdir <- file.path(getwd(),"Input")
-outputdir<- file.path(getwd(),"Output")
 
 source('utility/get_packages.R')
-ON_SDC = F
-if(ON_SDC){
-  teambucket <- "s3://prod-sdc-sdi-911061262852-us-east-1-bucket"
-  user <- file.path( "/home", system("whoami", intern = TRUE)) # the user directory 
-}
 
 library(ggmap)
 library(httr) # for GET
@@ -23,18 +16,83 @@ library(sf)
 # Get weather wx_data ----
 
 # The below is a more generalized approach to set the points for which to query weather data 
-# (based on state of interest). For TN it comes up with 14 points, whereas the original version for TN had
-# 11 points throughout the state. Method seems to work for all states except for Alaska. It does work
+# (based on state of interest). Method seems to work for all states except for Alaska. It does work
 # for Hawaii, but only puts 2 points there.
 # Eventual TO - DO item - figure out why it doesn't work for Alaska and fix it.
 
-## Setting State here for now, but will likely move to main script/location later
-state <- "Tennessee"
+## Setting directories, state, year, projection, etc., here for now, but should move the setting of these parameters 
+## to main parent script/location later
+## (i.e. set them in analysis/PredictWeek.R script)
 
+inputdir <- file.path(getwd(),"Input")
+outputdir<- file.path(getwd(),"Output")
+
+state <- "WA"
+
+year <- 2021
+
+# Indicate whether the state has a unified time zone
+one_zone <-TRUE
+# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
+# among the options provided after running the first line below (OlsonNames())
+
+# OlsonNames()
+# time_zone_name <- "US/Central"
+time_zone_name <- "US/Pacific"
+
+# projection used in training is epsg 5070, so using that here as well. 
+projection <- 5070
+
+# The coordinate reference system for the TomorrowIO API is WGS84 (epsg code 4326)
+api_crs <- 4326
+
+#Timezones --------------------------------------------------------------
+onSDC <- T
+
+if(onSDC){
+  US_timezones <- st_read(file.path(inputdir,"Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))
+}else{
+  US_timezones <- st_read("https://geo.dot.gov/server/rest/services/Hosted/Time_Zones_DS/FeatureServer/0/query?returnGeometry=true&where=1=1&outFields=*&f=geojson")
+}
+
+tz_adj_to_names <- data.frame(tz_adj = c(-5,-6,-7,-8,-9,-10,-11), tz_name = c("US/Eastern","US/Central","US/Mountain","US/Pacific", "US/Alaska", "US/Hawaii", "US/Samoa"))
+
+timezone_adj <- US_timezones %>% st_transform(crs=projection) %>% 
+  mutate(adjustment = as.numeric(paste0(str_sub(utc, 1, 1), str_sub(utc, 2, 3)))) %>% 
+  select(adjustment) %>% 
+  left_join(tz_adj_to_names,by = join_by(adjustment==tz_adj))
+
+rm(tz_adj_to_names)
+#-----------------------------------------------------------------------
+
+state_osm <- ifelse(state == "WA", 'Washington State',
+                    ifelse(state == "MN", "Minnesota", NA))
+
+state_osm <- gsub(" ", "_", state_osm) # Normalize state name
+
+########
 # Access state boundary using tigris package, which loads Census TIGER/Line Shapefiles
-state_map <- states(cb = TRUE, year = 2021) %>%
-  filter_state(state)
-# default projection from the above is EPSG 4269 for all states, including Hawaii and Alaska
+# default coordinate reference system for this is EPSG 4269 for all states, including Hawaii and Alaska, however - 
+# in the below code converting this immediately to the coordinate reference system for the TomorrowIO API,
+# since we will be using this to form the API queries. Ultimately, we then convert the outputs from this script 
+# to the default projection that we've been using (epsg 5070, defined above as 'projection')
+
+boundary_file <- paste0(state_osm,"_boundary")
+file_path <- file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg'), paste0(boundary_file,'.shp'))
+
+if (file.exists(file.path(file_path))){
+  print("State boundary file found")
+  state_map <- read_sf(file_path) %>% st_transform(crs = api_crs)
+} else{
+  if (state_osm == 'Washington_State'){
+    state_border <- 'Washington'
+  }else{
+    state_border <- state_osm
+  }
+  state_map <- states(cb = TRUE, year = 2021) %>%
+    filter_state(state_border) %>%
+    st_transform(crs = api_crs)
+  }
 
 # Overlay a grid of points within the state - current resolution is 1 degree by 1 degree - 
 # This is imperfect because the distances between longitude degrees are greater as one 
@@ -139,36 +197,20 @@ if(TomorrowIO) {
   }
 
   rm(list=c("wx_dat_daily_values","wx_dat_hourly_values"))
-  
-  ## TO-DO: need generic method for automatically getting/setting time zone. What to do if state
-  ## crosses multiple time zones?
-  # By default, TomorrowIO reported time zone is Coordinated Universal Time (UTC).
 
   weather_daily.proj <- st_as_sf(weather_daily,
                                  coords = c('lon', 'lat'),
-                                 crs = 4269)
+                                 crs = api_crs) %>% st_transform(crs=projection)
   
   weather_hourly.proj <- st_as_sf(weather_hourly,
                                   coords = c('lon', 'lat'),
-                                  crs = 4269)
+                                  crs = api_crs) %>% st_transform(crs=projection)
 
-  # CRS("+proj=longlat +datum=WGS84")
-
-  # Read shapefile with time zone IDs to indicate which areas belong to which time zones
-  tz <- read_sf(file.path(inputdir,"Shapefiles", 'TimeZone'), layer = 'combined-shapefile')  
-  tz <- st_transform(tz, crs = 4269)
-
-  # Assign time zone ID ('tzid') to each row for daily and hourly based on intersection with the time zones shapefile, 'tz'
-  weather_daily.proj <- weather_daily.proj %>% st_join(tz[,"tzid"])
-  weather_hourly.proj <- weather_hourly.proj %>% st_join(tz[,"tzid"])
-
-  # Set local time based on time zone ID and the UTC hour
-  weather_hourly.proj$local_time <- with_tz(weather_hourly.proj$utc_hour, weather_hourly.proj$tzid)
-
-  # TO-DO: incorporate daylight savings time.
-  # If the state observes daylight savings time, and if the date/time of an observation is between
-  # The second Sunday in March and the first Sunday in November, then adjust the local time to be one hour later.
-  # The only two states that do not observe daylight savings time are Arizona and Hawaii, as of March 2024.
+  # Set local time based on time zone and the UTC hour
+  if(!one_zone){
+    weather_hourly.proj <- weather_hourly.proj %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
+      mutate(time_local = as.POSIXct(utc_hour, tz = tz_name))
+  } else {weather_hourly.proj <- weather_hourly.proj %>% mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))}
 
   # ggplot() +
   #   geom_sf(data=tz, aes(), fill = NA) +
@@ -178,18 +220,8 @@ if(TomorrowIO) {
   #   theme_minimal()
   
   # Save forecasts ----
-  fn = paste0("TN_Forecasts_", Sys.Date(), ".RData")
+  fn = paste0(state,"Weather_Forecasts_", Sys.Date(), ".RData")
 
   save(list=c('weather_daily', 'weather_daily.proj','weather_hourly', 'weather_hourly.proj'),
        file = file.path(inputdir, "Weather", fn))
-  if(ON_SDC){
-    # Copy to S3
-    system(paste("aws s3 cp",
-                 file.path(inputdir, "Weather", fn),
-                 file.path(teambucket, "TN", "Weather", fn)))
-  }
 }
-  
-# Next steps: interpolate to state level using kriging or other methods, see 
-# http://rspatial.org/analsis/rst/4-interpolation.html
-
