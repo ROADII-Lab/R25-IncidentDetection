@@ -211,16 +211,9 @@ if(TomorrowIO) {
     weather_hourly.proj <- weather_hourly.proj %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
       mutate(time_local = as.POSIXct(utc_hour, tz = tz_name))
   } else {weather_hourly.proj <- weather_hourly.proj %>% mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))}
-
-  # ggplot() +
-  #   geom_sf(data=tz, aes(), fill = NA) +
-  #   geom_sf(data = state_map, aes(), fill = NA, alpha = 1) +
-  #   geom_sf(data = weather_daily.proj, aes(color=tzid))+
-  #   coord_sf(xlim = c(-80, -91), ylim = c(34.9, 36.7), expand = FALSE)+
-  #   theme_minimal()
   
   # Save forecasts ----
-  fn = paste0(state,"Weather_Forecasts_", Sys.Date(), ".RData")
+  fn = paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")
 
   save(list=c('weather_daily', 'weather_daily.proj','weather_hourly', 'weather_hourly.proj'),
        file = file.path(inputdir, "Weather", fn))
