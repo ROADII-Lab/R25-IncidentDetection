@@ -347,6 +347,13 @@ for(m in 1:12){
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
     replace_na(list(ACCIDENT = 0, JAM = 0, ROAD_CLOSED = 0, WEATHERHAZARD = 0))
   
+  waze_averages <- temp_train %>%
+    group_by(osm_id, month, weekday, hour) %>%
+    summarize(average_jams = mean(JAM),
+              average_weather = mean(WEATHERHAZARD),
+              average_closure = mean(ROAD_CLOSED),
+              average_accident = mean(ACCIDENT))
+  
   # thin data, if needed, to avoid running out of memory when running Join_Road_Weather.R script
   if(!is.null(keep_prop)){
     temp_train = temp_train[sample(1:nrow(temp_train), size = nrow(temp_train)*keep_prop),]
@@ -354,6 +361,7 @@ for(m in 1:12){
   
   # save the objects
   save(list = c('temp_train'), file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
+  save(waze_averages, file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_imputed_waze", m,".RData", sep = "_")))
   timediff = Sys.time() - starttime
   
   # clear memory
