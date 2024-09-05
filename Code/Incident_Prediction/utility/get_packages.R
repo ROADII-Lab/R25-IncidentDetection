@@ -38,7 +38,8 @@ loadpacks <- c(
             "tidyverse",
             "tigris",
             "utils",
-			      "dplyr")
+			      "dplyr",
+			      "rgeos")
 
 
 for(i in loadpacks){if(length(grep(i, (.packages(all.available=T))))==0) install.packages(i, dependencies =TRUE)}

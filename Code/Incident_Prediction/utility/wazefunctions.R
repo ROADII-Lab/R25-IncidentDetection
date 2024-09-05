@@ -48,14 +48,14 @@ find_matches <- function(data1_sf, # first sf object (e.g., CAD data file)
   return(data1_sf)
 } # end find_matches function
 
-data1_sf = temp_train # sf object
-data2_sf = waze_temp # second sf object for comparison (e.g., Waze data file)
-time1 = "time_local" # name of column in first sf object with date/time in POSIXct
-time2 = "time_local" # name of column in second sf object with date/time in POSIXct
-ID2 = "ID" # name of column in second sf object with a unique ID for each record
-near_dist = 50 # threshold distance for defining a potential match, in miles (0.5 by default)
-near_time = 120
-r <- 1
+#data1_sf = temp_train # sf object
+#data2_sf = waze_temp # second sf object for comparison (e.g., Waze data file)
+#time1 = "time_local" # name of column in first sf object with date/time in POSIXct
+#time2 = "time_local" # name of column in second sf object with date/time in POSIXct
+#ID2 = "ID" # name of column in second sf object with a unique ID for each record
+#near_dist = 50 # threshold distance for defining a potential match, in miles (0.5 by default)
+#near_time = 120
+#r <- 1
 
 # this function assumes the units are in meters for both sf objects, in 5070 projection
 find_matches_buff <- function(data1_sf, # first sf object (e.g., CAD data file)
