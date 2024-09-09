@@ -1,16 +1,31 @@
-# Prepare forecasted weather for random forest work.
-# Need to create an interpolated grid based on forecasted weather.
+# Intro -----------------------------------
 
-# Run from PredictWeek_TN.R, following Get_weather_forecasts.R, which provides dat 
+# Run from PredictWeek.R, following Get_weather_forecasts.R, which provides weather_hourly.proj 
 # already in memory: inputdir, teambucket, codeloc, state, and g, which repreresents the grid type to use
 
 # Also already in memory is `next_week`, a data frame of the grid ID and date/time for the next week
 
-censusdir <- file.path(getwd(),"Input","census")
-outputdir <- file.path(getwd(),"Output") # to hold daily output files as they are generated
 inputdir <- file.path(getwd(),"Input")
+outputdir<- file.path(getwd(),"Output")
 
-proj.USGS <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+state <- "WA"
+
+year <- 2021
+
+# Indicate whether the state has a unified time zone
+one_zone <-TRUE
+# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
+# among the options provided after running the first line below (OlsonNames())
+
+# OlsonNames()
+# time_zone_name <- "US/Central"
+time_zone_name <- "US/Pacific"
+
+# projection used in training is epsg 5070, so using that here as well. 
+projection <- 5070
+
+# The coordinate reference system for the TomorrowIO API is WGS84 (epsg code 4326)
+api_crs <- 4326
 
 library(gstat) # For kriging
 library(rgeos) # for gIntersects
@@ -19,9 +34,7 @@ library(raster) # masks several functions from dplyr, use caution
 library(doParallel)
 library(foreach)
 
-prepname =  paste0("TN_Forecasts_Gridded_", g, Sys.Date(), ".RData")
-
-# ADD FUNCTION HERE TO GENERATE PLACEHOLDER FOR WEATHER DATA. SOMETHING CALLED paste0("TN_Forecasts_", Sys.Date(), ".RData")
+prepname = paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData")
 
 if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
 
