@@ -25,6 +25,8 @@ state_osm <- ifelse(state == "WA", 'Washington State',
 
 state_osm <- gsub(" ", "_", state_osm) # Normalize state name
 
+# Create directory for the road network file and state boundary file, if it does not yet exist.
+if(!dir.exists(file.path(inputdir,'Roads_Boundary', state_osm))){dir.create(file.path(inputdir,'Roads_Boundary', state_osm), recursive = T)}
 
 #Timezones --------------------------------------------------------------
 onSDC <- T
