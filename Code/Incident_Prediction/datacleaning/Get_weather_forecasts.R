@@ -109,7 +109,8 @@ grd <- state_map %>%
 #   geom_sf(data = grd, aes())
 
 # Create dataframe with the longitude and latitude of the grid points.
-queries <- st_coordinates(grd) %>% as.data.frame()
+queries <- st_coordinates(grd) %>% as.data.frame() %>% 
+  mutate(ID = row.names(.))
 
 # Using TomorrowIO now for the actual API call (can add NOAA GFS as an option later)
 TomorrowIO = T
@@ -142,24 +143,14 @@ if(TomorrowIO) {
   
   # create blank dataframes to populate with weather data
    
-  weather_daily <- data.frame(lon = numeric(),
-                              lat = numeric(),
-                              date = Date(), 
-                              temperatureMin = numeric(),
-                              temperatureMax = numeric(),
-                              snowAccumulationSum = numeric(),
-                              rainAccumulationSum = numeric(),
-                              sleetAccumulationLweSum = numeric(),
-                              iceAccumulationLweSum = numeric())
   
-  weather_hourly <- data.frame(lon = numeric(),
+  weather_hourly <- data.frame(ID = as.character(),
+                               lon = numeric(),
                                lat = numeric(),
                                utc_hour = POSIXct(), 
                                temperature = numeric(),
                                snowAccumulation = numeric(),
-                               rainAccumulation = numeric(),
-                               sleetAccumulationLwe = numeric(),
-                               iceAccumulation = numeric())
+                               rainAccumulation = numeric())
   
   # uncomment this for testing/development 
   # i <- 1
@@ -184,23 +175,20 @@ if(TomorrowIO) {
     wx_dat_hourly_values = wx_dat_i$timelines$hourly$values %>% 
       # extract the hours and assign to a new column
       mutate(utc_hour = ymd_hms(wx_dat_i$timelines$hourly$time),
+             ID = queries$ID[i],
              lon = queries$X[i],
              lat = queries$Y[i]) %>%
       # subset to only retain the necessary columns - Joey removed sleet and ice
-      select(lon, lat, utc_hour,temperature,snowAccumulation, rainAccumulation)#, sleetAccumulationLwe,iceAccumulation)
+      select(ID, lon, lat, utc_hour,temperature,snowAccumulation, rainAccumulation)#, sleetAccumulationLwe,iceAccumulation)
     
     # add forecasts for this point to the data frames along with the rest of the points
-    weather_daily <- rbind(weather_daily,wx_dat_daily_values)
     weather_hourly <- rbind(weather_hourly,wx_dat_hourly_values)
     
     Sys.sleep(0.34)
   }
 
-  rm(list=c("wx_dat_daily_values","wx_dat_hourly_values"))
+  rm(wx_dat_hourly_values)
 
-  weather_daily.proj <- st_as_sf(weather_daily,
-                                 coords = c('lon', 'lat'),
-                                 crs = api_crs) %>% st_transform(crs=projection)
   
   weather_hourly.proj <- st_as_sf(weather_hourly,
                                   coords = c('lon', 'lat'),
@@ -215,6 +203,6 @@ if(TomorrowIO) {
   # Save forecasts ----
   fn = paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")
 
-  save(list=c('weather_daily', 'weather_daily.proj','weather_hourly', 'weather_hourly.proj'),
+  save(list=c('weather_hourly', 'weather_hourly.proj'),
        file = file.path(inputdir, "Weather", fn))
 }
