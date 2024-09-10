@@ -172,13 +172,13 @@ if(TomorrowIO) {
     wx_dat_i = fromJSON(queries$url[i])
     
     # extract the weather attributes for the six days as a dataframe
-    wx_dat_daily_values = wx_dat_i$timelines$daily$values %>%
+    # wx_dat_daily_values = wx_dat_i$timelines$daily$values %>%
       # extract the dates and assign to a new column
-      mutate(date = as.Date(wx_dat_i$timelines$daily$time),
-             lon = queries$X[i],
-             lat = queries$Y[i]) %>%
+     # mutate(date = as.Date(wx_dat_i$timelines$daily$time),
+            # lon = queries$X[i],
+            # lat = queries$Y[i]) %>%
       # subset to only retain the necessary columns
-      select(lon, lat, date, temperatureMin,temperatureMax,snowAccumulationSum, rainAccumulationSum, sleetAccumulationLweSum,iceAccumulationSum)
+     # select(lon, lat, date, temperatureMin,temperatureMax,snowAccumulationSum, rainAccumulationSum, sleetAccumulationLweSum,iceAccumulationSum)
     
     # extract the weather attributes for the 120 hours as a dataframe
     wx_dat_hourly_values = wx_dat_i$timelines$hourly$values %>% 
@@ -186,8 +186,8 @@ if(TomorrowIO) {
       mutate(utc_hour = ymd_hms(wx_dat_i$timelines$hourly$time),
              lon = queries$X[i],
              lat = queries$Y[i]) %>%
-      # subset to only retain the necessary columns
-      select(lon, lat, utc_hour,temperature,snowAccumulation, rainAccumulation, sleetAccumulationLwe,iceAccumulation)
+      # subset to only retain the necessary columns - Joey removed sleet and ice
+      select(lon, lat, utc_hour,temperature,snowAccumulation, rainAccumulation)#, sleetAccumulationLwe,iceAccumulation)
     
     # add forecasts for this point to the data frames along with the rest of the points
     weather_daily <- rbind(weather_daily,wx_dat_daily_values)
