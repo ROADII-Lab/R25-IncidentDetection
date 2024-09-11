@@ -97,7 +97,7 @@ if (file.exists(file.path(file_path))){
 #Transform state_network crs to NAD83 before joining with crash_files; should probably change this in the files we have and bring this into the query loop
 
 if(st_crs(state_network) != projection){
-  state_network <- st_transform(state_network, projection)
+  roads <- st_transform(state_network, projection)
 }
 
 # Weather Merge -----------------------------------------------------------
@@ -116,7 +116,7 @@ if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
   }
 
 # make points file for KNN 
-roads <- state_network %>% st_cast("POINT") %>% group_by(osm_id) %>% slice_head(n=1) %>% arrange(osm_id)
+road_points <- roads %>% st_cast("POINT") %>% group_by(osm_id) %>% slice_head(n=1) %>% arrange(osm_id)
 
 ID_geometry <- weather_hourly.proj %>% 
   distinct(ID, .keep_all = T) %>% 
