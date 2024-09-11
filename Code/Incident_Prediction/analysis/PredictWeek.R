@@ -1,17 +1,7 @@
-# Using best random forest models of crash estimation for TN, predict the number of crashes for the next week by grid ID and time.
-# Inputs:
-# - Time variables for today to next 10 days, for each Grid ID
-# - Special events values prepped by Grid ID 
-# - Weather forecast for by Grid ID
-# - Waze input variables for model 05 (all TN crashes, Base Waze inputs): 
-# - Join with all other predictors which are not time-varying, namely urban area, TotalHistCrash, TotalFatalCrash.
-
-# Goal should be to source one script of each type fo input to prep, then join them all into a `next_week` data table. Then run predict(rf_05, next_week) to generate predictions for each grid cell, each hour of next week.
-
-# Setup ---- 
 rm(list=ls()) # Start fresh
 
 inputdir <- file.path(getwd(),"Input")
+interdir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
 
 source('utility/get_packages.R') # installs necessary packages
@@ -22,17 +12,15 @@ library(doParallel) # includes iterators and parallel
 library(tidyverse)
 library(sf)
 
-grids = c("TN_01dd_fishnet",
-          "TN_1sqmile_hexagons")
-
-source("utility/wazefunctions_TN.R") 
+source("utility/wazefunctions.R") 
 
 # read random forest function
-source("analysis/RandomForest_WazeGrid_Fx.R")
+source("analysis/RandomForest_Fx.R")
 
 # <><><><><>
-g = grids[1] # start with square grids, now running hex also. Change between 1 and 2.
-state = "TN"
+state = "WA"
+model = "07"
+
 # <><><><><>
 
 # Load a fitted model from local machine -- run RandomForest_WazeGrids_TN.R to generate models
@@ -40,25 +28,12 @@ state = "TN"
 # New data will need the same structure as the data used in the model fitting.
 # This script is based on model 05, which performed the best of the models we tested.
 
-load(file.path(outputdir, 'Random_Forest_Output', paste0('TN_Model_05_', g, '_RandomForest_Output.RData')))
+load(file.path(outputdir, 'Random_Forest_Output', paste0(state,'_Model_', model, '_RandomForest_Output.RData')))
 
-# Load data used for fitting - prepared also in RandomForest_wazeGrids_TN.R
-Waze_Prepared_Data = dir(outputdir)[grep(paste0('^', state, '_\\d{4}-\\d{2}_to_\\d{4}-\\d{2}_', g, '.csv'), dir(outputdir))]
-
-w.allmonths = read.csv(file.path(outputdir, Waze_Prepared_Data))
-
-w.allmonths$MatchTN_buffer <- as.factor(w.allmonths$MatchTN_buffer)
-w.allmonths$MatchTN_buffer_Acc <- as.factor(w.allmonths$MatchTN_buffer_Acc)
-w.allmonths$TN_crash <- as.factor(w.allmonths$TN_crash)
-w.allmonths$date <- as.Date(w.allmonths$date)
-w.allmonths$weekday <- as.factor(w.allmonths$weekday)
-w.allmonths$DayOfWeek <- as.factor(w.allmonths$DayOfWeek)
-w.allmonths$GRID_ID <- as.character(w.allmonths$GRID_ID)
 
 # Create week ----
 # Create GRID_ID by time variables for the next week, to join everything else into 
 today <- Sys.Date()
-
 
 day_seq <- seq(today, today+7, by = 1)
 hour_seq <- 0:23
@@ -68,36 +43,54 @@ day_x_hour <- expand.grid(Day = day_seq, Hour = hour_seq)
 day_hour_seq <- as.POSIXct(paste(day_x_hour$Day, day_x_hour$Hour), 
                            format = '%Y-%m-%d %H', tz = 'America/Chicago')
 
+months <- unique(as.integer(format(day_hour_seq, "%m")))
+
 day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
 
-grid_seq <- sort(unique(w.allmonths$GRID_ID))
 
-grid_x_day <- expand.grid(GRID_ID = grid_seq,
-                          hextime = day_hour_seq)
+#Load imputed waze data for creatiug OSM network
 
-grid_x_day <- grid_x_day %>%
-  mutate(hextime = as.POSIXct(hextime, format = '%Y-%j %H'),
-         Year = format(hextime, '%Y'),
-         mo = format(hextime, '%m'),
-         day = format(hextime, '%j'),
-         hour = as.numeric(format(hextime, '%H')),
-         DayOfWeek = format(hextime, '%u'), # Monday = 1
-         date = format(hextime, '%Y-%m-%d'))
+imputed_waze <- data.frame()
 
-na.action = "fill0" # This is an argument in append.hex, below. Other options are 'omit' or 'keep'.
+for (m in months){
+  load(file.path(interdir, "Month_Frames", paste0("WA_2021_month_frame_imputed_waze_",m,"_.RData")))
+  imputed_waze <- rbind(imputed_waze, waze_averages)
+  rm(waze_averages)
+  gc()
+}
+
+
+link_seq <- sort(unique(imputed_waze$osm_id))
+
+link_x_day <- expand.grid(osm_id = link_seq,
+                          date = day_hour_seq)
+
+link_x_day <- link_x_day %>%
+  mutate(date = as.POSIXct(date, format = '%Y-%j %H'),
+         Year = format(date, '%Y'),
+         month = as.integer(format(date, '%m')),
+         hour = as.numeric(format(date, '%H')),
+         DayOfWeek = format(date, '%u'), # Monday = 1,
+         weekday = ifelse(DayOfWeek == 6 | DayOfWeek == 7, TRUE, FALSE))
+
+#Added in alert averages
+
+link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id","month", "hour","weekday"))
+
+#na.action = "fill0" # This is an argument in append.hex, below. Other options are 'omit' or 'keep'.
 
 # Get special events for next week ----
-
+#
 # Start with last week of 2018; need to get 2019. This is created by Prep_SpecialEvents.R
-load(file.path(inputdir, 'SpecialEvents', paste0('Prepared_TN_SpecialEvent_', g, '.RData')))
-
+#load(file.path(inputdir, 'SpecialEvents', paste0('Prepared_TN_SpecialEvent_', g, '.RData')))
+#
 # Join with append.hex
-next_week <- append.hex(hexname = 'grid_x_day',
-                        data.to.add = "TN_SpecialEvent", state = state, na.action = na.action)
-
+#next_week <- append.hex(hexname = 'grid_x_day',
+#                        data.to.add = "TN_SpecialEvent", state = state, na.action = na.action)
+#
 # Get weather for next week ----
 
-#source('utility/Prep_ForecastWeather.R')
+source('utility/Prep_ForecastWeather.R')
 
 # Placeholder wx.grd.day file
 next_week <- next_week %>%
@@ -121,9 +114,9 @@ w.expected$mo <- as.character(w.expected$mo)
 w.expected$DayOfWeek <- as.character(w.expected$DayOfWeek)
 
 next_week <- left_join(next_week, w.expected,
-                        by = c('GRID_ID', 'mo', 'DayOfWeek', 'hour'))
-  
-  
+                       by = c('GRID_ID', 'mo', 'DayOfWeek', 'hour'))
+
+
 # Add in static variables: Historical crashes, historical FARS, and urban/rural. Grab these from w.allmonths by GRID_ID
 
 w.staticvars <- w.allmonths %>% 
@@ -133,7 +126,7 @@ w.staticvars <- w.allmonths %>%
                 TotalHistCrashsum, TotalFatalCrashsum)
 
 next_week <- left_join(next_week, w.staticvars,
-                        by = 'GRID_ID')
+                       by = 'GRID_ID')
 
 
 # Make predictions ----
@@ -166,7 +159,7 @@ predict_next_week <- predict(rf.out, next_week_pred, type = "response",
                              cutoff = c(1-cutoff, cutoff)) 
 
 prob_next_week <- predict(rf.out, next_week_pred, type = "prob",
-                             cutoff = c(1-cutoff, cutoff)) 
+                          cutoff = c(1-cutoff, cutoff)) 
 
 colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')
 
