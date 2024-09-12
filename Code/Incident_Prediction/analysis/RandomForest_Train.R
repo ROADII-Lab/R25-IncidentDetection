@@ -79,6 +79,8 @@ training_frame <- test_frame <-  data.frame(osm_id = character(),
                                             SNOW = numeric(),
                                             crash = factor())
 
+
+
 for(m in 1:12){
 #for(m in 1:12){
   starttime <- Sys.time()
@@ -161,6 +163,8 @@ bin.mod.diagnostics <- function(predtab){
   
   round(t(data.frame(accuracy, precision, recall, false.positive.rate)), 4)  
 }
+
+
 
 # read random forest function, do.rf()
 source("analysis/RandomForest_Fx.R")
