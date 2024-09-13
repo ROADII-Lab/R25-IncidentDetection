@@ -101,11 +101,6 @@ next_week <- next_week %>%
   mutate(day = as.Date(hextime))
 
 
-#wx.grd.day$day <- as.Date(wx.grd.day$day)
-
-# next_week <- append.hex(hexname = 'next_week',
-#                        data.to.add = "wx.grd.day", state = state, na.action = na.action)
-
 # Generate Waze events for next week ----
 
 source('utility/Prep_ExpectedWaze.R')
@@ -114,7 +109,7 @@ w.expected$mo <- as.character(w.expected$mo)
 w.expected$DayOfWeek <- as.character(w.expected$DayOfWeek)
 
 next_week <- left_join(next_week, w.expected,
-                       by = c('GRID_ID', 'mo', 'DayOfWeek', 'hour'))
+                       by = c('osm_id', 'Month', 'DayOfWeek', 'Hour'))
 
 
 # Add in static variables: Historical crashes, historical FARS, and urban/rural. Grab these from w.allmonths by GRID_ID
