@@ -43,6 +43,9 @@ projection <- 5070
 ### uncomment for temporary testing ####
 m <- 1
 
+##Use Imputed Waze?
+imputed_waze <- FALSE
+
 
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
 
@@ -169,6 +172,35 @@ bin.mod.diagnostics <- function(predtab){
 # read random forest function, do.rf()
 source("analysis/RandomForest_Fx.R")
 
+if(imputed_waze == TRUE){
+
+imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
+                             pattern = "imputed", 
+                             full.names = TRUE)
+
+imputed_waze_data <- list()
+
+for(i in seq_along(imputed_values)){
+  load(imputed_values[i])
+  colnames(waze_averages)[2:ncol(waze_averages)] <- str_to_title(colnames(waze_averages)[2:ncol(waze_averages)])
+  waze_averages$osm_id <- factor(waze_averages$osm_id)
+  waze_averages$Month <- factor(waze_averages$Month)
+  waze_averages$Weekday <- factor(waze_averages$Weekday)
+  waze_averages$Hour <- factor(waze_averages$Hour)
+  waze_averages <- waze_averages %>% rename(weekday = Weekday)
+  imputed_waze_data[[i]] <- waze_averages
+  gc()
+}
+
+imputed_waze_frame <- do.call(rbind, imputed_waze_data)
+
+training_frame <- left_join(training_frame, imputed_waze_frame)
+test_frame <- left_join(test_frame, imputed_waze_frame)
+
+rm(imputed_waze_frame, imputed_waze_data)
+
+gc()
+}
 
 # <><><><><><><><><><><><><><><><><><><><><><><><>
 # End data prep 
@@ -185,7 +217,12 @@ rf.inputs = list(ntree.use = avail.cores * 50, avail.cores = avail.cores, mtry =
 keyoutputs = redo_outputs = list() # to store model diagnostics
 
 # Omit as predictors in this vector:
-alwaysomit = c("crash", "Month", "Day", "Hour", "osm_id")
+if(imputed_waze == TRUE){
+  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "day_of_week")
+}else{
+  alwaysomit = c("crash", "Day", "osm_id", "day_of_week")
+}
+
 
 alert_types = unique(training_frame$alert_type)
 
@@ -198,7 +235,11 @@ starttime = Sys.time()
 # Best Model: 'Model 05' with main waze alert types but not sub-types included
 
 # 05, add base Waze features
+if(imputed_waze == TRUE){
 modelno = paste("07")
+}else{
+  modelno = paste("07_imputed")
+}
 
 omits = c(alwaysomit)
 # 05, add base Waze features
@@ -240,7 +281,7 @@ cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 
 # fn = paste(state, "Model", modelno, "RandomForest_Output.RData", sep= "_")
 # load(file.path(outputdir, 'Random_Forest_Output', fn))
-# importance(rf.out)
+#importance(rf.out)
 
 # # In case the factor levels are different between the provided training and test frames, bind the first row of one 
 # # to the other and then delete it. This will equalize them.
