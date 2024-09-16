@@ -27,10 +27,6 @@ library(sf)
 inputdir <- file.path(getwd(),"Input")
 outputdir<- file.path(getwd(),"Output")
 
-state <- "WA"
-
-year <- 2021
-
 # Indicate whether the state has a unified time zone
 one_zone <-TRUE
 # If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
@@ -89,7 +85,7 @@ if (file.exists(file.path(file_path))){
   }else{
     state_border <- state_osm
   }
-  state_map <- states(cb = TRUE, year = 2021) %>%
+  state_map <- states(cb = TRUE, year = year(Sys.Date())) %>%
     filter_state(state_border) %>%
     st_transform(crs = api_crs)
   }
@@ -130,7 +126,7 @@ if(TomorrowIO) {
   
   # Next line appends a column to the queries dataframe with the constructed url for each query.
   queries = queries %>% 
-    mutate(url = paste0('https://api.tomorrow.io/v4/weather/forecast?location=',Y,',',X,'&apikey=', w_key,'&units=imperial'))
+    mutate(url = paste0('https://api.tomorrow.io/v4/weather/forecast?location=',Y,',',X,'&apikey=', w_key,'&units=metric')) 
   
   # Daily data are available for 6 days (including the current day, so only 5 future days)
   # Hourly data are available for 120 hours in the future (i.e. 5 future days), so about the 
@@ -187,6 +183,8 @@ if(TomorrowIO) {
     Sys.sleep(0.34)
   }
 
+  cat(paste0("TomorrowIO API pulled at ", Sys.time()))
+  
   rm(wx_dat_hourly_values)
 
   

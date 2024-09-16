@@ -6,17 +6,11 @@ library(sf)
 library(osmdata)
 library(dplyr)
 
-inputdir <- file.path(getwd(),"Input")
-outputdir<- file.path(getwd(),"Output")
-
-state <- "WA"
 projection <- 5070
-year <- 2021
 
 # REMOVE THIS ONCE PULLING INTO PREDICTWEEK.R (WILL ALSO NEED TO CHANGE roads THROUGHOUT HERE)
 #roads <- st_read(file.path(inputdir, "Roads_Boundary", "Washington_State", "Washington_State_network.gpkg", "Washington_State_network.shp"))
 #load("D:/Documents/Joey/R25-IncidentDetection/Code/Incident_Prediction/Input/Weather/Weather_Forecasts_WA_2024-09-10.RData")
-
 
 state_osm <- ifelse(state == "WA", 'Washington State',
                     ifelse(state == "MN", "Minnesota", NA))
@@ -96,8 +90,8 @@ if (file.exists(file.path(file_path))){
 
 #Transform state_network crs to NAD83 before joining with crash_files; should probably change this in the files we have and bring this into the query loop
 
-if(st_crs(state_network) != projection){
-  roads <- st_transform(state_network, projection)
+if(st_crs(roads) != projection){
+  roads <- st_transform(roads, projection)
 }
 
 # Weather Merge -----------------------------------------------------------
@@ -129,15 +123,15 @@ weather_forecast <- road_points %>%
   bind_cols(KNN) %>% 
   mutate(ID = as.character(V1)) %>% 
   full_join(weather_hourly, by= "ID", relationship="many-to-many") %>% 
-  select(osm_id, utc_hour, temperature, snowAccumulation, rainAccumulation)
+  rename(precipitation = rainAccumulation, # to match historical names 
+         SNOW = snowAccumulation) %>% 
+  select(osm_id, date, temperature, precipitation, SNOW) 
    
   save(weather_forecast, file = file.path(inputdir, "Weather", prepname))
 
-  rm(KNN, ID_geometry, road_points, grd, queries, state_map, weather_hourly, weather_hourly.proj, wx_dat_i,
-     api_crs)
+  rm(KNN, ID_geometry, grd, queries, state_map, weather_hourly, weather_hourly.proj, wx_dat_i,
+     api_crs, timezone_adj, US_timezones, road_points)
   
   } else {
   load(file.path(inputdir, "Weather", prepname))
 }
-
-# left join this with the predict week df here or later? 
