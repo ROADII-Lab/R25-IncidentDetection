@@ -28,7 +28,7 @@ model = "07"
 # New data will need the same structure as the data used in the model fitting.
 # This script is based on model 05, which performed the best of the models we tested.
 
-load(file.path(outputdir, 'Random_Forest_Output', paste0(state,'_Model_', model, '_imputed_RandomForest_Output')))
+load(file.path(outputdir, 'Random_Forest_Output', paste0(state,'_Model_', model, '_imputed_RandomForest_Output.RData')))
 
 
 # Create week ----
