@@ -75,7 +75,8 @@ link_x_day <- link_x_day %>%
 
 #Added in alert averages
 
-link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id","month", "hour","weekday"))
+link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id", "month", "hour", "weekday"))
+rm(imputed_waze)
 
 #na.action = "fill0" # This is an argument in append.hex, below. Other options are 'omit' or 'keep'.
 
@@ -92,13 +93,10 @@ link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id","month", "hour
 
 source('utility/Prep_ForecastWeather.R')
 
+link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date", "hour"))
+rm(weather_forecast)
+
 # Placeholder wx.grd.day file
-next_week <- next_week %>%
-  mutate(PRCP = 0,
-         TMIN = 60,
-         TMAX = 85,
-         SNOW = 0) %>%
-  mutate(day = as.Date(hextime))
 
 
 # Generate Waze events for next week ----
