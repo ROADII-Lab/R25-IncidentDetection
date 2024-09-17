@@ -138,7 +138,9 @@ if(TomorrowIO) {
   # so grd object created above should not have more than 25 points).
   
   # create blank dataframes to populate with weather data
-   
+  weather_daily <- data.frame(ID = as.character(),
+                              date = Date(), 
+                              snowAccumulationSum = numeric())
   
   weather_hourly <- data.frame(ID = as.character(),
                                lon = numeric(),
@@ -159,14 +161,13 @@ if(TomorrowIO) {
     wx_dat_i = fromJSON(queries$url[i])
     
     # extract the weather attributes for the six days as a dataframe
-    # wx_dat_daily_values = wx_dat_i$timelines$daily$values %>%
-      # extract the dates and assign to a new column
-     # mutate(date = as.Date(wx_dat_i$timelines$daily$time),
-            # lon = queries$X[i],
-            # lat = queries$Y[i]) %>%
-      # subset to only retain the necessary columns
-     # select(lon, lat, date, temperatureMin,temperatureMax,snowAccumulationSum, rainAccumulationSum, sleetAccumulationLweSum,iceAccumulationSum)
-    
+    wx_dat_daily_values = wx_dat_i$timelines$daily$values %>%
+    #extract the dates and assign to a new column
+      mutate(date = as.Date(wx_dat_i$timelines$daily$time),
+             ID = queries$ID[i]) %>%
+    #subset to only retain the necessary columns
+      select(ID, date, snowAccumulationSum)
+
     # extract the weather attributes for the 120 hours as a dataframe
     wx_dat_hourly_values = wx_dat_i$timelines$hourly$values %>% 
       # extract the hours and assign to a new column
@@ -175,9 +176,10 @@ if(TomorrowIO) {
              lon = queries$X[i],
              lat = queries$Y[i]) %>%
       # subset to only retain the necessary columns - Joey removed sleet and ice
-      select(ID, lon, lat, utc_hour,temperature,snowAccumulation, rainAccumulation)#, sleetAccumulationLwe,iceAccumulation)
+      select(ID, lon, lat, utc_hour,temperature, rainAccumulation)
     
     # add forecasts for this point to the data frames along with the rest of the points
+    weather_daily <- rbind(weather_daily,wx_dat_daily_values)
     weather_hourly <- rbind(weather_hourly,wx_dat_hourly_values)
     
     Sys.sleep(0.34)
@@ -185,22 +187,26 @@ if(TomorrowIO) {
 
   cat(paste0("TomorrowIO API pulled at ", Sys.time()))
   
-  rm(wx_dat_hourly_values)
-
+  weather_points <- weather_hourly %>% 
+    mutate(date = date(utc_hour)) %>% 
+    left_join(weather_daily, by=c("ID", "date"), relationship = "many-to-many") %>% 
+    select(-date)
   
-  weather_hourly.proj <- st_as_sf(weather_hourly,
-                                  coords = c('lon', 'lat'),
-                                  crs = api_crs) %>% st_transform(crs=projection)
+  rm(wx_dat_daily_values, wx_dat_hourly_values, weather_daily, weather_hourly)
 
+  weather_points.proj <- st_as_sf(weather_points,
+                                 coords = c('lon', 'lat'),
+                                 crs = api_crs) %>% st_transform(crs=projection)
+  
   # Set local time based on time zone and the UTC hour
   if(!one_zone){
-    weather_hourly.proj <- weather_hourly.proj %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
+    weather_points.proj <- weather_points.proj %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
       mutate(time_local = as.POSIXct(utc_hour, tz = tz_name))
-  } else {weather_hourly.proj <- weather_hourly.proj %>% mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))}
+  } else {weather_points.proj <- weather_points.proj %>% mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))}
   
   # Save forecasts ----
   fn = paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")
 
-  save(list=c('weather_hourly', 'weather_hourly.proj'),
+  save(list=c('weather_points', 'weather_points.proj'),
        file = file.path(inputdir, "Weather", fn))
 }
