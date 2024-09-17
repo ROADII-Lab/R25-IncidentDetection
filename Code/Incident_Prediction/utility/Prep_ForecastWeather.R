@@ -112,7 +112,7 @@ if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
 # make points file for KNN 
 road_points <- roads %>% st_cast("POINT") %>% group_by(osm_id) %>% slice_head(n=1) %>% arrange(osm_id)
 
-ID_geometry <- weather_hourly.proj %>% 
+ID_geometry <- weather_points.proj %>% 
   distinct(ID, .keep_all = T) %>% 
   select(ID, geometry)
   
@@ -122,15 +122,15 @@ weather_forecast <- road_points %>%
   st_drop_geometry() %>%
   bind_cols(KNN) %>% 
   mutate(ID = as.character(V1)) %>% 
-  full_join(weather_hourly, by= "ID", relationship="many-to-many") %>% 
+  full_join(weather_points, by= "ID", relationship="many-to-many") %>% 
   rename(precipitation = rainAccumulation, # to match historical names 
          SNOW = snowAccumulation) %>% 
   select(osm_id, date, temperature, precipitation, SNOW) 
    
   save(weather_forecast, file = file.path(inputdir, "Weather", prepname))
 
-  rm(KNN, ID_geometry, grd, queries, state_map, weather_hourly, weather_hourly.proj, wx_dat_i,
-     api_crs, timezone_adj, US_timezones, road_points)
+  # rm(KNN, ID_geometry, grd, queries, state_map, weather_points, weather_points.proj, wx_dat_i,
+  #    api_crs, timezone_adj, US_timezones, road_points)
   
   } else {
   load(file.path(inputdir, "Weather", prepname))
