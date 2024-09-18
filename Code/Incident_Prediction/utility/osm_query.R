@@ -323,7 +323,7 @@ waze.jams.files <- list.files(path = waze_jams_dir, pattern = "\\.csv$")
 waze.jams.files.year <- file.path(waze_jams_dir, waze.jams.files[grep(as.character(year), waze.jams.files)])
 
 # uncomment for testing
-#m <- 1
+m <- 1
 
 gc()
 
@@ -362,27 +362,36 @@ for(m in 1:12){
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
     replace_na(list(ACCIDENT = 0, JAM = 0, ROAD_CLOSED = 0, WEATHERHAZARD = 0))
   
-  waze_averages <- temp_train %>%
-    group_by(osm_id, month, weekday, hour) %>%
-    summarize(average_jams = mean(JAM),
-              average_weather = mean(WEATHERHAZARD),
-              average_closure = mean(ROAD_CLOSED),
-              average_accident = mean(ACCIDENT))
-  
+  # if jams data are available, read them in for that month
   if(length(waze.jams.files.year) > 0){
-    # read in jams for that month
-    waze_temp = read.csv(waze.files.year[m])
+    waze_temp = read.csv(waze.jams.files.year[m]) %>%
+      rename(month = month_local,
+             day = day_local,
+             hour = hour_local) %>%
+      mutate(osm_id = as.character(osm_id))
     
     temp_train = temp_train %>% 
-      left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
-      replace_na(list(level_mode = 0))
-    
-    waze_jam_level_average <- temp_train %>%
+      left_join(waze_temp %>% select(!pub_utc_timestamp_mean), by = c('osm_id', 'month', 'day', 'hour')) %>%
+      replace_na(list(level_mode = 0)) %>%
+      rename(jam_level = level_mode)
+  }
+  # create the imputed averages - two different versions depending on whether there are data on jams level
+  if(length(waze.jams.files.year) > 0){
+    waze_averages <- temp_train %>%
       group_by(osm_id, month, weekday, hour) %>%
-      summarize(average_jam_level = mean(level_mode))
+      summarize(average_jams = mean(JAM),
+                average_weather = mean(WEATHERHAZARD),
+                average_closure = mean(ROAD_CLOSED),
+                average_accident = mean(ACCIDENT),
+                average_jam_level = mean(jam_level))
     
-    waze_averages <- waze_averages %>% 
-      left_join(waze_jam_level_average, by = c('osm_id', 'month', 'day', 'hour'))
+  } else {
+    waze_averages <- temp_train %>%
+      group_by(osm_id, month, weekday, hour) %>%
+      summarize(average_jams = mean(JAM),
+                average_weather = mean(WEATHERHAZARD),
+                average_closure = mean(ROAD_CLOSED),
+                average_accident = mean(ACCIDENT))
   }
   
   # thin data, if needed, to avoid running out of memory when running Join_Road_Weather.R script
@@ -396,12 +405,13 @@ for(m in 1:12){
   timediff = Sys.time() - starttime
   
   # clear memory
-  rm(temp_train, waze_temp)
+  rm(temp_train, waze_temp, waze_averages)
   gc()
   cat("Added waze data for month ", m, ". ")
   cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
 }
-
+load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
+load(file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_imputed_waze", m,".RData", sep = "_")))
 dif_time <- round(difftime(Sys.time(), top_time, units = "mins"), 2)
 cat(paste0("Created all month frames with crashes and waze data. ", dif_time, " minutes elapsed thus far in total."))
 cat("Now adding weather.")
