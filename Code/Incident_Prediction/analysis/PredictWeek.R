@@ -4,6 +4,10 @@ inputdir <- file.path(getwd(),"Input")
 interdir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
 
+# Make outputdir and intermediatedir if not already there
+if(!dir.exists(interdir)) { dir.create(interdir) }
+if(!dir.exists(outputdir)) { dir.create(outputdir) }
+
 source('utility/get_packages.R') # installs necessary packages
 
 library(randomForest)
@@ -12,30 +16,39 @@ library(doParallel) # includes iterators and parallel
 library(tidyverse)
 library(sf)
 
-source("utility/wazefunctions.R") 
+# source("utility/wazefunctions.R") 
 
 # read random forest function
 source("analysis/RandomForest_Fx.R")
 
 # <><><><><>
-state = "WA"
-model = "07"
+state <- "WA"
+train_year <- 2021
+train_imputed <- TRUE
+num <- "07"
 
 # <><><><><>
+
+# The full model identifier gets created in this next step
+if(train_imputed == TRUE){
+  modelno = paste(state, train_year, "imputed", num, sep = "_")
+}else{
+  modelno = paste(state, train_year, "NOTimputed", num, sep = "_")
+}
 
 # Load a fitted model from local machine -- run RandomForest_WazeGrids_TN.R to generate models
 # Loads rf.out, the model object, which we will feed new data to predict on.
 # New data will need the same structure as the data used in the model fitting.
 # This script is based on model 05, which performed the best of the models we tested.
 
-load(file.path(outputdir, 'Random_Forest_Output', paste0(state,'_Model_', model, '_imputed_RandomForest_Output.RData')))
+load(file.path(outputdir, 'Random_Forest_Output', paste0(state,'_Model_', modelno, 'RandomForest_Output.RData')))
 
 
 # Create week ----
 # Create GRID_ID by time variables for the next week, to join everything else into 
 today <- Sys.Date()
 
-day_seq <- seq(today, today+7, by = 1)
+day_seq <- seq(today, today+4, by = 1)
 hour_seq <- 0:23
 
 day_x_hour <- expand.grid(Day = day_seq, Hour = hour_seq)
@@ -48,7 +61,7 @@ months <- unique(as.integer(format(day_hour_seq, "%m")))
 day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
 
 
-#Load imputed waze data for creatiug OSM network
+#Load imputed waze data for creating OSM network
 
 imputed_waze <- data.frame()
 

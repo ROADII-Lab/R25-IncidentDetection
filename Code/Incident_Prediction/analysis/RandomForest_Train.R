@@ -223,26 +223,20 @@ if(imputed_waze == TRUE){
   alwaysomit = c("crash", "Day", "osm_id", "day_of_week")
 }
 
-
-alert_types = unique(training_frame$alert_type)
-
-alert_subtypes = unique(training_frame$sub_type)
-
-response.var = "crash" # now could use nTN_total, for all TN crashes in this grid cell, this hour. Or TN_crash, binary indicator of if any TN crash occurred in this grid cell/hours 
+response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
 
-# Best Model: 'Model 05' with main waze alert types but not sub-types included
+num <- "07" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
-# 05, add base Waze features
+# The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
-modelno = paste("07")
+modelno = paste(state, year, "imputed", num, sep = "_")
 }else{
-  modelno = paste("07_imputed")
+  modelno = paste(state, year, "NOTimputed", num, sep = "_")
 }
 
 omits = c(alwaysomit)
-# 05, add base Waze features
 
 # Check to see what we are passing as predictors
 cat('Predictors to use in model', modelno, ': \n\n',
