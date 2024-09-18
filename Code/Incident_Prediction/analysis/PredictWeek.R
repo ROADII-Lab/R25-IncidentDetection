@@ -93,10 +93,14 @@ rm(imputed_waze)
 
 source('utility/Prep_ForecastWeather.R')
 
-link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date", "hour"))
+link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>% 
+  filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
-# Placeholder wx.grd.day file
+# na investigation <- only have 5 days of data, we are trying to forecast 7 days 
+# dates <- link_x_day %>% arrange(osm_id) %>% 
+#   distinct(date, .keep_all = T) 
+# rm(dates)
 
 
 # Generate Waze events for next week ----

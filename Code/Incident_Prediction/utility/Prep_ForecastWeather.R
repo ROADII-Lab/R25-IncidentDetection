@@ -124,13 +124,14 @@ weather_forecast <- road_points %>%
   mutate(ID = as.character(V1)) %>% 
   full_join(weather_points, by= "ID", relationship="many-to-many") %>% 
   rename(precipitation = rainAccumulation, # to match historical names 
-         SNOW = snowAccumulation) %>% 
+         SNOW = snowAccumulationSum,
+         date = utc_hour) %>% 
   select(osm_id, date, temperature, precipitation, SNOW) 
    
   save(weather_forecast, file = file.path(inputdir, "Weather", prepname))
 
-  # rm(KNN, ID_geometry, grd, queries, state_map, weather_points, weather_points.proj, wx_dat_i,
-  #    api_crs, timezone_adj, US_timezones, road_points)
+   rm(KNN, ID_geometry, grd, queries, state_map, weather_points, weather_points.proj, wx_dat_i,
+      api_crs, timezone_adj, US_timezones, road_points)
   
   } else {
   load(file.path(inputdir, "Weather", prepname))
