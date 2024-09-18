@@ -28,6 +28,15 @@ state_osm <- gsub(" ", "_", state_osm) # Normalize state name
 # Create directory for the road network file and state boundary file, if it does not yet exist.
 if(!dir.exists(file.path(inputdir,'Roads_Boundary', state_osm))){dir.create(file.path(inputdir,'Roads_Boundary', state_osm), recursive = T)}
 
+waze_dir <- file.path(inputdir, "Waze", state)
+
+waze_jams_dir <- file.path(waze_dir, "jams")
+
+if(!dir.exists(waze_dir)){dir.create(waze_dir, recursive = T)}
+
+if(!dir.exists(waze_jams_dir)){dir.create(waze_jams_dir, recursive = T)}
+
+
 #Timezones --------------------------------------------------------------
 onSDC <- T
 
@@ -305,9 +314,13 @@ gc()
 ## waze data -----------------------------------------------
 
 # establish set of waze files that we'll be reading in
-waze.files <- dir(file.path(inputdir, "Waze",state))
+waze.files <- list.files(path = waze_dir, pattern = "\\.csv$")
 
 waze.files.year <- file.path(inputdir, "Waze", state, waze.files[grep(as.character(year), waze.files)])
+
+waze.jams.files <- list.files(path = waze_jams_dir, pattern = "\\.csv$")
+
+waze.jams.files.year <- file.path(waze_jams_dir, waze.jams.files[grep(as.character(year), waze.jams.files)])
 
 # uncomment for testing
 #m <- 1
@@ -355,6 +368,22 @@ for(m in 1:12){
               average_weather = mean(WEATHERHAZARD),
               average_closure = mean(ROAD_CLOSED),
               average_accident = mean(ACCIDENT))
+  
+  if(length(waze.jams.files.year) > 0){
+    # read in jams for that month
+    waze_temp = read.csv(waze.files.year[m])
+    
+    temp_train = temp_train %>% 
+      left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
+      replace_na(list(level_mode = 0))
+    
+    waze_jam_level_average <- temp_train %>%
+      group_by(osm_id, month, weekday, hour) %>%
+      summarize(average_jam_level = mean(level_mode))
+    
+    waze_averages <- waze_averages %>% 
+      left_join(waze_jam_level_average, by = c('osm_id', 'month', 'day', 'hour'))
+  }
   
   # thin data, if needed, to avoid running out of memory when running Join_Road_Weather.R script
   if(!is.null(keep_prop)){
