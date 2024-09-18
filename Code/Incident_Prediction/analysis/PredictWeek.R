@@ -31,9 +31,9 @@ num <- "07"
 
 # The full model identifier gets created in this next step
 if(train_imputed == TRUE){
-  modelno = paste(state, train_year, "imputed", num, sep = "_")
+  model.no = paste(state, train_year, "imputed", num, sep = "_")
 }else{
-  modelno = paste(state, train_year, "NOTimputed", num, sep = "_")
+  model.no = paste(state, train_year, "NOTimputed", num, sep = "_")
 }
 
 # Load a fitted model from local machine -- run RandomForest_WazeGrids_TN.R to generate models
@@ -41,7 +41,7 @@ if(train_imputed == TRUE){
 # New data will need the same structure as the data used in the model fitting.
 # This script is based on model 05, which performed the best of the models we tested.
 
-load(file.path(outputdir, 'Random_Forest_Output', paste0(state,'_Model_', modelno, 'RandomForest_Output.RData')))
+load(file.path(outputdir, 'Random_Forest_Output', paste("Model", model.no, "RandomForest_Output.RData", sep= "_")))
 
 
 # Create week ----

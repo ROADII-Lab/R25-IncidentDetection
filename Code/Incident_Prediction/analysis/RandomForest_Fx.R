@@ -193,7 +193,7 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   if(is.null(test.dat)) savelist = c(savelist, "testrows", "trainrows")
   if(!is.null(thin.dat)) savelist = c(savelist, "test.dat.use")
   
-  fn = paste(state, "Model", model.no, "RandomForest_Output.RData", sep= "_")
+  fn = paste("Model", model.no, "RandomForest_Output.RData", sep= "_")
   
   save(list = savelist, file = file.path(outputdir, 'Random_Forest_Output', fn))
   
