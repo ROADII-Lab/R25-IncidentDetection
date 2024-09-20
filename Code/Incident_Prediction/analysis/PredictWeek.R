@@ -27,6 +27,7 @@ train_year <- 2021
 train_imputed <- TRUE
 num <- "07"
 
+
 # <><><><><>
 
 # The full model identifier gets created in this next step
@@ -45,7 +46,7 @@ load(file.path(outputdir, 'Random_Forest_Output', paste("Model", model.no, "Rand
 
 
 # Create week ----
-# Create GRID_ID by time variables for the next week, to join everything else into 
+# Create osm_id by time variables for the next week, to join everything else into 
 today <- Sys.Date()
 
 day_seq <- seq(today, today+4, by = 1)
@@ -91,17 +92,6 @@ link_x_day <- link_x_day %>%
 link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id", "month", "hour", "weekday"))
 rm(imputed_waze)
 
-#na.action = "fill0" # This is an argument in append.hex, below. Other options are 'omit' or 'keep'.
-
-# Get special events for next week ----
-#
-# Start with last week of 2018; need to get 2019. This is created by Prep_SpecialEvents.R
-#load(file.path(inputdir, 'SpecialEvents', paste0('Prepared_TN_SpecialEvent_', g, '.RData')))
-#
-# Join with append.hex
-#next_week <- append.hex(hexname = 'grid_x_day',
-#                        data.to.add = "TN_SpecialEvent", state = state, na.action = na.action)
-#
 # Get weather for next week ----
 
 source('utility/Prep_ForecastWeather.R')
@@ -110,79 +100,46 @@ link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>
   filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
-# na investigation <- only have 5 days of data, we are trying to forecast 7 days 
-# dates <- link_x_day %>% arrange(osm_id) %>% 
-#   distinct(date, .keep_all = T) 
-# rm(dates)
-
-
-# Generate Waze events for next week ----
-
-source('utility/Prep_ExpectedWaze.R')
-
-w.expected$mo <- as.character(w.expected$mo)
-w.expected$DayOfWeek <- as.character(w.expected$DayOfWeek)
-
-next_week <- left_join(next_week, w.expected,
-                       by = c('osm_id', 'Month', 'DayOfWeek', 'Hour'))
-
-
-# Add in static variables: Historical crashes, historical FARS, and urban/rural. Grab these from w.allmonths by GRID_ID
-
-w.staticvars <- w.allmonths %>% 
-  filter(!duplicated(GRID_ID)) %>%
-  dplyr::select(GRID_ID, 
-                TN_UA_C, TN_UA_U,
-                TotalHistCrashsum, TotalFatalCrashsum)
-
-next_week <- left_join(next_week, w.staticvars,
-                       by = 'GRID_ID')
-
+next_week <- link_x_day %>%
+  rename(Month = month, 
+         Hour = hour,
+         Average_jams = average_jams,
+         Average_weather = average_weather,
+         Average_closure = average_closure,
+         Average_accident = average_accident) %>%
+  mutate(Month = factor(Month, levels = c(1:12)),
+         Hour = factor(Hour),
+         weekday = factor(weekday),
+         SNOW = as.numeric(SNOW))
 
 # Make predictions ----
-
-# Change urban cluster names 
-next_week <- next_week %>%
-  rename(UA_Cluster = TN_UA_C) %>%
-  rename(UA_Urban = TN_UA_U) 
-
-next_week <- next_week %>%
-  mutate(UA_Rural = UA_Urban == 0 & UA_Cluster == 0)
 
 # Use rf.out from Model 5 for this grid size
 # Make sure we have factor variables, with same levels as in the fitted data.
 # Model 05
-fitvars <- read.csv(file.path(outputdir,'Fitvars_05_TN_01dd_fishnet.csv'))
-
-# Fill NA with 0
-next_week[,sapply(next_week,notDate)][is.na(next_week[,sapply(next_week,notDate)])] = 0
-
-next_week$DayOfWeek <- as.factor(next_week$DayOfWeek)
-levels(next_week$DayOfWeek) = c(levels(next_week$DayOfWeek), '0')
-next_week_pred <- next_week[,names(next_week) %in% fitvars$fitvars]
-
+fitvars <- read.csv(file.path(outputdir, paste0('Fitvars_', model.no, '.csv')))
 
 # see Precision-recall tradeoff plots from re-fit local
 cutoff = 0.05
 
-predict_next_week <- predict(rf.out, next_week_pred, type = "response",
+predict_next_week <- predict(rf.out, next_week, type = "response",
                              cutoff = c(1-cutoff, cutoff)) 
 
-prob_next_week <- predict(rf.out, next_week_pred, type = "prob",
+prob_next_week <- predict(rf.out, next_week, type = "prob",
                           cutoff = c(1-cutoff, cutoff)) 
 
 colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')
 
 next_week_out <- data.frame(next_week, Crash_pred = predict_next_week, prob_next_week)
 
-write.csv(next_week_out, file = file.path(outputdir,paste0('TN_Model_05_Predictions', g, Sys.Date(), '.csv')), row.names = F)
+write.csv(next_week_out, file = file.path(outputdir,paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
 
 # Visualize predictions -----
 # use the following objects to make visualizations
 # next_week_out
 
-next_week_out <- read.csv(file.path(outputdir,paste0('TN_Model_05_Predictions', g, Sys.Date(), '.csv')))
-VIZ = T
-if(VIZ){
-  source('analysis/Visualize_Next_Week.R')
-}
+#next_week_out <- read.csv(file.path(outputdir,paste0('TN_Model_05_Predictions', g, Sys.Date(), '.csv')))
+#VIZ = T
+#if(VIZ){
+#  source('analysis/Visualize_Next_Week.R')
+#}
