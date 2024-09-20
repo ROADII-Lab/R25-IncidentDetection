@@ -92,17 +92,6 @@ link_x_day <- link_x_day %>%
 link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id", "month", "hour", "weekday"))
 rm(imputed_waze)
 
-#na.action = "fill0" # This is an argument in append.hex, below. Other options are 'omit' or 'keep'.
-
-# Get special events for next week ----
-#
-# Start with last week of 2018; need to get 2019. This is created by Prep_SpecialEvents.R
-#load(file.path(inputdir, 'SpecialEvents', paste0('Prepared_TN_SpecialEvent_', g, '.RData')))
-#
-# Join with append.hex
-#next_week <- append.hex(hexname = 'grid_x_day',
-#                        data.to.add = "TN_SpecialEvent", state = state, na.action = na.action)
-#
 # Get weather for next week ----
 
 source('utility/Prep_ForecastWeather.R')
