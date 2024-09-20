@@ -83,7 +83,7 @@ training_frame <- test_frame <-  data.frame(osm_id = character(),
                                             crash = factor())
 
 
-
+m <- 1
 for(m in 1:12){
 #for(m in 1:12){
   starttime <- Sys.time()
@@ -106,9 +106,13 @@ for(m in 1:12){
   
   ############
 
-  temp_train <- downSample(x = temp_train %>% select(-crash),
-                            y = temp_train$crash) %>% 
-                rename(crash = Class)
+  # temp_train <- downSample(x = temp_train %>% select(-crash),
+  #                           y = temp_train$crash) %>% 
+  #               rename(crash = Class)
+  
+  # change from downSample function to a method that results in 100 to 1 non-crash
+  # to crash ratio.
+  temp_train <- 
   
   training_frame <- training_frame %>% bind_rows(temp_train)
   
@@ -227,7 +231,7 @@ response.var = "crash" # binary indicator of whether crash occurred, based on pr
 
 starttime = Sys.time()
 
-num <- "07" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "08" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
@@ -268,7 +272,7 @@ keyoutputs[[modelno]] = do.rf(train.dat = training_frame,
                               cutoff = c(0.9, 0.1))  
 
 save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
-keyoutputs$"07"
+keyoutputs$"08"
 
 timediff <- Sys.time() - starttime
 cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
