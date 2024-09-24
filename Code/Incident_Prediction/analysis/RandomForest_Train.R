@@ -44,7 +44,7 @@ projection <- 5070
 m <- 1
 
 ##Use Imputed Waze?
-imputed_waze <- FALSE
+imputed_waze <- T
 
 
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
@@ -107,12 +107,12 @@ for(m in 1:12){
   ############
 
   # temp_train <- downSample(x = temp_train %>% select(-crash),
-  #                           y = temp_train$crash) %>% 
+  #                           y = temp_train$crash) %>%
   #               rename(crash = Class)
   
   # change from downSample function to a method that results in 100 to 1 non-crash
   # to crash ratio.
-  temp_train <- 
+  temp_train <-
   
   training_frame <- training_frame %>% bind_rows(temp_train)
   
@@ -171,7 +171,7 @@ bin.mod.diagnostics <- function(predtab){
   round(t(data.frame(accuracy, precision, recall, false.positive.rate)), 4)  
 }
 
-
+i <- 1
 
 # read random forest function, do.rf()
 source("analysis/RandomForest_Fx.R")
@@ -222,16 +222,16 @@ keyoutputs = redo_outputs = list() # to store model diagnostics
 
 # Omit as predictors in this vector:
 if(imputed_waze == TRUE){
-  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "day_of_week")
+  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week")
 }else{
-  alwaysomit = c("crash", "Day", "osm_id", "day_of_week")
+  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level")
 }
 
 response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
 
-num <- "08" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "09" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
@@ -272,7 +272,7 @@ keyoutputs[[modelno]] = do.rf(train.dat = training_frame,
                               cutoff = c(0.9, 0.1))  
 
 save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
-keyoutputs$"08"
+#keyoutputs$"08"
 
 timediff <- Sys.time() - starttime
 cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
