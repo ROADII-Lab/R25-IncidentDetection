@@ -18,15 +18,7 @@ top_time <- Sys.time()
 
 keep_prop <- NULL # proportion of data to keep when thinning
 
-#------------------------------------------------------------------------
-
-state_osm <- ifelse(state == "WA", 'Washington State',
-                    ifelse(state == "MN", "Minnesota", NA))
-
-state_osm <- gsub(" ", "_", state_osm) # Normalize state name
-
-# Create directory for the road network file and state boundary file, if it does not yet exist.
-if(!dir.exists(file.path(inputdir,'Roads_Boundary', state_osm))){dir.create(file.path(inputdir,'Roads_Boundary', state_osm), recursive = T)}
+# Directories ------------------------------------------------------------------
 
 waze_dir <- file.path(inputdir, "Waze", state)
 
@@ -36,9 +28,8 @@ if(!dir.exists(waze_dir)){dir.create(waze_dir, recursive = T)}
 
 if(!dir.exists(waze_jams_dir)){dir.create(waze_jams_dir, recursive = T)}
 
-
-#Timezones --------------------------------------------------------------
-onSDC <- T
+# Timezones --------------------------------------------------------------
+onSDC <- F
 
 if(onSDC){
   US_timezones <- st_read(file.path(inputdir,"Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))
@@ -55,87 +46,9 @@ timezone_adj <- US_timezones %>% st_transform(crs=projection) %>%
 
 rm(tz_adj_to_names)
 
-# Load Road Data ----------------------
+# Load OSM Data ------------------------------
 
-##select server to query OSM api
-#If the below doesn't work, try https://overpass.kumi.systems/api/interpreter
-
-new_url <- "https://overpass-api.de/api/interpreter"
-set_overpass_url(new_url)
-
-##identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential')
-road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
-
-network_file <- paste0(state_osm,"_network")
-boundary_file <- paste0(state_osm,"_boundary")
-file_path <- file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg'), paste0(network_file,'.shp'))
-
-if (file.exists(file.path(file_path))){
-  state_network <- read_sf(file_path) %>% select(osm_id)
-  print("File Found")
-} else{
-  state_bbox <- getbb(state_osm) # Retrieves relevant coordinates; always a rectangle
-  n = as.numeric(length(road_types)) 
-  datalist <- list()
-  datalist = vector("list", length = n)
-  
-  l = 0
-  
-  for (i in road_types){
-    l = l + 1 
-    print(paste("File Not Found. Pulling", state, i, "OSM Data from Server"))
-    map_data <- opq(bbox = state_bbox) %>%
-      add_osm_feature(key = 'highway', value = i) %>%
-      osmdata_sf() 
-    lines <- map_data$osm_lines
-    
-    datalist[[l]] <- lines
-    
-  }
-  
-  total_network <- do.call(bind_rows, datalist)
-
-  # if (!(dir.exists(state_osm))){
-  #   dir.create(state_osm)}
-  
-  total_network <- st_transform(total_network, crs = projection) 
-  
-# Pull state boundaries
-  if (state_osm == 'Washington_State'){
-    state_border <- 'Washington'
-  }else{
-    state_border <- state_osm
-  }
-state_maps <- states(cb = TRUE, year = 2021) %>%
-  filter_state(state_border) %>%
-  st_transform(crs = projection)
-
-#Filter out roadways outside the state
-
-state_network <- st_join(total_network, state_maps, join = st_within) %>%
-  filter(!is.na(NAME)) %>%
-  select(osm_id, geometry)
-
-write_sf(state_network, file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
-write_sf(state_maps, file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg')), driver = "ESRI Shapefile")
-rm(state_border)
-}
-
-#ggplot() + geom_sf(data = state_network)
-
-#Transform state_network crs to NAD83 before joining with crash_files; should probably change this in the files we have and bring this into the query loop
-
-if(st_crs(state_network) != projection){
-  state_network <- st_transform(state_network, projection)
-}
-
-# # if the state has multiple time zones, create a dataframe that maps each road segment (osm_id) to its corresponding time zone
-# if(!one_zone){
-#   osm_id_zones <- state_network %>%
-#     select(osm_id) %>%
-#     st_join(timezone_adj, join = st_nearest_feature) %>%
-#     st_drop_geometry()
-# }
+source(file.path("Utility", "Prep_OSMNetwork.R"))
 
 # Load Crash Data ------------------------------
 

@@ -1,37 +1,11 @@
-# This script was created to produce many OSM networks at once for used in the SDC. It is not required for incident detection runs. 
+# I created this script as we use copy and pasted this code frequently in different scripts so this will normalize it and make it easier to make changes. 
+# This script is different than Save_Road_Networks.R as that is intended for looping through and saving OSM networks. This script is for loading one state. 
 
-# Background ----------------------------
-library(dplyr)
-library(tidyr)
-library(osmdata)
-library(sf)
-library(ggplot2)
-library(tigris)
-library(doParallel)
-library(lubridate)
-library(stringr)
+state_osm <- state.name[which(state.abb == state)]
 
-top_time <- Sys.time()
+state_osm <- ifelse(state_osm == "Washington", 'Washington State', state_osm)
 
-# state_osm <- ifelse(state == "WA", 'Washington State',
-#                     ifelse(state == "MN", "Minnesota", NA))
-# 
-# state_osm <- gsub(" ", "_", state_osm) # Normalize state name
-
-inputdir <- file.path(getwd(),"Input")
-outputdir <-file.path(getwd(),"Output")
-intermediatedir <- file.path(getwd(), "Intermediate")
-
-# Make outputdir and intermediatedir if not already there
-if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
-if(!dir.exists(outputdir)) { dir.create(outputdir) }
-
-# Projection 
-projection <- 5070 
-
-#------------------------------------------------------------------------
-
-get_osm <- function(state_osm){
+state_osm <- gsub(" ", "_", state_osm) # Normalize state name
 
 # Create directory for the road network file and state boundary file, if it does not yet exist.
 if(!dir.exists(file.path(inputdir,'Roads_Boundary', state_osm))){dir.create(file.path(inputdir,'Roads_Boundary', state_osm), recursive = T)}
@@ -64,7 +38,7 @@ if (file.exists(file.path(file_path))){
   
   for (i in road_types){
     l = l + 1 
-    print(paste("File Not Found. Pulling", state_osm, i, "OSM Data from Server"))
+    print(paste("File Not Found. Pulling", state, i, "OSM Data from Server"))
     map_data <- opq(bbox = state_bbox) %>%
       add_osm_feature(key = 'highway', value = i) %>%
       osmdata_sf() 
@@ -102,12 +76,10 @@ if (file.exists(file.path(file_path))){
   rm(state_border)
 }
 
+#ggplot() + geom_sf(data = state_network)
+
+#Transform state_network crs to NAD83 before joining with crash_files; should probably change this in the files we have and bring this into the query loop
+
+if(st_crs(state_network) != projection){
+  state_network <- st_transform(state_network, projection)
 }
-
-states <- c('Maine','Illinois','Texas', 'California')
-
-for(s in states){get_osm(s)}
-
-
-
-
