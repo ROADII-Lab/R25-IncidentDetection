@@ -6,3 +6,4 @@ Code/Incident_Prediction/Output/
 Code/Incident_Prediction/Intermediate/
 
 *.Rhistory
+.Rproj.user
