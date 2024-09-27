@@ -99,7 +99,7 @@ if (file.exists(file.path(file_path))){
   
   write_sf(state_network, file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
   write_sf(state_maps, file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg')), driver = "ESRI Shapefile")
-  rm(state_border)
+  rm(state_border, state_maps, total_network, datalist)
 }
 
 }
