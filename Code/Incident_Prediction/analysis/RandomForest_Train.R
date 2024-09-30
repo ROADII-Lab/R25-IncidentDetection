@@ -106,13 +106,13 @@ for(m in 1:12){
   
   ############
 
-  # temp_train <- downSample(x = temp_train %>% select(-crash),
-  #                           y = temp_train$crash) %>%
-  #               rename(crash = Class)
+  temp_train <- downSample(x = temp_train %>% select(-crash),
+                            y = temp_train$crash) %>%
+                rename(crash = Class)
   
   # change from downSample function to a method that results in 100 to 1 non-crash
   # to crash ratio.
-  temp_train <-
+  # temp_train <-
   
   training_frame <- training_frame %>% bind_rows(temp_train)
   
