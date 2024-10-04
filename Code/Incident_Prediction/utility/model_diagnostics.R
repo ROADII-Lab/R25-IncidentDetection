@@ -16,7 +16,7 @@ training_frame[[response.var]] <- factor(training_frame[[response.var]],
 
 model_formula <- as.formula(paste(response.var, "~", paste(fitvars, collapse = " + ")))
 
-tune_grid <- expand.grid(mtry = c(2,3))
+tune_grid <- expand.grid(mtry = c(3,4,5,6,7))
 
 cores <- detectCores()  
 
@@ -29,6 +29,13 @@ rf.model <- train(model_formula,
                   method = "rf",
                   trControl = control, tuneGrid = tune_grid)
 
-varImp(rf.model)
+var_imp <- varImp(rf.model)
 
-save.out <- control
+
+
+dir.create(file.path(outputdir, "Random_Forest_Output", "model_diagnostics"))
+
+diag.out <- file.path(outputdir, "Random_Forest_Output", "model_diagnostics")
+
+save(rf.model, file = file.path(diag.out, paste0(modelno,"_RandomForest_diag.Rdata")))
+save(var_imp, file = file.path(diag.out, paste0(modelno,"_Variable_Importance")))
