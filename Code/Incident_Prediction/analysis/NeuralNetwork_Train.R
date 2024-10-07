@@ -234,7 +234,6 @@ if(imputed_waze){
 }
 
 
-
 str(test_frame)
 
 # Omit as predictors in this vector:
@@ -244,7 +243,7 @@ str(test_frame)
 #   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level")
 # }
 
-neurons <- c(5, 3) # number of layers and neurons used in NN
+neurons <- c(20, 20) # number of layers and neurons used in NN
 
 starttime = Sys.time()
 
@@ -252,13 +251,15 @@ num <- "01" # Use this to create a separate identifier to distinguish when multi
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
-modelno = paste(state, year, "imputed", num, sep = "_")
+modelno = paste("NN", state, year, "imputed", num, sep = "_")
 }else{
-  modelno = paste(state, year, "NOTimputed", num, sep = "_")
+  modelno = paste("NN", state, year, "NOTimputed", num, sep = "_")
 }
 
 # train model
-model <- neuralnet(formula, data = test_frame, linear.output = FALSE)
+model <- neuralnet(formula, data = test_frame, hidden = neurons, linear.output = FALSE)
+
+save(model, file = file.path(outputdir,paste0("Output_to_", modelno)))
 
 # predict model
 predictions <- predict(model, training_frame)
