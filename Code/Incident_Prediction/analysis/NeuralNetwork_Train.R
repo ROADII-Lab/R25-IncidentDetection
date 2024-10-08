@@ -212,7 +212,7 @@ nnet_data_prep <- function(data){
     mutate(Month = as.numeric(Month),
            Hour = as.numeric(Hour),
            weekday = as.numeric(weekday),
-           crash = as.numeric(crash))
+           crash = as.numeric(crash)-1)
   return(data)
 }
 
@@ -243,7 +243,7 @@ str(test_frame)
 #   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level")
 # }
 
-neurons <- c(20, 20) # number of layers and neurons used in NN
+neurons <- c(5, 3) # number of layers and neurons used in NN
 
 starttime = Sys.time()
 
@@ -257,16 +257,18 @@ modelno = paste("NN", state, year, "imputed", num, sep = "_")
 }
 
 # train model
-model <- neuralnet(formula, data = test_frame, hidden = neurons, linear.output = FALSE)
+model <- neuralnet(formula, data = training_frame, hidden = neurons, linear.output = FALSE, stepmax = 1e7)
 
 save(model, file = file.path(outputdir,paste0("Output_to_", modelno)))
 
 # predict model
-predictions <- predict(model, training_frame)
+predictions <- predict(model, test_frame)
+
+test_frame_prediction <- test_frame %>% bind_cols(predictions)
 
 # Convert predictions to class labels
 predicted_classes <- ifelse(predictions[,1] > 0.5, 1, 0)
 
 # Calculate accuracy
-accuracy <- mean(predicted_classes == training_frame$crash)
+accuracy <- mean(predicted_classes == test_frame$crash)
 print(paste("Accuracy: ", accuracy))
