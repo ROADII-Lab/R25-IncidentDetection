@@ -1,18 +1,27 @@
-# Random forest models of crash estimation for a given state. 
+# Title: Neural Network Training and Prediction Script
+# Last Edited: 10/24/2024
+# Purpose: Train and predict crashes for ROADII Incident Detection using TensorFlow
 
 # Setup ---- 
 gc()
 
+INSTALL_TF = F # Change to TRUE for first time installation
+
+if(INSTALL_TF){
+  
+  remotes::install_github("rstudio/tensorflow")
+  
+  library(tensorflow)
+  install_tensorflow(method = "conda", envname = "r-reticulate")
+  
+  library(keras)
+  
+  
+}
+
 source('utility/get_packages.R') # installs necessary packages
 
-library(randomForest)
-library(foreach) # for parallel implementation
-library(doParallel) # includes iterators and parallel
-library(tidyverse)
-library(ROSE)
-library(performanceEstimation)
-library(caret)
-library(neuralnet)
+
 
 inputdir <- file.path(getwd(),"Input")
 outputdir <-file.path(getwd(),"Output")
@@ -41,14 +50,12 @@ year <- 2021
 # Projection 
 projection <- 5070 
 
-### uncomment for temporary testing ####
-m <- 1
-
 ##Use Imputed Waze?
 imputed_waze <- T
 
-
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
+
+# Data Prep ---------------------------------------------------------------
 
 # check whether there is already a consolidated and prepped training frame
 # at the expected file path. If not, prepare one. If so, notify the user and load the 
@@ -95,7 +102,7 @@ for(m in 1:12){
     mutate(crash = ifelse(crash >= 1, 1, 0),
            crash = factor(crash))
   
-  ##### set aside validation set before down-sampling to address class imbalance. #####
+  # set aside validation set before down-sampling to address class imbalance.
   
   trainrows <- sort(sample(1:nrow(temp_train), size = nrow(temp_train)*(1-test_percentage), replace = F))
   
@@ -105,7 +112,6 @@ for(m in 1:12){
   
   temp_train <- temp_train[trainrows,]
   
-  ############
 
   # temp_train <- downSample(x = temp_train %>% select(-crash),
   #                           y = temp_train$crash) %>%
@@ -159,24 +165,6 @@ save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,
   load(train_fp)
 }
 
-# model1 = lm(crash ~ ., data = temp_train)
-# summary(model1)
-
-# bin.mod.diagnostics <- function(predtab){
-#   
-#   accuracy = (predtab[1,1] + predtab[2,2] )/ sum(predtab) # true positives and true negatives divided by all observations
-#   precision = (predtab[1,1] )/ sum(predtab[1,]) # true positives divided by all predicted positives
-#   recall = (predtab[1,1] )/ sum(predtab[,1]) # true positives divided by all observed positives
-#   false.positive.rate = (predtab[1,2] )/ sum(predtab[,2]) # false positives divided by all observed negatives
-#   
-#   round(t(data.frame(accuracy, precision, recall, false.positive.rate)), 4)  
-# }
-# 
-# i <- 1
-
-# read random forest function, do.rf()
-# source("analysis/NeuralNetwork_Fx.R")
-
 if(imputed_waze == TRUE){
 
 imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
@@ -219,56 +207,36 @@ nnet_data_prep <- function(data){
 test_frame <- nnet_data_prep(test_frame)
 training_frame <- nnet_data_prep(training_frame)
 
-# <><><><><><><><><><><><><><><><><><><><><><><><>
-# End data prep 
-# <><><><><><><><><><><><><><><><><><><><><><><><>
+# Train -------------------------------------------------------------------
 
-avail.cores = parallel::detectCores()
+shape_size <- 784
 
-if(avail.cores > 8) avail.cores = 12 # Limit usage below max if on r4.4xlarge instance. Comment this out to run largest models.
+inputs <- layer_input(shape = shape(shape_size), # this can be empty I believe? 
+                      name = "crashes") # layer input creates the first layer of a NN (the entry point)
 
-if(imputed_waze){
-  formula <- crash ~ Month + Hour + weekday + precipitation + temperature + SNOW + Average_jams + Average_weather + Average_closure + Average_accident
-} else{
-  formula <- crash ~ Month + Hour + weekday + ACCIDENT + JAM + ROAD_CLOSED + WEATHERHAZARD + precipitation + temperature + SNOW
-}
+x <- inputs %>% # this constructs the layers of the NN
+  layer_dense(units = 64, # number of neurons in the layer
+              activation = "relu", # activation function, relu helps prevent the vanishing gradient problem (https://medium.com/@ssiddharth408/the-most-commonly-used-activation-functions-in-tensorflow-v2-11-2132107a440)
+              name = "dense_1") %>% # name of layer, should not repeat
+  layer_dense(units = 64, activation = "relu", name = "dense_2")
 
+outputs <- x %>% 
+  layer_dense(units = 1, # think we just need 1 neuron as the probability of a crash or not
+              activation = "softmax", # often used at the output layer to produce probability
+              name = "prediction")
 
-str(test_frame)
+model <- keras_model(inputs = inputs, outputs = outputs)
 
-# Omit as predictors in this vector:
-# if(imputed_waze == TRUE){
-#   alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week")
-# }else{
-#   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level")
+c(c(x_train, y_train), c(x_test, y_test)) %<-% keras::dataset_mnist()
+
+# avail.cores = parallel::detectCores()
+# 
+# if(avail.cores > 8) avail.cores = 12 # Limit usage below max if on r4.4xlarge instance. Comment this out to run largest models.
+# 
+# if(imputed_waze){
+#   formula <- crash ~ Month + Hour + weekday + precipitation + temperature + SNOW + Average_jams + Average_weather + Average_closure + Average_accident
+# } else{
+#   formula <- crash ~ Month + Hour + weekday + ACCIDENT + JAM + ROAD_CLOSED + WEATHERHAZARD + precipitation + temperature + SNOW
 # }
-
-neurons <- c(5, 3) # number of layers and neurons used in NN
-
-starttime = Sys.time()
-
-num <- "01" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
-
-# The full model identifier gets created in this next step
-if(imputed_waze == TRUE){
-modelno = paste("NN", state, year, "imputed", num, sep = "_")
-}else{
-  modelno = paste("NN", state, year, "NOTimputed", num, sep = "_")
-}
-
-# train model
-model <- neuralnet(formula, data = training_frame, hidden = neurons, linear.output = FALSE, stepmax = 1e7)
-
-save(model, file = file.path(outputdir,paste0("Output_to_", modelno)))
-
-# predict model
-predictions <- predict(model, test_frame)
-
-test_frame_prediction <- test_frame %>% bind_cols(predictions)
-
-# Convert predictions to class labels
-predicted_classes <- ifelse(predictions[,1] > 0.5, 1, 0)
-
-# Calculate accuracy
-accuracy <- mean(predicted_classes == test_frame$crash)
-print(paste("Accuracy: ", accuracy))
+# 
+# str(test_frame)
