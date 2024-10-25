@@ -10,14 +10,23 @@ INSTALL_TF = F # Change to TRUE for first time installation
 if(INSTALL_TF){
   
   remotes::install_github("rstudio/tensorflow")
-  
+
   library(tensorflow)
-  install_tensorflow(method = "conda", envname = "r-reticulate")
+  install_tensorflow(envname = "r-tensorflow")
   
   library(keras)
+  install_keras()
   
+  library(tensorflow)
   
 }
+
+library(tensorflow)
+library(keras)
+library(reticulate)
+
+tf$constant("Hello TensorFlow!")
+
 
 source('utility/get_packages.R') # installs necessary packages
 
