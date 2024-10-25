@@ -5,7 +5,7 @@
 # Setup ---- 
 gc()
 
-INSTALL_TF = F # Change to TRUE for first time installation
+INSTALL_TF = T # Change to TRUE for first time installation
 
 if(INSTALL_TF){
   
@@ -17,20 +17,21 @@ if(INSTALL_TF){
   reticulate::install_python()
 
   library(tensorflow)
-  install_tensorflow(envname = "r-tensorflow")
+  install_tensorflow(envname = "r-tensorflow") # suggested command, works on my GFE laptop
+  #install_tensorflow(envname = "C:/Documents/.virtualenvs/r-tensorflow/Scripts") # attempt to make it work on VM - placing it where it's asking for it when 
   
+  # Keras is not needed (for now) it also installs TensorFlow so it will actually give an error
   # library(keras)
   # install_keras()
-  # 
-  library(tensorflow)
   
 }
 
-library(tensorflow)
+library(tensorflow) 
+# library(keras) 
 
+tf$constant("Hello TensorFlow!") # testing if tensorflow is working
 
-tf$constant("Hello TensorFlow!")
-
+# this is where I've got to in getting it to work 
 
 source('utility/get_packages.R') # installs necessary packages
 
