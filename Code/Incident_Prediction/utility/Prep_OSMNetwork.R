@@ -1,3 +1,6 @@
+library(osmdata)
+library(sf)
+library(tigris)
 # I created this script as we use copy and pasted this code frequently in different scripts so this will normalize it and make it easier to make changes. 
 # This script is different than Save_Road_Networks.R as that is intended for looping through and saving OSM networks. This script is for loading one state. 
 
@@ -69,7 +72,7 @@ if (file.exists(file.path(file_path))){
   
   state_network <- st_join(total_network, state_maps, join = st_within) %>%
     filter(!is.na(NAME)) %>%
-    select(osm_id, geometry)
+    select(osm_id, geometry, highway)
   
   write_sf(state_network, file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
   write_sf(state_maps, file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg')), driver = "ESRI Shapefile")

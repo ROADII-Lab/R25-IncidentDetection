@@ -1,6 +1,6 @@
-# Random forest models of crash estimation for a given state. 
+# Random forest models of crash estimation for a given state.
 
-# Setup ---- 
+# Setup ----
 gc()
 
 source('utility/get_packages.R') # installs necessary packages
@@ -9,9 +9,13 @@ library(randomForest)
 library(foreach) # for parallel implementation
 library(doParallel) # includes iterators and parallel
 library(tidyverse)
+library(dplyr)
 library(ROSE)
 library(performanceEstimation)
 library(caret)
+library(stringr)
+library(PRROC)
+
 
 inputdir <- file.path(getwd(),"Input")
 outputdir <-file.path(getwd(),"Output")
@@ -27,7 +31,7 @@ state <- "WA"
 
 # Indicate whether the state has a unified time zone
 one_zone <-TRUE
-# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
+# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from
 # among the options provided after running the first line below (OlsonNames())
 
 # OlsonNames()
@@ -37,8 +41,8 @@ time_zone_name <- "US/Pacific"
 # Year
 year <- 2021
 
-# Projection 
-projection <- 5070 
+# Projection
+projection <- 5070
 
 ### uncomment for temporary testing ####
 m <- 1
@@ -50,7 +54,7 @@ imputed_waze <- T
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
 
 # check whether there is already a consolidated and prepped training frame
-# at the expected file path. If not, prepare one. If so, notify the user and load the 
+# at the expected file path. If not, prepare one. If so, notify the user and load the
 # existing file.
 if(!file.exists(train_fp)){
 
@@ -85,54 +89,70 @@ training_frame <- test_frame <-  data.frame(osm_id = character(),
 
 m <- 1
 for(m in 1:12){
-#for(m in 1:12){
   starttime <- Sys.time()
-  
+
   load(monthframe_fps[m])
-  
-  temp_train <- temp_train %>% 
+
+  temp_train <- temp_train %>%
     mutate(crash = ifelse(crash >= 1, 1, 0),
            crash = factor(crash))
-  
+
   ##### set aside validation set before down-sampling to address class imbalance. #####
-  
+
   trainrows <- sort(sample(1:nrow(temp_train), size = nrow(temp_train)*(1-test_percentage), replace = F))
-  
+
   testrows <- (1:nrow(temp_train))[!1:nrow(temp_train) %in% trainrows]
-  
+
   temp_test <- temp_train[testrows,]
-  
+
   temp_train <- temp_train[trainrows,]
-  
+
   ############
 
-  temp_train <- downSample(x = temp_train %>% select(-crash),
-                            y = temp_train$crash) %>%
-                rename(crash = Class)
-  
+  # temp_train <- downSample(x = temp_train %>% select(-crash),
+  #                           y = temp_train$crash) %>%
+  #               rename(crash = Class)
+
+  is_crash <- temp_train[,"crash"] == 1
+  crash_indices <- which(is_crash)
+  non_crash_indices <- which (!is_crash)
+
+  crash_sample_size <- length(crash_indices) # 80% is arbitrary to keep size down
+  crash_sample <- sample(crash_indices, size = crash_sample_size)
+
+  non_crash_sample_size <- min(75 * length(crash_sample), length(non_crash_indices))
+  non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
+  combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
+
   # change from downSample function to a method that results in 100 to 1 non-crash
   # to crash ratio.
   # temp_train <-
-  
-  training_frame <- training_frame %>% bind_rows(temp_train)
-  
+
+  training_frame <- training_frame %>% bind_rows(combined_data)
+
   test_frame <- test_frame %>% bind_rows(temp_test)
-  
+
   # w.expected <- training_frame %>%
   #   group_by(osm_id, Month, day_of_week, Hour) %>%
   #   summarize(nWazeAccident = median(nWazeAccident, na.rm = T),
   #             nWazeWeatherOrHazard = median(nWazeWeatherOrHazard, na.rm = T),
   #             nWazeJam = median(nWazeJam, na.rm = T),
   #             nWazeRoadClosed = median(nWazeRoadClosed, na.rm = T)
-  
-  rm(temp_train, temp_test)
-  
+
+  rm(temp_train, temp_test, combined_data)
+
   gc()
-  
+
   timediff <- Sys.time() - starttime
   cat(round(timediff, 2), attr(timediff, "units"), " to append training and test data for month ", m, ".\n")
-  
+
 }
+
+# load road network
+source("utility/Prep_OSMNetwork.R")
+# drop spatial geo, join network
+state_network <- state_network %>%
+  st_drop_geometry()
 
 prep_data <- function(training_frame){
   training_frame <- training_frame %>%
@@ -141,7 +161,9 @@ prep_data <- function(training_frame){
            Day = factor(Day),
            Hour = factor(Hour),
            weekday = factor(weekday),
-           osm_id = factor(osm_id)) 
+           osm_id = factor(osm_id)) %>%
+    left_join(state_network, by = "osm_id")
+
   return(training_frame)
 }
 
@@ -162,13 +184,13 @@ save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,
 # summary(model1)
 
 bin.mod.diagnostics <- function(predtab){
-  
+
   accuracy = (predtab[1,1] + predtab[2,2] )/ sum(predtab) # true positives and true negatives divided by all observations
   precision = (predtab[1,1] )/ sum(predtab[1,]) # true positives divided by all predicted positives
   recall = (predtab[1,1] )/ sum(predtab[,1]) # true positives divided by all observed positives
   false.positive.rate = (predtab[1,2] )/ sum(predtab[,2]) # false positives divided by all observed negatives
-  
-  round(t(data.frame(accuracy, precision, recall, false.positive.rate)), 4)  
+
+  round(t(data.frame(accuracy, precision, recall, false.positive.rate)), 4)
 }
 
 i <- 1
@@ -178,8 +200,8 @@ source("analysis/RandomForest_Fx.R")
 
 if(imputed_waze == TRUE){
 
-imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
-                             pattern = "imputed", 
+imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"),
+                             pattern = "imputed",
                              full.names = TRUE)
 
 imputed_waze_data <- list()
@@ -207,7 +229,7 @@ gc()
 }
 
 # <><><><><><><><><><><><><><><><><><><><><><><><>
-# End data prep 
+# End data prep
 # <><><><><><><><><><><><><><><><><><><><><><><><>
 
 avail.cores = parallel::detectCores()
@@ -227,11 +249,11 @@ if(imputed_waze == TRUE){
   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level")
 }
 
-response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
+response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target.
 
 starttime = Sys.time()
 
-num <- "09" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "75" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
@@ -264,12 +286,38 @@ fitvar_df <- data.frame(fitvars, class_fit, n_lev_fit, levs_fit)
 write.csv(fitvar_df, file = file.path(outputdir,paste0('Fitvars_', modelno, ".csv")))
 
 # Run the Random Forest model using `do.rf()` function.
-keyoutputs[[modelno]] = do.rf(train.dat = training_frame, 
+keyoutputs[[modelno]] = do.rf(train.dat = training_frame,
                               test.dat = test_frame,
                               #thin.dat = 0.2,
-                              omits, response.var = "crash", 
+                              omits, response.var = "crash",
                               model.no = modelno, rf.inputs = rf.inputs,
-                              cutoff = c(0.9, 0.1))  
+                              cutoff = c(0.9, 0.1))
+#=======================================================================
+# Calculate PR curve
+#=======================================================================
+
+# Extract predicted probabilities
+# predicted_probabilities <- keyoutputs[[modelno]]$predicted_probabilities
+# actual_labels <- ifelse(test_frame$crash == 1, TRUE, FALSE)
+# 
+# pr_curve_full <- PRROC::pr.curve(scores.class0 = predicted_probabilities[, 2], 
+#                                  weights.class0 = actual_labels)
+# 
+# # Plot full PR curve
+# pdf(file = file.path(outputdir, paste0("PR_Curve_Full_", modelno, ".pdf")), 
+#     width = 6, height = 6)
+# plot(pr_curve_full, main = paste0("Model ", modelno))
+# dev.off()
+# 
+# # Calculate AUC-PR
+# auc_pr <- PRROC::auc(pr_curve_full)
+# 
+# # Save AUC-PR value
+# keyoutputs[[modelno]]$auc.pr <- auc_pr
+
+#======================================================================
+# End PR Curve Calculation
+#======================================================================
 
 save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
 #keyoutputs$"08"
@@ -281,7 +329,7 @@ cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 # load(file.path(outputdir, 'Random_Forest_Output', fn))
 #importance(rf.out)
 
-# # In case the factor levels are different between the provided training and test frames, bind the first row of one 
+# # In case the factor levels are different between the provided training and test frames, bind the first row of one
 # # to the other and then delete it. This will equalize them.
 # test_frame = rbind(training_frame[1,],test_frame)
 # test_frame = test_frame[-1,]
@@ -294,7 +342,7 @@ cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 #   print("Training frame not found in environment")
 #   load('Intermediate/training_frame.Rdata')
 # }
-# 
+#
 # if(!(exists("test_frame"))){
 #   print("Test frame not found in environment")
 #   load('Intermediate/test_frame.Rdata')
@@ -304,8 +352,8 @@ cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 #   stop("Test Frame and Training Frame do not match. Check:")
 #   print(setdiff(names(training_frame),names(test_frame)))
 # }else(print("Training and Test Match"))
-# 
-# 
+#
+#
 # for(i in colnames(training_frame)){
 #   if(class(training_frame[,i]) != class(test_frame[,i])){
 #     stop("class of ", i, " does not match")}else{
@@ -327,17 +375,17 @@ cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 #   dataframe = dataframe[sample(1:nrow(dataframe), size = nrow(dataframe)*sample_percentage),]
 #   return(dataframe)
 # }
-# 
+#
 # # apply the function, if applicable
 # if(!is.null(sample_percentage)) {
 #   temp_train <- thin_data(temp_train)
 # }
 
-###### testing #####  
+###### testing #####
 # test.dat = NULL
 # test.split = .30
 # split.by = NULL
-# 
+#
 # train.dat = training_frame
 # thin.dat = 0.2
 # response.var = "crash"
@@ -345,11 +393,11 @@ cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 # rf.inputs = rf.inputs
 # cutoff = c(0.9, 0.1)
 ################
-# 
+#
 # # if there are 12 .Rdata monthly files at the expected paths then notify the user that we will re-use
 # # those files. Otherwise run the osm_query.R script to generate them from scratch.
 # train_test_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 1:12, 'month_frame_full.Rdata', sep = "_"))
-# 
+#
 # if(!all(file.exists(train_test_fps))){
 #   source('utility/osm_query.R') # creates training frames
 # } else {

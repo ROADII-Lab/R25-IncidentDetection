@@ -1,5 +1,6 @@
 # Random Forest functions for Waze
 require(pROC)
+library(PRROC)
 ######################################################################
 # do.rf function for running random forest models in parallel ----
 
@@ -189,7 +190,8 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
             file = file.path(outputdir, 'Random_Forest_Output', paste(model.no, "RandomForest_pred.csv", sep = "_")),
             row.names = F)
   
-  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df") 
+  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df")
+  
   if(is.null(test.dat)) savelist = c(savelist, "testrows", "trainrows")
   if(!is.null(thin.dat)) savelist = c(savelist, "test.dat.use")
   
@@ -197,22 +199,22 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   
   save(list = savelist, file = file.path(outputdir, 'Random_Forest_Output', fn))
   
-  if(class(rundat[,response.var])!="factor" & class(rundat[,response.var])=="numeric") stop("response.var is neither a factor nor a numeric")  
+  if(class(rundat[,response.var])!="factor" & class(rundat[,response.var])=="numeric") stop("response.var is neither a factor nor a numeric")
   
   # Output is list of three elements: Nobs data frame, predtab table, binary model diagnotics table, and mean squared error
   if(class(rundat[,response.var])=="factor"){
-  outlist =  list(Nobs, predtab, diag = bin.mod.diagnostics(predtab), 
-         mse = mean(as.numeric(as.character(test.dat.use[,response.var])) - 
-                      as.numeric(rf.prob[,"1"]))^2,
-         runtime = timediff,
-         auc = as.numeric(model_auc) # do not save complete output
+    outlist =  list(Nobs, predtab, diag = bin.mod.diagnostics(predtab), 
+                    mse = mean(as.numeric(as.character(test.dat.use[,response.var])) - 
+                                 as.numeric(rf.prob[,"1"]))^2,
+                    runtime = timediff,
+                    auc = as.numeric(model_auc) # do not save complete output
     ) 
   }    
   if(class(rundat[,response.var])=="numeric"){
-  outlist =  list(Nobs, 
-         mse = mean(as.numeric(as.character(test.dat.use[,response.var])) - 
-                      as.numeric(rf.prob))^2,
-         runtime = timediff
+    outlist =  list(Nobs, 
+                    mse = mean(as.numeric(as.character(test.dat.use[,response.var])) - 
+                                 as.numeric(rf.prob))^2,
+                    runtime = timediff
     )
   }
   outlist
@@ -369,6 +371,7 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
                     mse = mean(as.numeric(as.character(test.dat.use[,response.var])) - 
                                  as.numeric(rf.prob[,"1"]))^2,
                     auc = as.numeric(model_auc) # do not save complete output
+                    
     ) 
   }    
   if(class(rundat[,response.var])=="numeric"){
