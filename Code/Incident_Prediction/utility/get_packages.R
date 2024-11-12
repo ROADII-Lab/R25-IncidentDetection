@@ -3,6 +3,7 @@
 loadpacks <- c(
             "Amelia",
             "aws.s3", # AWS convenience functions s3save and s3load
+            "brulee",
             "circular", # circular transformation of magvar
             "corrplot",
             "data.table",
@@ -30,6 +31,7 @@ loadpacks <- c(
             "randomForest",
             "RANN",
             "raster", 
+            "recipes",
             "ROSE",
             "RPostgres",
             "sf",  # for gIntersection, to clip two shapefiles
@@ -39,9 +41,11 @@ loadpacks <- c(
             #"tensorflow",
             "tidyverse",
             "tigris",
+            "torch",
             "utils",
 			      "dplyr",
-			      "rgeos")
+			      "rgeos",
+			      "yardstick")
 
 
 for(i in loadpacks){if(length(grep(i, (.packages(all.available=T))))==0) install.packages(i, dependencies =TRUE)}

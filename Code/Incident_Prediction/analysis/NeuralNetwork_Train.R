@@ -5,36 +5,15 @@
 # Setup ---- 
 gc()
 
-INSTALL_TF = T # Change to TRUE for first time installation
-
-if(INSTALL_TF){
-  
-  library(remotes)
-  library(reticulate)
-  
-  remotes::install_github("rstudio/tensorflow")
-  
-  reticulate::install_python()
-
-  library(tensorflow)
-  install_tensorflow(envname = "r-tensorflow") # suggested command, works on my GFE laptop
-  #install_tensorflow(envname = "C:/Documents/.virtualenvs/r-tensorflow/Scripts") # attempt to make it work on VM - placing it where it's asking for it when 
-  
-  # Keras is not needed (for now) it also installs TensorFlow so it will actually give an error
-  # library(keras)
-  # install_keras()
-  
-}
-
-library(tensorflow) 
-# library(keras) 
-
-tf$constant("Hello TensorFlow!") # testing if tensorflow is working
-
-# this is where I've got to in getting it to work 
-
 source('utility/get_packages.R') # installs necessary packages
 
+library(dplyr)
+library(stringr)
+library(torch)
+library(brulee)
+library(recipes)
+library(ggplot2)
+library(yardstick)
 
 
 inputdir <- file.path(getwd(),"Input")
@@ -211,10 +190,11 @@ gc()
 
 nnet_data_prep <- function(data){
   data <- data %>% 
-    mutate(Month = as.numeric(Month),
-           Hour = as.numeric(Hour),
-           weekday = as.numeric(weekday),
-           crash = as.numeric(crash)-1)
+    mutate(temperature = temperature + abs(min(temperature)), # ensure no negative input which seems to give a warning
+           Month = as.factor(Month),
+           Hour = as.factor(Hour),
+           weekday = as.factor(as.numeric(weekday)-1), # should be in 0 or 1, not 1 or 2
+           crash = as.factor(as.numeric(crash)-1)) # should be in 0 or 1, not 1 or 2
   return(data)
 }
 
@@ -223,25 +203,85 @@ training_frame <- nnet_data_prep(training_frame)
 
 # Train -------------------------------------------------------------------
 
-shape_size <- 784
+set.seed(1)
 
-inputs <- layer_input(shape = shape(shape_size), # this can be empty I believe? 
-                      name = "crashes") # layer input creates the first layer of a NN (the entry point)
+if(imputed_waze){
+  
+  formula <- crash ~ Month + Hour + weekday + precipitation + temperature + SNOW + Average_jams + Average_weather + Average_closure + Average_accident
+  #boxcox_vars <- c(precipitation, SNOW, Average_jams, Average_weather, Average_closure, Average_accident)
+  # interactions <- c(~ starts_with("Month"):temperature + 
+  #                     SNOW:temperature + 
+  #                     Average_jams:Average_closure:Average_accident)
 
-x <- inputs %>% # this constructs the layers of the NN
-  layer_dense(units = 64, # number of neurons in the layer
-              activation = "relu", # activation function, relu helps prevent the vanishing gradient problem (https://medium.com/@ssiddharth408/the-most-commonly-used-activation-functions-in-tensorflow-v2-11-2132107a440)
-              name = "dense_1") %>% # name of layer, should not repeat
-  layer_dense(units = 64, activation = "relu", name = "dense_2")
+} else{
+  # will do this later, testing for now on imputed waze
+  formula <- crash ~ Month + Hour + weekday + ACCIDENT + JAM + ROAD_CLOSED + WEATHERHAZARD + precipitation + temperature + SNOW
+  
+  }
 
-outputs <- x %>% 
-  layer_dense(units = 1, # think we just need 1 neuron as the probability of a crash or not
-              activation = "softmax", # often used at the output layer to produce probability
-              name = "prediction")
+inciditent_pred <- 
+  recipe(formula, data = training_frame) %>% 
+  #step_log(c(precipitation, SNOW, Average_jams, Average_weather, Average_closure, Average_accident)) %>% # normalize variables that are on the extremes
+  step_dummy(all_nominal_predictors(), one_hot = T) %>% # makes dummy variales for nominal predictors (i.e Month_1, Month_2)
+  step_interact(~ starts_with("Month"):temperature + 
+                  SNOW:temperature + 
+                  Average_jams:Average_closure:Average_accident) %>% # creates interaction variables 
+  step_zv(all_predictors()) %>% # get's rid of varilbles with 0 variance 
+  step_normalize(all_numeric_predictors(), na_rm = TRUE) # normalizes all numeric predictors 
 
-model <- keras_model(inputs = inputs, outputs = outputs)
+fit <- brulee_mlp(inciditent_pred, 
+                  data = training_frame, 
+                  hidden_units = 20, # number of nodes in each layer 
+                  dropout = 0.05, # proportion of layers set to zero 
+                  rate_schedule = "cyclic", # maximization technique 
+                  step_size = 4)
+fit
 
-c(c(x_train, y_train), c(x_test, y_test)) %<-% keras::dataset_mnist()
+autoplot(fit)
+
+predictions <- predict(fit, test_frame) %>%
+               bind_cols(test_frame)
+
+saveRDS(predictions, file = file.path(outputdir, "NN_prediction.RData"))
+
+predictions %>%
+  ggplot(aes(x = .pred_class, y = crash)) +
+  geom_abline(col = "green") +
+  geom_point(alpha = .3) +
+  lims(x = c(4, 6), y = c(4, 6)) +
+  coord_fixed(ratio = 1)
+
+predictions %>%
+  rmse(crash, .pred)
+
+# seeing what variables look like 
+ggplot(data=training_frame, aes(x=ACCIDENT)) +
+  geom_histogram(bins=30)
+
+summary(training_frame$temperature)
+
+sum(is.na())
+
+
+# shape_size <- 784
+# 
+# inputs <- layer_input(shape = shape(shape_size), # this can be empty I believe? 
+#                       name = "crashes") # layer input creates the first layer of a NN (the entry point)
+# 
+# x <- inputs %>% # this constructs the layers of the NN
+#   layer_dense(units = 64, # number of neurons in the layer
+#               activation = "relu", # activation function, relu helps prevent the vanishing gradient problem (https://medium.com/@ssiddharth408/the-most-commonly-used-activation-functions-in-tensorflow-v2-11-2132107a440)
+#               name = "dense_1") %>% # name of layer, should not repeat
+#   layer_dense(units = 64, activation = "relu", name = "dense_2")
+# 
+# outputs <- x %>% 
+#   layer_dense(units = 1, # think we just need 1 neuron as the probability of a crash or not
+#               activation = "softmax", # often used at the output layer to produce probability
+#               name = "prediction")
+# 
+# model <- keras_model(inputs = inputs, outputs = outputs)
+# 
+# c(c(x_train, y_train), c(x_test, y_test)) %<-% keras::dataset_mnist()
 
 # avail.cores = parallel::detectCores()
 # 
@@ -254,3 +294,31 @@ c(c(x_train, y_train), c(x_test, y_test)) %<-% keras::dataset_mnist()
 # }
 # 
 # str(test_frame)
+# 
+# INSTALL_TF = F # Change to TRUE for first time installation
+# 
+# if(INSTALL_TF){
+#   
+#   library(remotes)
+#   library(reticulate)
+#   
+#   remotes::install_github("rstudio/tensorflow")
+#   
+#   reticulate::install_python()
+#   
+#   library(tensorflow)
+#   install_tensorflow(envname = "r-tensorflow") # suggested command, works on my GFE laptop
+#   #install_tensorflow(envname = "C:/Documents/.virtualenvs/r-tensorflow/Scripts") # attempt to make it work on VM - placing it where it's asking for it when 
+#   
+#   # Keras is not needed (for now) it also installs TensorFlow so it will actually give an error
+#   # library(keras)
+#   # install_keras()
+#   
+# }
+# 
+# library(tensorflow) 
+# # library(keras) 
+# 
+# tf$constant("Hello TensorFlow!") # testing if tensorflow is working
+# 
+# # this is where I've got to in getting it to work 
