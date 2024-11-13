@@ -242,17 +242,13 @@ autoplot(fit)
 predictions <- predict(fit, test_frame) %>%
                bind_cols(test_frame)
 
-saveRDS(predictions, file = file.path(outputdir, "NN_prediction.RData"))
+
+table(predictions$crash, predictions$.pred_class)
 
 predictions %>%
-  ggplot(aes(x = .pred_class, y = crash)) +
-  geom_abline(col = "green") +
-  geom_point(alpha = .3) +
-  lims(x = c(4, 6), y = c(4, 6)) +
-  coord_fixed(ratio = 1)
-
-predictions %>%
-  rmse(crash, .pred)
+  mutate(crash_num = as.numeric(crash),
+         .pred_class_num = as.numeric(.pred_class)) %>%
+  rmse(crash_num, .pred_class_num)
 
 # seeing what variables look like 
 ggplot(data=training_frame, aes(x=ACCIDENT)) +
