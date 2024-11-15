@@ -248,15 +248,15 @@ table(predictions$crash, predictions$.pred_class)
 predictions %>%
   mutate(crash_num = as.numeric(crash),
          .pred_class_num = as.numeric(.pred_class)) %>%
-  rmse(crash_num, .pred_class_num)
+  rmse(crash_num, .pred_class_num) # calc root mean square deviation 
 
 # seeing what variables look like 
-ggplot(data=training_frame, aes(x=ACCIDENT)) +
-  geom_histogram(bins=30)
-
-summary(training_frame$temperature)
-
-sum(is.na())
+# ggplot(data=training_frame, aes(x=ACCIDENT)) +
+#   geom_histogram(bins=30)
+# 
+# summary(training_frame$temperature)
+# 
+# sum(is.na())
 
 
 # shape_size <- 784
