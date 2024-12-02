@@ -15,6 +15,7 @@ library(performanceEstimation)
 library(caret)
 library(stringr)
 library(PRROC)
+library(sf)
 
 inputdir <- file.path(getwd(),"Input")
 outputdir <-file.path(getwd(),"Output")
@@ -222,6 +223,12 @@ training_frame <- left_join(training_frame, imputed_waze_frame)
 test_frame <- left_join(test_frame, imputed_waze_frame)
 
 rm(imputed_waze_frame, imputed_waze_data)
+
+if((year %in% c(2018,2019,2020)) & (state == "MN")){
+  source('utility/MN_CAD_load.R')
+  training_frame <- left_join(training_frame, CAD)
+  test_frame <- left_join(test_frame, CAD)
+}
 
 gc()
 }
