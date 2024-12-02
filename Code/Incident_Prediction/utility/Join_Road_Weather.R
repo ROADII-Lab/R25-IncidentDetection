@@ -166,15 +166,31 @@ wx <- state_hourly_hist_weather1 %>% bind_rows(state_hourly_hist_weather2) %>%
 # Loading Daily Data ------------------------------------------------------
 
 load_statedaily <- function(year_var){
-  file_list <- list.files(path = file.path(inputdir, "Weather","GHCN", "Daily", year_var), pattern = paste0("^", state))
-  df_list <- list()
-  df_list = vector("list", length = length(file_list))
-  
-  for(i in 1:length(file_list)){
-    print(i)
-    df_list[[i]] <- fread(file.path(inputdir, "Weather","GHCN", "Daily", year_var, file_list[[i]]))
-  }
-  state_daily_hist_weather <- do.call(bind_rows, df_list)
+  if(year %in% c(2019,2021,2022)){
+    file_list <- list.files(path = file.path(inputdir, "Weather","GHCN", "Daily", year_var), pattern = paste0("^", state))
+    df_list <- list()
+    df_list = vector("list", length = length(file_list))
+    
+    for(i in 1:length(file_list)){
+      print(i)
+      df_list[[i]] <- fread(file.path(inputdir, "Weather","GHCN", "Daily", year_var, file_list[[i]]))
+    }
+    state_daily_hist_weather <- do.call(bind_rows, df_list)} else {
+      
+      wx.daily.inventory.files <- dir(file.path(inputdir, "Weather", "GHCN", "Daily"))
+      daily_station_file <- file.path(inputdir, "Weather", "GHCN", "Daily" , wx.daily.inventory.files[grep('stations', wx.daily.inventory.files)])
+      
+      daily_stations <- read_fwf(daily_station_file,
+                                 fwf_positions(
+                                   start = c(1,14,23,32,42,73,81), 
+                                   end = c(11,21,30,37,70,75,85)
+                                 )
+      )
+      names(daily_stations) = c("STATION", "lat", "lon", "masl", "NAME", "x1", "x2")
+      
+      all_wx_data = read.csv(file.path(inputdir, "Weather", "GHCN", "Daily", paste0(year, ".csv")))
+      
+    }
   
   return(state_daily_hist_weather)
 }

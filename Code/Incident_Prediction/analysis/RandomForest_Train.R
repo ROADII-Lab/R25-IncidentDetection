@@ -27,7 +27,7 @@ if(!dir.exists(outputdir)) { dir.create(outputdir) }
 
 test_percentage <- 0.03
 
-state <- "WA"
+state <- "MN"
 
 # Indicate whether the state has a unified time zone
 one_zone <-TRUE
@@ -35,11 +35,11 @@ one_zone <-TRUE
 # among the options provided after running the first line below (OlsonNames())
 
 # OlsonNames()
-# time_zone_name <- "US/Central"
-time_zone_name <- "US/Pacific"
+time_zone_name <- "US/Central"
+# time_zone_name <- "US/Pacific"
 
 # Year
-year <- 2021
+year <- 2020
 
 # Projection 
 projection <- 5070 
