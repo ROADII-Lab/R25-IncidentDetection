@@ -161,10 +161,6 @@ prep_data <- function(training_frame){
            weekday = factor(weekday),
            osm_id = factor(osm_id),
            highway = factor(highway))
-  
-  # sort column positions in alphabetical order
-  new_order = sort(colnames(training_frame))
-  training_frame <- training_frame[, new_order]
     
   return(training_frame)
 }
@@ -229,6 +225,11 @@ rm(imputed_waze_frame, imputed_waze_data)
 
 gc()
 }
+
+# sort column positions in alphabetical order
+new_order = sort(colnames(training_frame))
+training_frame <- training_frame[, new_order]
+test_frame <- test_frame[, new_order]
 
 # <><><><><><><><><><><><><><><><><><><><><><><><>
 # End data prep 
