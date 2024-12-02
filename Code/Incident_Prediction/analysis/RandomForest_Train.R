@@ -9,9 +9,14 @@ library(randomForest)
 library(foreach) # for parallel implementation
 library(doParallel) # includes iterators and parallel
 library(tidyverse)
+library(dplyr)
 library(ROSE)
 library(performanceEstimation)
 library(caret)
+library(stringr)
+library(PRROC)
+library(sf)
+
 
 inputdir <- file.path(getwd(),"Input")
 outputdir <-file.path(getwd(),"Output")
@@ -106,26 +111,44 @@ for(m in 1:12){
   
   ############
 
-  temp_train <- downSample(x = temp_train %>% select(-crash),
-                            y = temp_train$crash) %>%
-                rename(crash = Class)
+
+  # temp_train <- downSample(x = temp_train %>% select(-crash),
+  #                           y = temp_train$crash) %>%
+  #               rename(crash = Class)
+
   
   # change from downSample function to a method that results in 100 to 1 non-crash
   # to crash ratio.
   # temp_train <-
   
+
   training_frame <- training_frame %>% bind_rows(temp_train)
   
   test_frame <- test_frame %>% bind_rows(temp_test)
-  
-  # w.expected <- training_frame %>%
-  #   group_by(osm_id, Month, day_of_week, Hour) %>%
-  #   summarize(nWazeAccident = median(nWazeAccident, na.rm = T),
-  #             nWazeWeatherOrHazard = median(nWazeWeatherOrHazard, na.rm = T),
-  #             nWazeJam = median(nWazeJam, na.rm = T),
-  #             nWazeRoadClosed = median(nWazeRoadClosed, na.rm = T)
-  
+
   rm(temp_train, temp_test)
+
+  # training_frame <- training_frame %>% bind_rows(temp_train)
+  # 
+  # test_frame <- test_frame %>% bind_rows(temp_test)
+  
+  is_crash <- temp_train[,"crash"] == 1
+  crash_indices <- which(is_crash)
+  non_crash_indices <- which (!is_crash)
+
+  crash_sample_size <- length(crash_indices) * 0.02
+  crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
+
+  non_crash_sample_size <- min(75 * length(crash_sample), length(non_crash_indices))
+  non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
+  combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
+
+  training_frame <- training_frame %>% bind_rows(combined_data)
+
+  test_frame <- test_frame %>% bind_rows(temp_test)
+  
+  rm(temp_train, temp_test, combined_data)
+
   
   gc()
   
@@ -134,14 +157,27 @@ for(m in 1:12){
   
 }
 
+
+# load road network
+source("utility/Prep_OSMNetwork.R")
+# drop spatial geo, join network
+state_network <- state_network %>%
+  st_drop_geometry()
+
 prep_data <- function(training_frame){
   training_frame <- training_frame %>%
     replace_na(list(precipitation = 0, SNOW = 0)) %>%
+    left_join(state_network, by = "osm_id") %>%
+
     mutate(Month = factor(Month),
            Day = factor(Day),
            Hour = factor(Hour),
            weekday = factor(weekday),
-           osm_id = factor(osm_id)) 
+
+           osm_id = factor(osm_id),
+           highway = factor(highway))
+    
+
   return(training_frame)
 }
 
@@ -203,8 +239,21 @@ test_frame <- left_join(test_frame, imputed_waze_frame)
 
 rm(imputed_waze_frame, imputed_waze_data)
 
+
+if((year %in% c(2018,2019,2020)) & (state == "MN")){
+  source('utility/MN_CAD_load.R')
+  training_frame <- left_join(training_frame, CAD)
+  test_frame <- left_join(test_frame, CAD)
+}
+
 gc()
 }
+
+# sort column positions in alphabetical order
+new_order = sort(colnames(training_frame))
+training_frame <- training_frame[, new_order]
+test_frame <- test_frame[, new_order]
+
 
 # <><><><><><><><><><><><><><><><><><><><><><><><>
 # End data prep 

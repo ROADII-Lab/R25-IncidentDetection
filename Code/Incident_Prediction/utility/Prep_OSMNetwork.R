@@ -1,3 +1,8 @@
+
+library(osmdata)
+library(sf)
+library(tigris)
+
 # I created this script as we use copy and pasted this code frequently in different scripts so this will normalize it and make it easier to make changes. 
 # This script is different than Save_Road_Networks.R as that is intended for looping through and saving OSM networks. This script is for loading one state. 
 
@@ -26,7 +31,9 @@ boundary_file <- paste0(state_osm,"_boundary")
 file_path <- file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg'), paste0(network_file,'.shp'))
 
 if (file.exists(file.path(file_path))){
-  state_network <- read_sf(file_path) %>% select(osm_id)
+
+  state_network <- read_sf(file_path) %>% select(osm_id, highway, maxspeed)
+
   print("File Found")
 } else{
   state_bbox <- getbb(state_osm) # Retrieves relevant coordinates; always a rectangle
@@ -69,7 +76,15 @@ if (file.exists(file.path(file_path))){
   
   state_network <- st_join(total_network, state_maps, join = st_within) %>%
     filter(!is.na(NAME)) %>%
-    select(osm_id, geometry)
+
+    select(osm_id, geometry, highway, maxspeed) %>%
+    # convert speed limit to numeric, removing "mph" unit label
+    mutate(maxspeed = gsub("[^0-9.-]", "", maxspeed)) %>%
+    # take first two characters (rarely the maxspeed is originally expressed as a range)
+    mutate(maxspeed = substr(maxspeed, start = 1, stop = 2)) %>%
+    mutate(maxspeed = as.numeric(maxspeed))
+    replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
+
   
   write_sf(state_network, file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
   write_sf(state_maps, file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg')), driver = "ESRI Shapefile")

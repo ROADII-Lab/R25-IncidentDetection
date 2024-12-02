@@ -1,5 +1,7 @@
 rm(list=ls()) # Start fresh
 
+gc()
+
 inputdir <- file.path(getwd(),"Input")
 interdir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
@@ -15,6 +17,7 @@ library(foreach) # for parallel implementation
 library(doParallel) # includes iterators and parallel
 library(tidyverse)
 library(sf)
+library(ggplot2)
 
 # source("utility/wazefunctions.R") 
 
@@ -25,7 +28,8 @@ source("analysis/RandomForest_Fx.R")
 state <- "WA"
 train_year <- 2021
 train_imputed <- TRUE
-num <- "07"
+
+num <- "09"
 
 
 # <><><><><>
@@ -106,11 +110,18 @@ next_week <- link_x_day %>%
          Average_jams = average_jams,
          Average_weather = average_weather,
          Average_closure = average_closure,
-         Average_accident = average_accident) %>%
-  mutate(Month = factor(Month, levels = c(1:12)),
-         Hour = factor(Hour),
-         weekday = factor(weekday),
-         SNOW = as.numeric(SNOW))
+
+         Average_accident = average_accident,
+         Average_jam_level = average_jam_level) %>%
+  left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
+  mutate(Month = factor(Month, levels = rf.out$forest$xlevels$Month),
+         Hour = factor(Hour, levels = rf.out$forest$xlevels$Hour),
+         weekday = factor(weekday, levels = rf.out$forest$xlevels$weekday),
+         SNOW = as.numeric(SNOW),
+         highway = factor(highway, levels = rf.out$forest$xlevels$highway))
+
+new_order = sort(colnames(next_week))
+next_week <- next_week[, new_order]
 
 # Make predictions ----
 
@@ -132,7 +143,47 @@ colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')
 
 next_week_out <- data.frame(next_week, Crash_pred = predict_next_week, prob_next_week)
 
-write.csv(next_week_out, file = file.path(outputdir,paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
+
+write.csv(next_week_out, file = file.path(outputdir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
+
+## Save some box plots of the results in the Figures folder ##
+save_charts <- function(results_df, # the dataframe object with the results
+                        name_of_results # some name that will help distinguish from other results - will be used in filename for outputs
+){
+  
+  unfaceted_plot = ggplot(data=results_df, mapping=aes(x=Hour, y=Prob_Crash, group = Hour)) + 
+    geom_boxplot(fill = "green") + 
+    labs(title = "Boxplot of Crash Probability by Hour",
+         y = "Crash Probability",
+         x = "Hour")
+  
+  ggsave(plot = unfaceted_plot, 
+         filename = paste0("unfaceted_boxplot", name_of_results, ".png"),
+         path = file.path(outputdir, "Figures"),
+         device = "png",
+         create.dir = T,
+         height = 6, width = 5, units = "in")
+  
+  faceted_plot = ggplot(data=results_df, mapping=aes(x=Hour, y=Prob_Crash, group = Hour)) + 
+    geom_boxplot(fill = "green") + 
+    facet_wrap(~DayOfWeek) + 
+    labs(title = "Boxplot of Crash Probability by Hour (Faceted by Day)",
+         y = "Crash Probability",
+         x = "Hour")
+  
+  ggsave(plot = faceted_plot, 
+         filename = paste0("faceted_boxplot", name_of_results, ".png"),
+         path = file.path(outputdir, "Figures"),
+         device = "png",
+         create.dir = T,
+         height = 6, width = 5, units = "in")
+  
+}
+
+save_charts(results_df = next_week_out, 
+            name_of_results = paste0(model.no,'_', Sys.Date())
+            )
+
 
 # Visualize predictions -----
 # use the following objects to make visualizations
