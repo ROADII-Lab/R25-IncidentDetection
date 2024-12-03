@@ -126,6 +126,8 @@ next_week <- link_x_day %>%
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
+next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
+
 # Make predictions ----
 
 # Use rf.out from Model 5 for this grid size
@@ -147,11 +149,13 @@ colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')
 next_week_out <- data.frame(next_week, Crash_pred = predict_next_week, prob_next_week)
 
 
-write.csv(next_week_out, file = file.path(outputdir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
+next_week_out <- next_week_out %>%
+  group_by(Hour, DayOfWeek) %>%
+  mutate(Hourly_CrashRisk = (Prob_Crash-min(Prob_Crash))/(max(Prob_Crash)-min(Prob_Crash))) %>%
+  ungroup()
 
-#normalized <- next_week_out %>% 
-  
-#write.csv(normalized, file = file.path(outputdir, paste0(model.no,'_normalized_', Sys.Date(), '.csv')), row.names = F)
+
+write.csv(next_week_out, file = file.path(outputdir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
 
 ## Save some box plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results
