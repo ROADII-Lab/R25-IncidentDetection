@@ -49,6 +49,7 @@ rm(tz_adj_to_names)
 # Load OSM Data ------------------------------
 
 source(file.path("Utility", "Prep_OSMNetwork.R"))
+state_network <- state_network %>% select(osm_id)
 
 # Load Crash Data ------------------------------
 
@@ -243,6 +244,11 @@ gc()
 # note that the waze_query.R script already converted to local time. If waze data were sourced in some other way, may need to
 # uncomment the parts that convert to local time below, from UTC.
 
+# If applicable, load CAD data for MN so as to join it in
+if((year %in% c(2018,2019,2020)) & (state == "MN")){
+  source('utility/MN_CAD_load.R')
+}
+
 for(m in 1:12){
   starttime = Sys.time()
   load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame", m,".RData", sep = "_")))
@@ -274,6 +280,11 @@ for(m in 1:12){
   temp_train = temp_train %>% 
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
     replace_na(list(ACCIDENT = 0, JAM = 0, ROAD_CLOSED = 0, WEATHERHAZARD = 0))
+  
+  # If CAD data are applicable, join them in
+  if((year %in% c(2018,2019,2020)) & (state == "MN")){
+    temp_train = left_join(temp_train, CAD, by = c(osm_id, month, day, hour))
+  }
   
   # if jams data are available, read them in for that month
   if(length(waze.jams.files.year) > 0){
@@ -323,13 +334,11 @@ for(m in 1:12){
   cat("Added waze data for month ", m, ". ")
   cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
 }
-load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
-load(file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_imputed_waze", m,".RData", sep = "_")))
+#load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
+#load(file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_imputed_waze", m,".RData", sep = "_")))
 dif_time <- round(difftime(Sys.time(), top_time, units = "mins"), 2)
 cat(paste0("Created all month frames with crashes and waze data. ", dif_time, " minutes elapsed thus far in total."))
 cat("Now adding weather.")
-
-#load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
 
 gc()
 

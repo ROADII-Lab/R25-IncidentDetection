@@ -28,7 +28,7 @@ if(!dir.exists(outputdir)) { dir.create(outputdir) }
 
 test_percentage <- 0.03
 
-state <- "WA"
+state <- "MN"
 
 # Indicate whether the state has a unified time zone
 one_zone <-TRUE
@@ -36,8 +36,8 @@ one_zone <-TRUE
 # among the options provided after running the first line below (OlsonNames())
 
 # OlsonNames()
-# time_zone_name <- "US/Central"
-time_zone_name <- "US/Pacific"
+time_zone_name <- "US/Central"
+# time_zone_name <- "US/Pacific"
 
 # Year
 year <- 2021
@@ -50,7 +50,6 @@ m <- 1
 
 ##Use Imputed Waze?
 imputed_waze <- T
-
 
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
 
@@ -136,10 +135,10 @@ for(m in 1:12){
   crash_indices <- which(is_crash)
   non_crash_indices <- which (!is_crash)
 
-  crash_sample_size <- length(crash_indices) * 0.02
+  crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- min(75 * length(crash_sample), length(non_crash_indices))
+  non_crash_sample_size <- min(50 * length(crash_sample), length(non_crash_indices))
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -240,6 +239,7 @@ test_frame <- left_join(test_frame, imputed_waze_frame)
 rm(imputed_waze_frame, imputed_waze_data)
 
 
+
 if((year %in% c(2018,2019,2020)) & (state == "MN")){
   source('utility/MN_CAD_load.R')
   training_frame <- left_join(training_frame, CAD)
@@ -280,7 +280,7 @@ response.var = "crash" # binary indicator of whether crash occurred, based on pr
 
 starttime = Sys.time()
 
-num <- "09" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "01" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
@@ -326,9 +326,30 @@ save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
 timediff <- Sys.time() - starttime
 cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 
-# fn = paste(state, "Model", modelno, "RandomForest_Output.RData", sep= "_")
-# load(file.path(outputdir, 'Random_Forest_Output', fn))
-#importance(rf.out)
+fn = paste("Model", modelno, "RandomForest_Output.RData", sep= "_")
+load(file.path(outputdir, 'Random_Forest_Output', fn))
+importance(rf.out)
+
+library(ggplot2)
+import_df <- as.data.frame(importance(rf.out)) %>%
+  arrange(desc(MeanDecreaseGini))
+
+# Barplot
+importance_plot <- ggplot(import_df, aes(x=reorder(row.names(import_df), -MeanDecreaseGini), y=MeanDecreaseGini)) + 
+  geom_bar(stat = "identity", fill = 'purple') +
+  labs(x = 'Predictor Variable',
+       y = 'Importance (Mean Decrease in Gini Impurity)',
+       title = 'Importance of Predictors in Crash Prediction Model') +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggsave(plot = importance_plot, 
+       filename = paste0("importance_barplot", modelno, '_', Sys.Date(), ".png"),
+       path = file.path(outputdir, "Figures"),
+       device = "png",
+       create.dir = T,
+       height = 6, width = 8, units = "in")
+
+# 
 
 # # In case the factor levels are different between the provided training and test frames, bind the first row of one 
 # # to the other and then delete it. This will equalize them.

@@ -166,6 +166,7 @@ wx <- state_hourly_hist_weather1 %>% bind_rows(state_hourly_hist_weather2) %>%
 # Loading Daily Data ------------------------------------------------------
 
 load_statedaily <- function(year_var){
+  
   file_list <- list.files(path = file.path(inputdir, "Weather","GHCN", "Daily", year_var), pattern = paste0("^", state))
   df_list <- list()
   df_list = vector("list", length = length(file_list))
@@ -216,7 +217,10 @@ gc()
 join_road_weather <- function(training_frame_rc){
   
 #training_frame_rc <- training_frame
-colnames(training_frame_rc)[2:4] <- str_to_title(colnames(training_frame_rc[,2:4]))
+#colnames(training_frame_rc)[2:4] <- str_to_title(colnames(training_frame_rc[,2:4]))
+
+lookup <- c(Month = "month", Day = "day", Hour = "hour")
+training_frame_rc <- training_frame_rc %>% rename(all_of(lookup))
 
 # k_hourly <- nrow(state_stations_sf)
 k_hourly <- 20
@@ -228,10 +232,13 @@ state_network_KNN <- state_network %>% arrange(osm_id) %>% st_drop_geometry() %>
 training_frame_rc <- training_frame_rc %>% st_drop_geometry() %>% 
   left_join(state_network_KNN, join_by(osm_id))
 
-rm(state_stations_sf, KNN, state_network_KNN)
+rm(KNN, state_network_KNN)
 
-## Following up with Matthew Menne at NOAA to understand how the date assignment works.
-## Depending on his reply, may comment out the below and instead assign N_Day as original day.
+## Followed up with Matthew Menne at NOAA to understand how the date assignment works.
+## He said the observation times for daily summaries tend to be local midnight for airport sites, 
+## and local morning for many Cooperative and CoCoRaHS observers.  
+## Based on his reply, we could consider commenting out the below, which attempted to adjust assuming that the
+## day assignment was based on the UTC day, and instead simply assign N_Day as the original day.
 
 if(year2 > year){
 # this approach is pretty slow but I'm not sure how else to do it.
@@ -243,7 +250,7 @@ training_frame_rc <- training_frame_rc %>% # create a column on the "real" Day a
 } else { # if in Guam - needs to be fixed, no time as of now
   }
   
-#training_frame_rc$N_Day <- lubridate::yday(training_frame_rc$Day)
+# training_frame_rc$N_Day <- lubridate::yday(training_frame_rc$Day)
 
 
 # Merge with KNN ------------------------------------------------------------
@@ -406,7 +413,7 @@ for(m in 1:12){
   
   save(temp_trainA, file = file.path(intermediatedir, 'Month_Frames', paste(state, year, m, 'month_frame_full_A.Rdata', sep = "_")))
   
-  rm(temp_trainA, training_frame_rc)
+  rm(temp_trainA)
   
   gc()
   
@@ -417,7 +424,7 @@ for(m in 1:12){
   gc()
   
   temp_train = join_road_weather(temp_train)
-  rm(training_frame_rc)
+  
   gc()
   
   # load back up the first half of the month
