@@ -23,10 +23,10 @@ library(ggplot2)
 source("analysis/RandomForest_Fx.R")
 
 # <><><><><>
-state <- "WA"
+state <- "MN"
 train_year <- 2021
 train_imputed <- TRUE
-num <- "09"
+num <- "01"
 
 
 # <><><><><>
@@ -68,12 +68,11 @@ day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
 imputed_waze <- data.frame()
 
 for (m in months){
-  load(file.path(interdir, "Month_Frames", paste0("WA_2021_month_frame_imputed_waze_",m,"_.RData")))
+  load(file.path(interdir, "Month_Frames", paste(state, train_year, "month_frame_imputed_waze",m,".RData", sep = "_")))
   imputed_waze <- rbind(imputed_waze, waze_averages)
   rm(waze_averages)
   gc()
 }
-
 
 link_seq <- sort(unique(imputed_waze$osm_id))
 
@@ -140,6 +139,10 @@ colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')
 next_week_out <- data.frame(next_week, Crash_pred = predict_next_week, prob_next_week)
 
 write.csv(next_week_out, file = file.path(outputdir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
+
+#normalized <- next_week_out %>% 
+  
+#write.csv(normalized, file = file.path(outputdir, paste0(model.no,'_normalized_', Sys.Date(), '.csv')), row.names = F)
 
 ## Save some box plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results

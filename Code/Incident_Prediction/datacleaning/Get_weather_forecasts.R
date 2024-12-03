@@ -87,7 +87,7 @@ if (file.exists(file.path(file_path))){
   }
   state_map <- states(cb = TRUE, year = year(Sys.Date())) %>%
     filter_state(state_border) %>%
-    st_transform(crs = api_crs)
+    st_transform(crs = projection)
   }
 
 # Overlay a grid of points within the state - current resolution is 1 degree by 1 degree - 
@@ -96,8 +96,9 @@ if (file.exists(file.path(file_path))){
 # Close enough for our purposes as it puts about the right number of query points in each 
 # state.
 grd <- state_map %>% 
-  st_make_grid(cellsize = c(1,1), what = "centers") %>% 
-  st_intersection(state_map) 
+  st_make_grid(cellsize = c(1.2,1.2), what = "centers") %>% 
+  st_intersection(state_map) %>%
+  st_transform(crs = api_crs)
 
 # Uncomment the below code to view the grid overlay
 # ggplot() +
