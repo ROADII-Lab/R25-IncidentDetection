@@ -26,12 +26,10 @@ source("analysis/RandomForest_Fx.R")
 
 # <><><><><>
 state <- "WA"
-state <- "MN"
+#state <- "MN"
 train_year <- 2021
 train_imputed <- TRUE
-
-num <- "01"
-
+num <- "10"
 
 
 # <><><><><>
@@ -157,7 +155,7 @@ next_week_out <- next_week_out %>%
 
 write.csv(next_week_out, file = file.path(outputdir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
 
-## Save some box plots of the results in the Figures folder ##
+## Save some plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results
                         name_of_results # some name that will help distinguish from other results - will be used in filename for outputs
 ){
@@ -184,6 +182,42 @@ save_charts <- function(results_df, # the dataframe object with the results
   
   ggsave(plot = faceted_plot, 
          filename = paste0("faceted_boxplot", name_of_results, ".png"),
+         path = file.path(outputdir, "Figures"),
+         device = "png",
+         create.dir = T,
+         height = 6, width = 5, units = "in")
+  
+  by_hour = results_df %>%
+    group_by(Hour) %>%
+    summarize(Median_Prob_Crash = median(Prob_Crash),
+              Mean_Prob_Crash = mean(Prob_Crash))
+  
+  mean_by_hour = ggplot(data=by_hour, mapping=aes(x=Hour, y=Mean_Prob_Crash)) + 
+    geom_point() + 
+    labs(title = "Mean Crash Probability by Hour",
+         y = "Mean Crash Probability",
+         x = "Hour")
+  
+  ggsave(plot = mean_by_hour, 
+         filename = paste0("mean_by_hour", name_of_results, ".png"),
+         path = file.path(outputdir, "Figures"),
+         device = "png",
+         create.dir = T,
+         height = 6, width = 5, units = "in")
+  
+  by_road_type = results_df %>%
+    group_by(highway) %>%
+    summarize(Median_Prob_Crash = median(Prob_Crash),
+              Mean_Prob_Crash = mean(Prob_Crash))
+  
+  mean_by_roadtype = ggplot(data=by_road_type, mapping=aes(x=highway, y=Mean_Prob_Crash)) + 
+    geom_point() + 
+    labs(title = "Mean Crash Probability by Road Type",
+         y = "Mean Crash Probability",
+         x = "Hour")
+  
+  ggsave(plot = mean_by_roadtype, 
+         filename = paste0("mean_by_roadtype", name_of_results, ".png"),
          path = file.path(outputdir, "Figures"),
          device = "png",
          create.dir = T,
