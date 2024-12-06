@@ -27,7 +27,7 @@ if(!dir.exists(outputdir)) { dir.create(outputdir) }
 
 test_percentage <- 0.03
 
-state <- "MN"
+state <- "WA"
 
 # Indicate whether the state has a unified time zone
 one_zone <-TRUE
@@ -35,8 +35,8 @@ one_zone <-TRUE
 # among the options provided after running the first line below (OlsonNames())
 
 # OlsonNames()
-time_zone_name <- "US/Central"
-# time_zone_name <- "US/Pacific"
+# time_zone_name <- "US/Central"
+time_zone_name <- "US/Pacific"
 
 # Year
 year <- 2021
@@ -44,11 +44,17 @@ year <- 2021
 # Projection 
 projection <- 5070 
 
-### uncomment for temporary testing ####
-m <- 1
-
 ##Use Imputed Waze?
 imputed_waze <- T
+
+num <- "10" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+
+# The full model identifier gets created in this next step
+if(imputed_waze == TRUE){
+  modelno = paste(state, year, "imputed", num, sep = "_")
+}else{
+  modelno = paste(state, year, "NOTimputed", num, sep = "_")
+}
 
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
 
@@ -128,7 +134,7 @@ for(m in 1:12){
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- min(50 * length(crash_sample), length(non_crash_indices))
+  non_crash_sample_size <- min(10 * length(crash_sample), length(non_crash_indices))
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -199,7 +205,7 @@ source("analysis/RandomForest_Fx.R")
 if(imputed_waze == TRUE){
 
 imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
-                             pattern = "imputed", 
+                             pattern = paste(state, year, "month_frame_imputed_waze", sep = "_"), 
                              full.names = TRUE)
 
 imputed_waze_data <- list()
@@ -255,15 +261,6 @@ if(imputed_waze == TRUE){
 response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
-
-num <- "01" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
-
-# The full model identifier gets created in this next step
-if(imputed_waze == TRUE){
-modelno = paste(state, year, "imputed", num, sep = "_")
-}else{
-  modelno = paste(state, year, "NOTimputed", num, sep = "_")
-}
 
 omits = c(alwaysomit)
 
