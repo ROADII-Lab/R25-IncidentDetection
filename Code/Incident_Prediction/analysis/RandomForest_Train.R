@@ -127,11 +127,11 @@ for(m in 1:12){
   # temp_train <-
   
 
-  training_frame <- training_frame %>% bind_rows(temp_train)
+  #training_frame <- training_frame %>% bind_rows(temp_train)
   
-  test_frame <- test_frame %>% bind_rows(temp_test)
+  #test_frame <- test_frame %>% bind_rows(temp_test)
 
-  rm(temp_train, temp_test)
+  #rm(temp_train, temp_test)
 
   # training_frame <- training_frame %>% bind_rows(temp_train)
   # 
