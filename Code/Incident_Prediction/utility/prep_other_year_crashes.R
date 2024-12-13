@@ -100,6 +100,7 @@ if(state == "MN"){
 
 #i <- "Input/Crash/Washington_State/wa21crash.shp" 
 #sum(duplicated(temp$CASENO))
+i <- "D:/Documents/Andrew/R25-IncidentDetection/Code/Incident_Prediction/Input/Crash/Washington_State/wa2crash.shp"
 
 if(state == "WA"){
   for (i in crash_files){
@@ -117,7 +118,7 @@ if(state == "WA"){
       temp <- temp %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
         mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = tz_name))
     } else {temp <- temp %>% mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = time_zone_name))}
-
+    
     temp <- temp %>% select(time_local, crashID)
     
     datalist[[l]] <- temp
@@ -143,7 +144,7 @@ total_crashes <- do.call(bind_rows, datalist) %>%
          lat = sf::st_coordinates(.)[,2],
          crash = 1,
          zone=tz(time_local)) %>%
-  filter(YEAR == year) %>%
+  #filter(YEAR == year) %>%
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   # removing geometry to speed group by operation and limit use of memory. Will add geometry back in later, but it will be the geometry for
   # the road segment, not the geometry for the crash point, because there are sometimes multiple crashes per observation (row)
@@ -267,16 +268,16 @@ for(m in 1:12){
   waze_temp = waze_temp %>%
     st_drop_geometry() %>%
     mutate(
-           month = lubridate::month(time_local),
-           day = as.numeric(lubridate::day(time_local)),
-           hour = as.numeric(lubridate::hour(time_local))
+      month = lubridate::month(time_local),
+      day = as.numeric(lubridate::day(time_local)),
+      hour = as.numeric(lubridate::hour(time_local))
     ) %>%
     select(osm_id, month, day, hour, alert_type) %>%
     mutate(n = 1) %>%
     group_by(osm_id, month, day, hour, alert_type) %>% 
     summarize(n = sum(n)) %>%
     pivot_wider(names_from = alert_type, values_from = n)
-    
+  
   temp_train = temp_train %>% 
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
     replace_na(list(ACCIDENT = 0, JAM = 0, ROAD_CLOSED = 0, WEATHERHAZARD = 0))
@@ -348,182 +349,3 @@ source(file.path("Utility", "Join_Road_weather.R"))
 rm(timezone_adj, tz_adjustments, US_timezones)
 
 gc()
-#########
-# create consolidated version of training and test data frames
-# training_frame <- data.frame(osm_id = character(),
-#                              Month = numeric(),
-#                              Day = numeric(),
-#                              Hour = numeric(),
-#                              crash = numeric(),
-#                              alert_type = factor(),
-#                              sub_type = factor(),
-#                              day_of_week = factor(),
-#                              precipitation = numeric(),
-#                              temperature = numeric(),
-#                              SNOW = numeric())
-# 
-# for(m in 1:12){
-#   starttime = Sys.time()
-#   load(file.path('Intermediate','Month_Frames', paste(state, year, m, 'month_frame_full.Rdata', sep = "_")))
-#   training_frame <- training_frame %>% bind_rows(temp_train)
-#   rm(temp_train)
-#   gc()
-#   timediff = Sys.time() - starttime
-#   cat("Appended to master train frames for month ", m, ". ")
-#   cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
-# }
-# 
-# save(list = c('training_frame'), file = file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_")))
-# 
-# timediff = Sys.time() - top_time
-# cat("Completed osm_query.R script. ", round(timediff,2), attr(timediff, "unit"), " elapsed in total.", "\n")
-
-########
-
-# m <- 1
-# load(file.path('Intermediate','Month_Frames',paste0("month_frame_waze",m,".RData")))
-# training_frame_rc <- temp_train
-# rm(temp_train)
-
-# load(file.path('Intermediate','Month_Frames',paste0("month_frame_waze",m,".RData")))
-
-### Below is scratch
-
-# total_crashes <- total_crashes %>%
-#   mutate(hour_end = as.POSIXct(paste0(year,"-",
-#                                         formatC(month, width = 2, flag = "0"),"-",
-#                                         formatC(day, width = 2, flag = "0")," ",
-#                                         hour,":","00:00"), tz = time_zone_name),
-#          hours_prior = hour_end - hours(4)
-#          )
-
-# st_as_sf(coords = c("lon", "lat"), crs=projection)
-# mean(st_length(state_network))
-# hist(st_length(state_network))
-# summary(st_length(state_network))
-
-# define a function to add in start hour, end hour, and 4 hours prior to start hour based on year, month, hour, day ------------
-# add_stamps <- function(x # object (dataframe, tibble, sf)
-# ) {
-#   if(!one_zone){
-#     y <- x %>% 
-#       st_join(timezone_adj, join = st_nearest_feature) %>% 
-#       mutate(hour_start = as.POSIXct(paste0(year,"-",
-#                                             formatC(month, width = 2, flag = "0"),"-",
-#                                             formatC(day, width = 2, flag = "0")," ",
-#                                             formatC(hour, width = 2, flag = "0"),
-#                                             ":","00:00"
-#       ), 
-#       tz = tz_name
-#       )
-#       )
-#   } else {
-#     y <- x %>% 
-#       mutate(hour_start = as.POSIXct(paste0(year,"-",
-#                                             formatC(month, width = 2, flag = "0"),"-",
-#                                             formatC(day, width = 2, flag = "0")," ",
-#                                             formatC(hour, width = 2, flag = "0"),
-#                                             ":","00:00"
-#       ), 
-#       tz = time_zone_name
-#       )
-#       )
-#   } # end of if clause
-#   y$hours_prior <- y$hour_start + hours(-4)
-#   y$hour_end <- y$hour_start + hours(1)
-#   return(y)
-# } # end of function
-
-##### OLD VERSION
-
-## Set up monthly training and test dataframes ----------------------
-
-# # Switching to operate month-by-month to avoid running out of memory 
-# # when trying to work with an entire year all at the same time.
-# monthIDs <- formatC(1:12, width = 2, flag = "0")
-# yearmonths <- c(paste(year, monthIDs, sep="-"))
-# yearmonths.1 <- paste(yearmonths, "01", sep="-")
-# lastdays <- days_in_month(as.POSIXct(yearmonths.1)) # from lubridate
-# yearmonths.end <- paste(yearmonths, lastdays, sep="-")
-# 
-# # uncomment for testing
-# #m <- 1
-# 
-# # set seed for drawing samples, so team members will have replicable results for comparison
-# set.seed(46)
-# 
-# # buffer <- st_buffer(state_network, dist = 50)
-# #ggplot() + geom_sf(data = buffer)
-# 
-# for (m in 1:12){
-#   starttime = Sys.time()
-#   num_days = as.numeric(lastdays[m])
-#   month = as.numeric(rep(monthIDs[m],times = 24 * num_days))
-#   day = seq(from=1, to=num_days, by=1)
-#   #day = formatC(day, width = 2, flag = "0")
-#   day = rep(day, each=24)
-#   hour = rep(0:23,times=num_days)
-#   #hour = formatC(hour, width = 2, flag = "0")
-#   dates <- data.frame(month=month,day=day,hour=hour)
-#   
-#   # generate TRAINING sample for the month
-#   train_sample <- sample(x=nrow(dates), size = nrow(dates)*training_proportion)
-#   dates_train <- dates[train_sample,]
-#   # replicate it, multiplying by the number of road segments
-#   dates_train_exp <- do.call(bind_rows, replicate(nrow(state_network), dates_train, simplify = FALSE))
-#   
-#   # combine date/time columns from sample with osm_id and then crashes
-#   # expand road segment frame, multiplying by the number of date/time training samples
-#   temp_train <- do.call(bind_rows, replicate(nrow(dates_train), state_network %>% st_drop_geometry(), simplify = FALSE)) %>% 
-#     arrange(osm_id) %>%
-#     # merge with expanded version of date/time training frame
-#     cbind(dates_train_exp, row.names=NULL) %>%
-#     # bring in crash data
-#     left_join(total_crashes, by = c('osm_id', 'month', 'day', 'hour')) %>%
-#     mutate(crash = ifelse(is.na(crash), 0, crash))
-#   
-#   # generate TEST sample for the month
-#   # only select from among the rows that were NOT in training sample
-#   remaining <- dates[-train_sample,]
-#   test_sample <- sample(x=nrow(remaining), size = nrow(remaining)*test_proportion)
-#   dates_test <- remaining[test_sample,]
-#   # replicate it, multiplying by the number of road segments
-#   dates_test_exp <- do.call(bind_rows, replicate(nrow(state_network), dates_test, simplify = FALSE))
-#   
-#   # combine date/time columns from sample with osm_id and then crashes
-#   # expand road segment frame, multiplying by the number of date/time training samples
-#   temp_test <- do.call(bind_rows, replicate(nrow(dates_test), state_network %>% st_drop_geometry(), simplify = FALSE)) %>% 
-#     arrange(osm_id) %>% 
-#     # merge with expanded version of date/time test frame
-#     cbind(dates_test_exp, row.names=NULL) %>%
-#     # bring in crash data
-#     left_join(total_crashes, by = c('osm_id', 'month', 'day', 'hour')) %>%
-#     mutate(crash = ifelse(is.na(crash), 0, crash))
-#   
-#   # save the objects
-#   save(list = c('dates','temp_train','temp_test'), file = file.path(intermediatedir,'Month_Frames',paste0("month_frame_",m,".RData")))
-#   timediff = Sys.time() - starttime
-#   
-#   # clear memory
-#   rm(num_days, month, day, hour, dates, dates_test, dates_test_exp, dates_train, dates_train_exp, remaining, temp_test, temp_train, train_sample, test_sample)
-#   
-#   cat("Created training and test data frames with date/time, road segments, and crashes for month ", m, ". ")
-#   cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
-# }
-
-#######
-# start_date <- as.POSIXct(c(paste(year, 01, 01, sep="-")))
-# end_date <- as.POSIXct(c(paste(year, 12, 31, sep="-")))
-# 
-# dates <- seq(from = start_date, to = end_date, by = "day")
-# # replicate it, multiplying by the number of road segments
-# dates_exp <- replicate(nrow(state_network), dates, simplify = FALSE)
-
-# num_days = as.numeric(lastdays[m])
-# month = as.numeric(rep(monthIDs[m],times = 24 * num_days))
-# day = seq(from=1, to=num_days, by=1)
-# #day = formatC(day, width = 2, flag = "0")
-# day = rep(day, each=24)
-# hour = rep(0:23,times=num_days)
-# #hour = formatC(hour, width = 2, flag = "0")
-# dates <- data.frame(month=month,day=day,hour=hour)

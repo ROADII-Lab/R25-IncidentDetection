@@ -117,7 +117,7 @@ if(state == "WA"){
       temp <- temp %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
         mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = tz_name))
     } else {temp <- temp %>% mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = time_zone_name))}
-
+    
     temp <- temp %>% select(time_local, crashID)
     
     datalist[[l]] <- temp
@@ -143,15 +143,17 @@ total_crashes <- do.call(bind_rows, datalist) %>%
          lat = sf::st_coordinates(.)[,2],
          crash = 1,
          zone=tz(time_local)) %>%
-  filter(YEAR == year) %>%
+  #filter(YEAR == year) %>%
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   # removing geometry to speed group by operation and limit use of memory. Will add geometry back in later, but it will be the geometry for
   # the road segment, not the geometry for the crash point, because there are sometimes multiple crashes per observation (row)
   st_drop_geometry() %>%
-  select(osm_id, month, day, hour, crash) %>%
-  group_by(osm_id, month, day, hour) %>%
+  select(osm_id, crash) %>%
+  group_by(osm_id) %>%
   summarise(crash = sum(crash)) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(crash = ifelse(is.na(crash), 0, crash)) %>%
+  rename(hist_crashes = crash)
 timediff = Sys.time() - starttime
 cat("Created total_crashes ")
 cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
@@ -205,7 +207,7 @@ for (m in 1:12){
     cbind(dates_exp, row.names=NULL) %>%
     # bring in crash data
     left_join(total_crashes, by = c('osm_id', 'month', 'day', 'hour')) %>%
-    mutate(crash = ifelse(is.na(crash), 0, crash))
+    filter(!is.na(crash))
   
   # save the temp object
   if(!dir.exists(file.path(intermediatedir,'Month_Frames'))) { dir.create(file.path(intermediatedir,'Month_Frames')) }
@@ -267,16 +269,16 @@ for(m in 1:12){
   waze_temp = waze_temp %>%
     st_drop_geometry() %>%
     mutate(
-           month = lubridate::month(time_local),
-           day = as.numeric(lubridate::day(time_local)),
-           hour = as.numeric(lubridate::hour(time_local))
+      month = lubridate::month(time_local),
+      day = as.numeric(lubridate::day(time_local)),
+      hour = as.numeric(lubridate::hour(time_local))
     ) %>%
     select(osm_id, month, day, hour, alert_type) %>%
     mutate(n = 1) %>%
     group_by(osm_id, month, day, hour, alert_type) %>% 
     summarize(n = sum(n)) %>%
     pivot_wider(names_from = alert_type, values_from = n)
-    
+  
   temp_train = temp_train %>% 
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
     replace_na(list(ACCIDENT = 0, JAM = 0, ROAD_CLOSED = 0, WEATHERHAZARD = 0))
