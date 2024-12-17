@@ -29,7 +29,7 @@ state <- "WA"
 #state <- "MN"
 train_year <- 2021
 train_imputed <- TRUE
-num <- "10"
+num <- "100_2"
 
 
 # <><><><><>

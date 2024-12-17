@@ -48,7 +48,7 @@ projection <- 5070
 ##Use Imputed Waze?
 imputed_waze <- T
 
-num <- "10" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "100_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
@@ -137,14 +137,14 @@ for(m in 1:12){
   # 
   # test_frame <- test_frame %>% bind_rows(temp_test)
   
-  is_crash <- temp_train[,"crash"] == 1
+  is_crash <- temp_train[,"crash"] == 1 
   crash_indices <- which(is_crash)
-  non_crash_indices <- which (!is_crash)
+  non_crash_indices <- which (!is_crash) 
 
-  crash_sample_size <- length(crash_indices)
+  crash_sample_size <- length(crash_indices) * 0.5
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- min(10 * length(crash_sample), length(non_crash_indices))
+  non_crash_sample_size <- min(length(crash_sample), length(crash_indices))
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
