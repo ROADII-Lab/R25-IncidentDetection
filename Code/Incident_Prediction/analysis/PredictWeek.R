@@ -111,10 +111,10 @@ next_week <- link_x_day %>%
          Average_jams = average_jams,
          Average_weather = average_weather,
          Average_closure = average_closure,
-
          Average_accident = average_accident,
          Average_jam_level = average_jam_level) %>%
   left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
+  left_join(hist_crashes, by = "osm_id") %>%
   mutate(Month = factor(Month, levels = rf.out$forest$xlevels$Month),
          Hour = factor(Hour, levels = rf.out$forest$xlevels$Hour),
          weekday = factor(weekday, levels = rf.out$forest$xlevels$weekday),
