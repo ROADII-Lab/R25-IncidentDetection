@@ -162,26 +162,24 @@ for(m in 1:12){
   
 }
 
+# load road network in order to join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
 
-# load road network
+cat("Preparing to join data on historical crashes ('hist_crashes'), road type ('highway'), and speed limit ('maxspeed').\n")
 source("utility/Prep_OSMNetwork.R")
-# drop spatial geo, join network
-state_network <- state_network %>%
-  st_drop_geometry()
+
+source("utility/prep_hist_crash.R")
 
 prep_data <- function(training_frame){
   training_frame <- training_frame %>%
     replace_na(list(precipitation = 0, SNOW = 0)) %>%
-    left_join(state_network, by = "osm_id") %>%
-
+    left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
+    left_join(hist_crashes, by = "osm_id") %>%
     mutate(Month = factor(Month),
            Day = factor(Day),
            Hour = factor(Hour),
            weekday = factor(weekday),
-
            osm_id = factor(osm_id),
            highway = factor(highway))
-    
 
   return(training_frame)
 }

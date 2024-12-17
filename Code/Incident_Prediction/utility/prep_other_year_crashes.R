@@ -12,8 +12,6 @@ library(stringr)
 
 top_time <- Sys.time()
 
-#source('utility/wazefunctions.R') # contains find_matches function
-
 ##Parameters to enter ------------------------------------------------------------------
 
 keep_prop <- NULL # proportion of data to keep when thinning
@@ -96,11 +94,8 @@ if(state == "MN"){
     rm(temp)
   }
 }
-#tz(temp$time_local)
 
-#i <- "Input/Crash/Washington_State/wa21crash.shp" 
-#sum(duplicated(temp$CASENO))
-i <- "D:/Documents/Andrew/R25-IncidentDetection/Code/Incident_Prediction/Input/Crash/Washington_State/wa2crash.shp"
+i <- "D:/Documents/Andrew/R25-IncidentDetection/Code/Incident_Prediction/Input/Crash/Washington_State/wa20crash.shp"
 
 if(state == "WA"){
   for (i in crash_files){
@@ -130,6 +125,8 @@ if(state == "WA"){
   }
 }
 
+is_weekday <- function(timestamps){lubridate::wday(timestamps, week_start = 1) < 6}
+
 ## create total crashes for the year
 starttime = Sys.time()
 total_crashes <- do.call(bind_rows, datalist) %>%
@@ -144,17 +141,23 @@ total_crashes <- do.call(bind_rows, datalist) %>%
          lat = sf::st_coordinates(.)[,2],
          crash = 1,
          zone=tz(time_local)) %>%
-  #filter(YEAR == year) %>%
+  filter(YEAR != year) %>%
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   # removing geometry to speed group by operation and limit use of memory. Will add geometry back in later, but it will be the geometry for
   # the road segment, not the geometry for the crash point, because there are sometimes multiple crashes per observation (row)
   st_drop_geometry() %>%
-  select(osm_id, month, day, hour, crash) %>%
-  group_by(osm_id, month, day, hour) %>%
+  select(osm_id, YEAR, month, day, hour, crash) %>%
+  group_by(osm_id, YEAR, month, day, hour) %>%
   summarise(crash = sum(crash)) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(day_of_week = lubridate::wday(dates, label = TRUE),
+         weekday = is_weekday(dates))
+  
+  # convert day_of_week into unordered since we want to treat it as a nominal variable. 
+  total_crashes$day_of_week <- factor(total_crashes$day_of_week, ordered = FALSE)
+
 timediff = Sys.time() - starttime
-cat("Created total_crashes ")
+cat("Created total_crashes for other years")
 cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
 
 #------------------------------------------------------------------------------------
