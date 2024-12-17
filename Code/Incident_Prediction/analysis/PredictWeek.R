@@ -105,6 +105,8 @@ link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>
   filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
+source("utility/prep_hist_crash.R")
+
 next_week <- link_x_day %>%
   rename(Month = month, 
          Hour = hour,
