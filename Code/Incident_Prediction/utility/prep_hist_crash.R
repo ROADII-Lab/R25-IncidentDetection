@@ -106,7 +106,7 @@ if(state == "WA"){
   }
 }
 
-## create historical crashes across all years
+## create historical crashes across all other years (excluding the year in question)
 starttime = Sys.time()
 hist_crashes <- do.call(bind_rows, datalist) %>%
   st_transform(projection) %>%
@@ -120,7 +120,7 @@ hist_crashes <- do.call(bind_rows, datalist) %>%
          lat = sf::st_coordinates(.)[,2],
          crash = 1,
          zone=tz(time_local)) %>%
-  #filter(YEAR == year) %>%
+  filter(YEAR != year) %>%
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   # removing geometry to speed group by operation and limit use of memory. Will add geometry back in later, but it will be the geometry for
   # the road segment, not the geometry for the crash point, because there are sometimes multiple crashes per observation (row)
