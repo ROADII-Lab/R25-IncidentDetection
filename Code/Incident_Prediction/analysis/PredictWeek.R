@@ -5,10 +5,12 @@ gc()
 inputdir <- file.path(getwd(),"Input")
 interdir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
+predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
 
 # Make outputdir and intermediatedir if not already there
 if(!dir.exists(interdir)) { dir.create(interdir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
+if(!dir.exists(predict_week_out_dir)) { dir.create(predict_week_out_dir) }
 
 source('utility/get_packages.R') # installs necessary packages
 
@@ -29,7 +31,7 @@ state <- "WA"
 #state <- "MN"
 train_year <- 2021
 train_imputed <- TRUE
-num <- "100_2"
+num <- "hist_crashes_2"
 
 
 # <><><><><>
@@ -105,6 +107,7 @@ link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>
   filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
+year <- train_year
 source("utility/prep_hist_crash.R")
 
 next_week <- link_x_day %>%
@@ -155,7 +158,7 @@ next_week_out <- next_week_out %>%
   ungroup()
 
 
-write.csv(next_week_out, file = file.path(outputdir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
+write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
 
 ## Save some plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results

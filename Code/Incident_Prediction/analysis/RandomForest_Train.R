@@ -48,7 +48,7 @@ projection <- 5070
 ##Use Imputed Waze?
 imputed_waze <- T
 
-num <- "100_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "hist_crashes_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
