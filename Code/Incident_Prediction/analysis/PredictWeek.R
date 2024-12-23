@@ -2,6 +2,16 @@ rm(list=ls()) # Start fresh
 
 gc()
 
+# <><><><><> Parameters to enter - must match model that you trained<><><><><>
+state <- "WA"
+#state <- "MN"
+train_year <- 2021
+train_imputed <- TRUE
+num <- "hist_crashes_2"
+
+
+# <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
 inputdir <- file.path(getwd(),"Input")
 interdir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
@@ -25,16 +35,6 @@ library(ggplot2)
 
 # read random forest function
 source("analysis/RandomForest_Fx.R")
-
-# <><><><><>
-state <- "WA"
-#state <- "MN"
-train_year <- 2021
-train_imputed <- TRUE
-num <- "hist_crashes_2"
-
-
-# <><><><><>
 
 # The full model identifier gets created in this next step
 if(train_imputed == TRUE){

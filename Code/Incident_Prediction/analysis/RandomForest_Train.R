@@ -1,5 +1,32 @@
 # Random forest models of crash estimation for a given state. 
 
+## Parameters to set before running#################################
+num <- "hist_crashes_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+
+state <- "WA"
+
+# Indicate whether the state has a unified time zone
+one_zone <-TRUE
+# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
+# among the options provided after running the first line below (OlsonNames())
+
+# OlsonNames()
+#time_zone_name <- "US/Central"
+time_zone_name <- "US/Pacific"
+
+# Year
+year <- 2021
+
+### Optional parameters to set, or accept default.#############
+# Projection 
+projection <- 5070
+
+##Use Imputed Waze?
+imputed_waze <- T
+
+test_percentage <- 0.03
+##############################################################
+
 # Setup ---- 
 gc()
 
@@ -25,30 +52,6 @@ intermediatedir <- file.path(getwd(), "Intermediate")
 # Make outputdir and intermediatedir if not already there
 if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
-
-test_percentage <- 0.03
-
-state <- "WA"
-
-# Indicate whether the state has a unified time zone
-one_zone <-TRUE
-# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
-# among the options provided after running the first line below (OlsonNames())
-
-# OlsonNames()
-# time_zone_name <- "US/Central"
-time_zone_name <- "US/Pacific"
-
-# Year
-year <- 2021
-
-# Projection 
-projection <- 5070 
-
-##Use Imputed Waze?
-imputed_waze <- T
-
-num <- "hist_crashes_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
