@@ -17,6 +17,15 @@ time_zone_name <- "US/Pacific"
 # Year
 year <- 2021
 
+# Indicate whether to aggregate into 4-hour bins, versus training and generating 
+# on individual hours. If time_bins is set to True, the tool will aggregate the data
+# in 4-hour bins and train on that.
+time_bins <- False
+# If time_bins is set to True above, the bins_start_hour parameter below identifies
+# the start time of the first 4-hour bin. By default it is 7, meaning that the bins
+# are as follows: 7-11 AM, 11 AM - 3 PM, 3-7 PM, etc.
+bins_start_hour <- 7
+
 ### Optional parameters to set, or accept default.#############
 # Projection 
 projection <- 5070
