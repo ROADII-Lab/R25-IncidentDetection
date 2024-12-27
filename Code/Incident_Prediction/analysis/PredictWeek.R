@@ -12,7 +12,7 @@ num <- "hist_crashes_2"
 # Indicate whether to aggregate into 4-hour bins, versus training and generating 
 # on individual hours. If time_bins is set to True, the tool will aggregate the data
 # in 4-hour bins and train on that.
-time_bins <- False
+time_bins <- FALSE
 # If time_bins is set to True above, the bins_start_hour parameter below identifies
 # the start time of the first 4-hour bin. By default it is 7, meaning that the bins
 # are as follows: 7-11 AM, 11 AM - 3 PM, 3-7 PM, etc.
