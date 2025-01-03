@@ -9,6 +9,7 @@ library(tigris)
 library(doParallel)
 library(lubridate)
 library(stringr)
+library(tibbletime)
 
 top_time <- Sys.time()
 
@@ -131,31 +132,37 @@ if(state == "WA"){
 
 ## create total crashes for the year
 starttime = Sys.time()
+
 total_crashes <- do.call(bind_rows, datalist) %>%
   st_transform(projection) %>%
-  mutate(YEAR = as.integer(lubridate::year(time_local)),
-         month = as.integer(lubridate::month(time_local)),
-         day = as.integer(lubridate::day(time_local)),
-         hour = as.integer(lubridate::hour(time_local)),
-         # storing coordinate information as numbers rather than sf geometry to reduce the size of the object
-         # and speed subsequent operations.
-         lon = sf::st_coordinates(.)[,1],
-         lat = sf::st_coordinates(.)[,2],
-         crash = 1,
-         zone=tz(time_local)) %>%
+  mutate(YEAR = as.integer(lubridate::year(time_local))) %>%
   filter(YEAR == year) %>%
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   # removing geometry to speed group by operation and limit use of memory. Will add geometry back in later, but it will be the geometry for
   # the road segment, not the geometry for the crash point, because there are sometimes multiple crashes per observation (row)
-  st_drop_geometry() %>%
+  st_drop_geometry()
+
+if(time_bins){
+  total_crashes <- total_crashes %>% 
+    as_tbl_time(index = time_local) %>%
+    collapse_by("6 hours", side = "start", clean = TRUE)
+}
+
+total_crashes <- total_crashes %>% 
+  mutate(month = as.integer(lubridate::month(time_local)),
+         day = as.integer(lubridate::day(time_local)),
+         hour = as.integer(lubridate::hour(time_local)),
+         crash = 1,
+         zone=tz(time_local)) %>%
   select(osm_id, month, day, hour, crash) %>%
   group_by(osm_id, month, day, hour) %>%
   summarise(crash = sum(crash)) %>%
   ungroup()
+
 timediff = Sys.time() - starttime
 cat("Created total_crashes ")
 cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")
-
+gc()
 #------------------------------------------------------------------------------------
 
 ## Set up monthly training and test dataframes ----------------------
@@ -185,13 +192,10 @@ for (m in 1:12){
   dates <- head(dates, -1)
   # convert into a dataframe with separate columns for month, day, hour, and day of week.
   dates <- data.frame(dates = dates, 
-                      month = lubridate::month(dates), 
-                      day = lubridate::day(dates), 
-                      hour = lubridate::hour(dates), 
                       day_of_week = lubridate::wday(dates, label = TRUE),
                       weekday = is_weekday(dates))
   # convert day_of_week into unordered since we want to treat it as a nominal variable. 
-  dates$day_of_week <- factor(dates$day_of_week, ordered = FALSE)
+  dates$day_of_week <- as.factor(dates$day_of_week, ordered = FALSE)
   
   # replicate it, multiplying by the number of road segments
   dates_exp <- do.call(bind_rows, replicate(nrow(state_network), dates, simplify = FALSE)) %>%
@@ -202,7 +206,19 @@ for (m in 1:12){
   temp_train <- do.call(bind_rows, replicate(nrow(dates), state_network %>% st_drop_geometry(), simplify = FALSE)) %>% 
     arrange(osm_id) %>%
     # merge with expanded version of date/time training frame
-    cbind(dates_exp, row.names=NULL) %>%
+    cbind(dates_exp, row.names=NULL) 
+  
+  if(time_bins){
+    temp_train = temp_train %>% 
+      as_tbl_time(index = dates) %>%
+      collapse_by("6 hours", side = "start", clean = TRUE)
+  }
+  
+  temp_train <- temp_train %>% 
+    # add month, day, and hour columns
+    mutate(month = lubridate::month(dates), 
+           day = lubridate::day(dates), 
+           hour = lubridate::hour(dates)) %>%
     # bring in crash data
     left_join(total_crashes, by = c('osm_id', 'month', 'day', 'hour')) %>%
     mutate(crash = ifelse(is.na(crash), 0, crash))
@@ -264,8 +280,15 @@ for(m in 1:12){
       mutate(time_local = as.POSIXct(time_local, tz = tz_name))
   } else {waze_temp <- waze_temp %>% mutate(time_local = as.POSIXct(time_local, tz = time_zone_name))}
   
-  waze_temp = waze_temp %>%
-    st_drop_geometry() %>%
+  waze_temp = waze_temp %>% st_drop_geometry() 
+  
+  if(time_bins){
+    waze_temp = waze_temp %>% 
+      as_tbl_time(index = time_local) %>%
+      collapse_by("6 hours", side = "start", clean = TRUE)
+  }
+  
+  waze_temp = waze_temp %>% 
     mutate(
            month = lubridate::month(time_local),
            day = as.numeric(lubridate::day(time_local)),
@@ -294,8 +317,18 @@ for(m in 1:12){
              hour = hour_local) %>%
       mutate(osm_id = as.character(osm_id))
     
+    if(time_bins){
+      waze_temp = waze_temp %>%
+        mutate(hour = case_when(hour >= 0 & hour < 6 ~ 0,
+                             hour >= 6 & hour < 12 ~ 6,
+                             hour >= 12 & hour < 18 ~ 12,
+                             hour >= 18 & hour < 24 ~ 18)) %>%
+        group_by(osm_id, month, day, hour) %>%
+        summarize(level_mode = mean(level_mode, na.rm = T))
+    }
+    
     temp_train = temp_train %>% 
-      left_join(waze_temp %>% select(!pub_utc_timestamp_mean), by = c('osm_id', 'month', 'day', 'hour')) %>%
+      left_join(waze_temp %>% select(osm_id, month, day, hour, level_mode), by = c('osm_id', 'month', 'day', 'hour')) %>%
       replace_na(list(level_mode = 0)) %>%
       rename(jam_level = level_mode)
   }
@@ -330,6 +363,7 @@ for(m in 1:12){
   
   # clear memory
   rm(temp_train, waze_temp, waze_averages)
+  gc()
   gc()
   cat("Added waze data for month ", m, ". ")
   cat(round(timediff,2), attr(timediff, "unit"), "elapsed", "\n")

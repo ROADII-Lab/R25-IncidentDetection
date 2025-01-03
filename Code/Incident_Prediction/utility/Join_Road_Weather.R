@@ -212,6 +212,21 @@ if(year2 > year){
 rm(state_daily_hist_weather1, state_daily_hist_weather2, state_hourly_hist_weather1, state_hourly_hist_weather2)
 gc()
 
+if(time_bins){
+  wx <- wx %>% 
+    mutate(Date = ymd_h(paste0(year, "-", Month, "-", Day, " ", Hour))) %>%
+    as_tbl_time(index = Date) %>%
+    collapse_by("6 hours", side = "start", clean = TRUE) %>%
+    mutate(Hour = lubridate::hour(Date)) %>%
+    group_by(Year, Month, Day, Hour, nrow) %>%
+    summarize(precipitation = mean(precipitation, na.rm = T),
+              temperature = mean(temperature, na.rm = T),
+              snow_depth = mean(snow_depth, na.rm = T)) %>%
+    ungroup()
+}
+
+gc()
+
 ####### Define function to join the weather for a given data frame (will be applied month-by-month) ######
 
 join_road_weather <- function(training_frame_rc){
@@ -240,17 +255,17 @@ rm(KNN, state_network_KNN)
 ## Based on his reply, we could consider commenting out the below, which attempted to adjust assuming that the
 ## day assignment was based on the UTC day, and instead simply assign N_Day as the original day.
 
-if(year2 > year){
-# this approach is pretty slow but I'm not sure how else to do it.
-training_frame_rc <- training_frame_rc %>% # create a column on the "real" Day adjusted for timezone
-  mutate(Date = ymd_h(paste0(year, "-", Month, "-", Day, " ", Hour)),
-         N_Day = case_when(as.numeric(Hour)+abs(tz_adjust)>23 ~ as.numeric(yday(Date))+1,
-                           .default = as.numeric(yday(Date)))) %>%
-  select(-Date)
-} else { # if in Guam - needs to be fixed, no time as of now
-  }
+# if(year2 > year){
+# # this approach is pretty slow but I'm not sure how else to do it.
+# training_frame_rc <- training_frame_rc %>% # create a column on the "real" Day adjusted for timezone
+#   mutate(Date = ymd_h(paste0(year, "-", Month, "-", Day, " ", Hour)),
+#          N_Day = case_when(as.numeric(Hour)+abs(tz_adjust)>23 ~ as.numeric(yday(Date))+1,
+#                            .default = as.numeric(yday(Date)))) %>%
+#   select(-Date)
+# } else { # if in Guam - needs to be fixed, no time as of now
+#   }
   
-# training_frame_rc$N_Day <- lubridate::yday(training_frame_rc$Day)
+training_frame_rc$N_Day <- lubridate::yday(training_frame_rc$Day)
 
 
 # Merge with KNN ------------------------------------------------------------

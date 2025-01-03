@@ -7,16 +7,13 @@ state <- "WA"
 #state <- "MN"
 train_year <- 2021
 train_imputed <- TRUE
-num <- "hist_crashes_2"
+num <- "temp_agg_1"
 
-# Indicate whether to aggregate into 4-hour bins, versus training and generating 
-# on individual hours. If time_bins is set to True, the tool will aggregate the data
-# in 4-hour bins and train on that.
-time_bins <- FALSE
-# If time_bins is set to True above, the bins_start_hour parameter below identifies
-# the start time of the first 4-hour bin. By default it is 7, meaning that the bins
-# are as follows: 7-11 AM, 11 AM - 3 PM, 3-7 PM, etc.
-bins_start_hour <- 7
+# Indicate whether to aggregate into 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight), 
+# versus generating predictions based on individual hours. 
+# If time_bins is set to True, the tool will aggregate the data
+# in 6-hour bins and train/predict on that.
+time_bins <- TRUE
 
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 

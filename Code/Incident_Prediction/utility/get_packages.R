@@ -37,6 +37,7 @@ loadpacks <- c(
             "stringr",
             "terra",
             "tensorflow",
+            "tibbletime",
             "tidyverse",
             "tigris",
             "utils",

@@ -1,7 +1,7 @@
 # Random forest models of crash estimation for a given state. 
 
 ## Parameters to set before running#################################
-num <- "hist_crashes_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "temp_agg_1" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 state <- "WA"
 
@@ -17,14 +17,11 @@ time_zone_name <- "US/Pacific"
 # Year
 year <- 2021
 
-# Indicate whether to aggregate into 4-hour bins, versus training and generating 
-# on individual hours. If time_bins is set to True, the tool will aggregate the data
-# in 4-hour bins and train on that.
-time_bins <- FALSE
-# If time_bins is set to True above, the bins_start_hour parameter below identifies
-# the start time of the first 4-hour bin. By default it is 7, meaning that the bins
-# are as follows: 7-11 AM, 11 AM - 3 PM, 3-7 PM, etc.
-bins_start_hour <- 7
+# Indicate whether to aggregate into 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight), 
+# versus training and generating predictions based on individual hours. 
+# If time_bins is set to True, the tool will aggregate the data
+# in 6-hour bins and train on that.
+time_bins <- T
 
 ### Optional parameters to set, or accept default.#############
 # Projection 
@@ -85,8 +82,29 @@ monthframe_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 
 if(!all(file.exists(monthframe_fps))){
   source('utility/osm_query.R') # creates training frames
 } else {
-  cat("Month frames already exist. If you wish to generate the data from scratch exit the script; delete, move, or rename the files; and re-run. This is an example file path for the month of January: ")
-  cat(monthframe_fps[1], '\n\n')
+  # Make sure the user is aware of the situation with respect to existing month frames
+  
+  load(monthframe_fps[1])
+  
+  if(length(unique(temp_train$Hour))>4 & time_bins){
+    cat("Month frames already exist, but they were created with time_bins set to FALSE, meaning that the data \n")
+    cat("are not aggregated. However, time_bins is currently set to TRUE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
+    proceed <- readline("Press 'p' to proceed or 'c' to cancel>>")
+    if(proceed == 'p'){
+      source('utility/osm_query.R') # creates training frames
+    } else if(proceed == 'c'){stop("User chose to exit script.")}
+  } else if(length(unique(temp_train$Hour))<5 & !time_bins){
+    cat("Month frames already exist, but they were created with time_bins set to TRUE, meaning that the data \n")
+    cat("are aggregated. However, time_bins is currently set to FALSE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
+    proceed <- readline("Press 'p' to proceed or 'c' to cancel>>")
+    if(proceed == 'p'){
+      source('utility/osm_query.R') # creates training frames
+    } else if(proceed == 'c'){stop("User chose to exit script.")}
+  } else {
+    cat("Month frames already exist. If you wish to generate the data from scratch exit the script; delete, move, or rename the files; and re-run. This is an example file path for the month of January: ")
+    cat(monthframe_fps[1], '\n\n')
+  }
+  
 }
 
 training_frame <- test_frame <-  data.frame(osm_id = character(),
@@ -111,6 +129,22 @@ for(m in 1:12){
   starttime <- Sys.time()
   
   load(monthframe_fps[m])
+  
+  # if(time_bins){
+  #   temp_train <- temp_train %>% 
+  #     as_tbl_time(index = time_local) %>%
+  #     collapse_by("6 hours", side = "start", clean = TRUE) %>%
+  #     group_by(osm_id, Month, Day, Hour, day_of_week, weekday) %>%
+  #     summarize(crash = sum(crash),
+  #               WEATHERHAZARD = mean(WEATHERHAZARD, na.rm = T),
+  #               JAM = mean(JAM, na.rm = T),
+  #               ROAD_CLOSED = mean(ROAD_CLOSED, na.rm = T),
+  #               ACCIDENT = mean(ACCIDENT, na.rm = T),
+  #               jam_level = mean(jam_level, na.rm = T),
+  #               precipitation = mean(precipitation, na.rm = T),
+  #               temperature = mean(temperature, na.rm = T),
+  #               SNOW = mean(SNOW, na.rm = T))
+  # }
   
   temp_train <- temp_train %>% 
     mutate(crash = ifelse(crash >= 1, 1, 0),
@@ -182,16 +216,20 @@ source("utility/Prep_OSMNetwork.R")
 source("utility/prep_hist_crash.R")
 
 prep_data <- function(training_frame){
+  if(time_bins){
+    training_frame <- training_frame %>%
+      mutate(Hour = paste(as.character(Hour), as.character(Hour + 6), sep = "-"))
+  }
   training_frame <- training_frame %>%
     replace_na(list(precipitation = 0, SNOW = 0)) %>%
     left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
     left_join(hist_crashes, by = "osm_id") %>%
-    mutate(Month = factor(Month),
-           Day = factor(Day),
-           Hour = factor(Hour),
-           weekday = factor(weekday),
-           osm_id = factor(osm_id),
-           highway = factor(highway))
+    mutate(Month = factor(Month, ordered = F),
+           Day = factor(Day, ordered = F),
+           Hour = factor(Hour, ordered = F),
+           weekday = factor(weekday, ordered = F),
+           osm_id = factor(osm_id, ordered = F),
+           highway = factor(highway, ordered = F))
 
   return(training_frame)
 }
