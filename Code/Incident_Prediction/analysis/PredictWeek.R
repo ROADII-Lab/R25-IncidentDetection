@@ -6,14 +6,8 @@ gc()
 state <- "WA"
 #state <- "MN"
 train_year <- 2021
-train_imputed <- TRUE
-num <- "temp_agg_1"
-
-# Indicate whether to aggregate into 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight), 
-# versus generating predictions based on individual hours. 
-# If time_bins is set to True, the tool will aggregate the data
-# in 6-hour bins and train/predict on that.
-time_bins <- TRUE
+train_imputed <- F
+num <- "hist_crashes_2"
 
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
@@ -55,6 +49,15 @@ if(train_imputed == TRUE){
 
 load(file.path(outputdir, 'Random_Forest_Output', paste("Model", model.no, "RandomForest_Output.RData", sep= "_")))
 
+# The below section automatically determines whether to use temporal aggregation based on whether it was used
+# when training the model. If time_bins is set to TRUE, the tool will aggregate the data
+# in 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight) and train/predict on that
+# instead of generating predictions based on individual hours. 
+if(length(rf.out$forest$xlevels$Hour)<5){
+  time_bins <- TRUE
+} else {
+  time_bins <- FALSE
+}
 
 # Create week ----
 # Create osm_id by time variables for the next week, to join everything else into 
@@ -78,13 +81,11 @@ day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
 imputed_waze <- data.frame()
 
 for (m in months){
-  load(file.path(interdir, "Month_Frames", paste0("WA_2021_month_frame_imputed_waze_",m,"_.RData")))
   load(file.path(interdir, "Month_Frames", paste(state, train_year, "month_frame_imputed_waze",m,".RData", sep = "_")))
   imputed_waze <- rbind(imputed_waze, waze_averages)
   rm(waze_averages)
   gc()
 }
-
 
 link_seq <- sort(unique(imputed_waze$osm_id))
 
