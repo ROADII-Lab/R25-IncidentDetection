@@ -66,6 +66,11 @@ if(imputed_waze == TRUE){
   modelno = paste(state, year, "NOTimputed", num, sep = "_")
 }
 
+# Append an additional identifier to the model identifier if the time_bins indicator was TRUE
+if(time_bins == TRUE){
+  modelno = paste(modelno, "tbins", sep = "_")
+}
+
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
 
 # check whether there is already a consolidated and prepped training frame

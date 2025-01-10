@@ -29,6 +29,7 @@ library(doParallel) # includes iterators and parallel
 library(tidyverse)
 library(sf)
 library(ggplot2)
+library(tibbletime)
 
 # source("utility/wazefunctions.R") 
 
@@ -64,7 +65,12 @@ if(length(rf.out$forest$xlevels$Hour)<5){
 today <- Sys.Date()
 
 day_seq <- seq(today, today+4, by = 1)
-hour_seq <- 0:23
+
+if(time_bins){
+  hour_seq <- c(0, 6, 12, 18)
+} else {
+  hour_seq <- 0:23
+}
 
 day_x_hour <- expand.grid(Day = day_seq, Hour = hour_seq)
 
@@ -74,7 +80,6 @@ day_hour_seq <- as.POSIXct(paste(day_x_hour$Day, day_x_hour$Hour),
 months <- unique(as.integer(format(day_hour_seq, "%m")))
 
 day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
-
 
 #Load imputed waze data for creating OSM network
 
@@ -136,6 +141,11 @@ new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
 next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
+
+if(time_bins){
+  next_week <- next_week %>%
+    mutate(Hour = paste(as.character(Hour), as.character(Hour + 6), sep = "-"))
+}
 
 # Make predictions ----
 
