@@ -1,7 +1,7 @@
 # Random forest models of crash estimation for a given state. 
 
 ## Parameters to set before running#################################
-num <- "temp_agg_1" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "hist_crashes_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 state <- "WA"
 
@@ -61,14 +61,9 @@ if(!dir.exists(outputdir)) { dir.create(outputdir) }
 
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
-  modelno = paste(state, year, "imputed", num, sep = "_")
+  modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }else{
-  modelno = paste(state, year, "NOTimputed", num, sep = "_")
-}
-
-# Append an additional identifier to the model identifier if the time_bins indicator was TRUE
-if(time_bins == TRUE){
-  modelno = paste(modelno, "tbins", sep = "_")
+  modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }
 
 train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
