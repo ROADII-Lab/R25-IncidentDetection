@@ -1,7 +1,7 @@
 # Random forest models of crash estimation for a given state. 
 
 ## Parameters to set before running#################################
-num <- "hist_crashes_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "temp_agg_1" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 state <- "WA"
 

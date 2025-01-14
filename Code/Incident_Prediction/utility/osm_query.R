@@ -30,7 +30,7 @@ if(!dir.exists(waze_dir)){dir.create(waze_dir, recursive = T)}
 if(!dir.exists(waze_jams_dir)){dir.create(waze_jams_dir, recursive = T)}
 
 # Timezones --------------------------------------------------------------
-onSDC <- F
+onSDC <- T
 
 if(onSDC){
   US_timezones <- st_read(file.path(inputdir,"Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))
@@ -195,11 +195,10 @@ for (m in 1:12){
                       day_of_week = lubridate::wday(dates, label = TRUE),
                       weekday = is_weekday(dates))
   # convert day_of_week into unordered since we want to treat it as a nominal variable. 
-  dates$day_of_week <- as.factor(dates$day_of_week, ordered = FALSE)
+  dates$day_of_week <- factor(dates$day_of_week, ordered = FALSE)
   
   # replicate it, multiplying by the number of road segments
-  dates_exp <- do.call(bind_rows, replicate(nrow(state_network), dates, simplify = FALSE)) %>%
-    select(!dates)
+  dates_exp <- do.call(bind_rows, replicate(nrow(state_network), dates, simplify = FALSE))
   
   # combine date/time columns from sample with osm_id and then crashes
   # expand road segment frame, multiplying by the number of date/time training samples

@@ -13,7 +13,7 @@ library(stringr)
 top_time <- Sys.time()
 
 # Timezones --------------------------------------------------------------
-onSDC <- F
+onSDC <- T
 
 if(onSDC){
   US_timezones <- st_read(file.path(inputdir,"Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))

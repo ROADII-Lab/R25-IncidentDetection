@@ -6,8 +6,8 @@ gc()
 state <- "WA"
 #state <- "MN"
 train_year <- 2021
-train_imputed <- F
-num <- "hist_crashes_2"
+train_imputed <- T
+num <- "temp_agg_1"
 
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
