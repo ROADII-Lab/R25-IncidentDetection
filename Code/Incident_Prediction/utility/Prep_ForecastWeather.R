@@ -25,7 +25,7 @@ if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
   if(file.exists(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))) {
     load(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
   } else {
-    source('datacleaning/Get_weather_forecasts.R')
+    source('utility/Get_weather_forecasts.R')
   }
 
 # make points file for KNN 

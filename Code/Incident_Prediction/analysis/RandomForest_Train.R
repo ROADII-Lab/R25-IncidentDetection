@@ -59,6 +59,20 @@ intermediatedir <- file.path(getwd(), "Intermediate")
 if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
 
+# Timezones --------------------------------------------------------------
+
+US_timezones <- st_read(file.path("Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))
+
+tz_adj_to_names <- data.frame(tz_adj = c(-5,-6,-7,-8,-9,-10,-11), tz_name = c("US/Eastern","US/Central","US/Mountain","US/Pacific", "US/Alaska", "US/Hawaii", "US/Samoa"))
+
+timezone_adj <- US_timezones %>% st_transform(crs=projection) %>% 
+  mutate(adjustment = as.numeric(paste0(str_sub(utc, 1, 1), str_sub(utc, 2, 3)))) %>% 
+  select(adjustment) %>% 
+  left_join(tz_adj_to_names,by = join_by(adjustment==tz_adj))
+
+rm(tz_adj_to_names)
+# -------------------------------------------------------------------------
+
 # The full model identifier gets created in this next step
 if(imputed_waze == TRUE){
   modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")

@@ -29,24 +29,6 @@ if(!dir.exists(waze_dir)){dir.create(waze_dir, recursive = T)}
 
 if(!dir.exists(waze_jams_dir)){dir.create(waze_jams_dir, recursive = T)}
 
-# Timezones --------------------------------------------------------------
-onSDC <- T
-
-if(onSDC){
-  US_timezones <- st_read(file.path(inputdir,"Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))
-}else{
-  US_timezones <- st_read("https://geo.dot.gov/server/rest/services/Hosted/Time_Zones_DS/FeatureServer/0/query?returnGeometry=true&where=1=1&outFields=*&f=geojson")
-}
-
-tz_adj_to_names <- data.frame(tz_adj = c(-5,-6,-7,-8,-9,-10,-11), tz_name = c("US/Eastern","US/Central","US/Mountain","US/Pacific", "US/Alaska", "US/Hawaii", "US/Samoa"))
-
-timezone_adj <- US_timezones %>% st_transform(crs=projection) %>% 
-  mutate(adjustment = as.numeric(paste0(str_sub(utc, 1, 1), str_sub(utc, 2, 3)))) %>% 
-  select(adjustment) %>% 
-  left_join(tz_adj_to_names,by = join_by(adjustment==tz_adj))
-
-rm(tz_adj_to_names)
-
 # Load OSM Data ------------------------------
 
 source(file.path("Utility", "Prep_OSMNetwork.R"))
@@ -220,7 +202,8 @@ for (m in 1:12){
            hour = lubridate::hour(dates)) %>%
     # bring in crash data
     left_join(total_crashes, by = c('osm_id', 'month', 'day', 'hour')) %>%
-    mutate(crash = ifelse(is.na(crash), 0, crash))
+    mutate(crash = ifelse(is.na(crash), 0, crash)) %>%
+    select(!dates)
   
   # save the temp object
   if(!dir.exists(file.path(intermediatedir,'Month_Frames'))) { dir.create(file.path(intermediatedir,'Month_Frames')) }
