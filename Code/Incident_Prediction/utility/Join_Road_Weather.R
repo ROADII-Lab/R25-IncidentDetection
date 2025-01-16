@@ -265,7 +265,7 @@ rm(KNN, state_network_KNN)
 # } else { # if in Guam - needs to be fixed, no time as of now
 #   }
   
-training_frame_rc$N_Day <- lubridate::yday(training_frame_rc$Day)
+training_frame_rc$N_Day <- training_frame_rc$Day
 
 
 # Merge with KNN ------------------------------------------------------------
