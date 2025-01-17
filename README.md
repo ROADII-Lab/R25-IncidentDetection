@@ -59,29 +59,33 @@ If a trained model has already been created, skip to step
 
 	Parameters to be set in Analysis/RandomForest_Train.R include:
 	
-	num
-	Class: string
+	num  
+	Class: string  
 	Desc: a name for the model being generated
 	
-	state
-	Class: string
-	Desc: the state abbreviation for the state which predictions are being generated for 
+	state  
+	Class: string  
+	Desc: the state abbreviation for the state which predictions are being generated for   
 	
-	one_zone
-	Class: boolean
-	Desc: a boolean object identifying whether or not the state consists of only one time zone. TRUE if the state consists of one and only one time zone.
+	one_zone  
+	Class: boolean  
+	Desc: a boolean object identifying whether or not the state consists of only one time zone. TRUE if the state consists of one and only one time zone.  
 	
-	time_zone_name
-	Class: string
-	Desc: the state's time zone. Must match a valid time zone listed in the OlsonNames function. Execute OlsonNames() to view valid time zone names
+	time_zone_name  
+	Class: string  
+	Desc: the state's time zone. Must match a valid time zone listed in the OlsonNames function. Execute OlsonNames() to view valid time zone names  
 	
-	time_bins
-	Class: Boolean 
-	Desc: A boolean object indicating whether the tool should group data in 6-hour increments
+	time_bins  
+	Class: Boolean  
+	Desc: A boolean object indicating whether the tool should group data in 6-hour increments  
 	
-	Outputs include:
+	Outputs include:  
 	
-	Fitvars_{model_name}.csv: A .csv file containing the names of variables used to fit the random forest model.
+	Model_{model_number}_RandomForest_Output.RData: a random forest model generated using the defined parameters.
+	AUC_{model_number}.pdf:  A pdf containing an Area-Under-Curve graph for the newly trained random forest model. 
+	{model_number}_RandomForest_pred.csv: A csv containing the predictions performed on the test data used to train the random forest model. 
+	Fitvars_{model_number}.csv: A .csv file containing the names of variables used to fit the random forest model.  
+	importance_barplot{model_number}_{date}.png: A plot measuring the importance of each variable used in fitting the random forest model. 
 	
 	
 1.	Download zipped data files and R scripts, preserving the directory structure. Place files into home directory. For Windows users, this is C:\Users\[user]\Documents. If needed, update file paths to locations where data and scripts are saved, although placing files into the home directory should work without any updates.
