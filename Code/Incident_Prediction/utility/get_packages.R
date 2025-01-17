@@ -23,6 +23,7 @@ loadpacks <- c(
             "mlbench",
             "osmdata",
             "pander",
+            "parallelly",
             "party",
             "partykit",
             "pROC",
