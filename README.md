@@ -81,11 +81,11 @@ If a trained model has already been created, skip to step
 	
 	Outputs include:  
 	
-	Model_{model_number}_RandomForest_Output.RData: a random forest model generated using the defined parameters.
-	AUC_{model_number}.pdf:  A pdf containing an Area-Under-Curve graph for the newly trained random forest model. 
-	{model_number}_RandomForest_pred.csv: A csv containing the predictions performed on the test data used to train the random forest model. 
-	Fitvars_{model_number}.csv: A .csv file containing the names of variables used to fit the random forest model.  
-	importance_barplot{model_number}_{date}.png: A plot measuring the importance of each variable used in fitting the random forest model. 
+	Model_{model_number}_RandomForest_Output.RData: a random forest model generated using the defined parameters.  
+	AUC_{model_number}.pdf:  A pdf containing an Area-Under-Curve graph for the newly trained random forest model.  
+	{model_number}_RandomForest_pred.csv: A csv containing the predictions performed on the test data used to train the random forest model.   
+	Fitvars_{model_number}.csv: A .csv file containing the names of variables used to fit the random forest model.    
+	importance_barplot{model_number}_{date}.png: A plot measuring the importance of each variable used in fitting the random forest model.   
 	
 	
 1.	Download zipped data files and R scripts, preserving the directory structure. Place files into home directory. For Windows users, this is C:\Users\[user]\Documents. If needed, update file paths to locations where data and scripts are saved, although placing files into the home directory should work without any updates.
