@@ -116,7 +116,7 @@ The [Demos](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Dem
 ## Context on Previous Related Work
 This use case builds on 2019 work that the Volpe Center did with Tennessee Highway Patrol under the U.S. DOT [Safety Data Initiative](https://www.transportation.gov/SafetyDataInitiative/Pilots).  The [Tennessee Integrated Traffic Analysis Network](https://www.transportation.gov/office-policy/transportation-policy/sdi-waze-project-summary-documents) (TITAN) crash model was built to be used by the Tennessee Highway Patrol (TN HP) to prioritize patrol locations. The model combined historical data such as fatal crashes and DUI arrests with current data including weather forecasts, and scheduled special events to generate heat maps that identifies areas of high likelihood for crashes. The TITAN model estimates crash propensity in 42 square mile grids. This resolution provides the most accurate estimates of fatal crash propensity in four hour time windows over the upcoming week, based on scheduled special events and weather forecasts. The objective of the TN HP and U.S. DOT SDI partnership was to test if Waze alerts can improve the spatial resolution of the TITAN model, particularly in urban areas. TN HP provided training data from the TITAN model, and the Volpe team quantitatively assessed the value that Waze data adds to the existing TITAN model.
 
-![THP Dashboard](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/blob/main/Demos/TN/TN_dashboard.JPG)
+![THP Dashboard](./Demos/TN/TN_dashboard.JPG)
 
 **Known Issues:**
 
