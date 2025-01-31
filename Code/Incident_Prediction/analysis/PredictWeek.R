@@ -3,11 +3,13 @@ rm(list=ls()) # Start fresh
 gc()
 
 # <><><><><> Parameters to enter - must match model that you trained<><><><><>
+
+num <- "temp_agg_1"
 state <- "WA"
 #state <- "MN"
 train_year <- 2021
 train_imputed <- T
-num <- "temp_agg_1"
+
 
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
