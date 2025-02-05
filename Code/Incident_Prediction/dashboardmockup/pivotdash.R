@@ -59,6 +59,8 @@ prepare_tableau_assets <- function(report_file, output_folder, cfg, logger) {
     library(fs)
     library(zip)
     
+  
+    ####### Use ROADII file paths
     logger$info("Start: prepare_tableau_assets")
     tab_dir_name <- paste0("tableau_report_", cfg[['run_id']], "_", format(Sys.time(), "%Y_%m_%d_%H-%M-%S"))
     tableau_directory <- file.path(output_folder, 'Reports', tab_dir_name)
@@ -77,26 +79,27 @@ prepare_tableau_assets <- function(report_file, output_folder, cfg, logger) {
     
     check_file(root_twb_location)
     
-    image_files <- c(
-      "dictionary_noBackground.png",
-      "images.png",
-      "Picture4.png",
-      "Picture2.png"
-    )
+    #image_files <- c(
+      #"dictionary_noBackground.png",
+      #"images.png",
+      #"Picture4.png",
+      #"Picture2.png"
+    #)
     
-    lapply(image_files, function(img) {
-      check_file(file.path(config_directory, 'tableau_images', img))
-    })
+    #lapply(image_files, function(img) {
+    #  check_file(file.path(config_directory, 'tableau_images', img))
+    #})
     
     file_copy(root_twb_location, file.path(tableau_directory, 'tableau_dashboard.twb'))
     
-    lapply(image_files, function(img) {
-      file_copy(file.path(config_directory, 'tableau_images', img), tableau_directory)
-    })
+    #lapply(image_files, function(img) {
+     # file_copy(file.path(config_directory, 'tableau_images', img), tableau_directory)
+    #})
     
     # Copy the report file
     logger$debug("Copying the tableau report xlsx file to the tableau report directory")
     file_copy(report_file, file.path(tableau_directory, 'tableau_input_file.xlsx'))
+    ## check if this can work with .csv, otherwise convert output to xlsx
     
     # Create packaged workbook
     twbx_dashboard_filename <- file.path(tableau_directory, 'tableau_dashboard.twbx')
@@ -105,12 +108,12 @@ prepare_tableau_assets <- function(report_file, output_folder, cfg, logger) {
         files = c(
           file.path(tableau_directory, 'tableau_dashboard.twb'),
           file.path(tableau_directory, 'tableau_input_file.xlsx'),
-          file.path(tableau_directory, image_files)
+          #file.path(tableau_directory, image_files)
         ),
         flags = "-j")
     
     # Delete the original files for cleanup
-    file_delete(file.path(tableau_directory, c('tableau_dashboard.twb', 'tableau_input_file.xlsx', image_files)))
+    file_delete(file.path(tableau_directory, c('tableau_dashboard.twb', 'tableau_input_file.xlsx'))) #add , image_files if using
     
     # Open the Tableau dashboard
     system(paste("open", shQuote(twbx_dashboard_filename)))
