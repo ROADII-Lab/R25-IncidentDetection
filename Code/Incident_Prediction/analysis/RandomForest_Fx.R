@@ -194,13 +194,11 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
     
   } # end if continuous response variable
   
-  if(!dir.exists(file.path(outputdir, "Random_Forest_Output"))){dir.create(file.path(outputdir, "Random_Forest_Output"))}
-  
   write.csv(out.df,
             file = file.path(outputdir, 'Random_Forest_Output', paste(model.no, "RandomForest_pred.csv", sep = "_")),
             row.names = F)
   
-  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df") 
+  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name") 
   if(is.null(test.dat)) savelist = c(savelist, "testrows", "trainrows")
   if(!is.null(thin.dat)) savelist = c(savelist, "test.dat.use")
   

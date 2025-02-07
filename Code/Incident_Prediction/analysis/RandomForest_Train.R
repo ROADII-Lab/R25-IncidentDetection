@@ -58,6 +58,7 @@ intermediatedir <- file.path(getwd(), "Intermediate")
 # Make outputdir and intermediatedir if not already there
 if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
+if(!dir.exists(file.path(outputdir, "Random_Forest_Output"))){dir.create(file.path(outputdir, "Random_Forest_Output"))}
 
 # Timezones --------------------------------------------------------------
 
@@ -367,7 +368,7 @@ for(f in fitvars){
 
 
 fitvar_df <- data.frame(fitvars, class_fit, n_lev_fit, levs_fit)
-write.csv(fitvar_df, file = file.path(outputdir,paste0('Fitvars_', modelno, ".csv")))
+write.csv(fitvar_df, file = file.path(outputdir, "Random_Forest_Output", paste0('Fitvars_', modelno, ".csv")))
 
 # Run the Random Forest model using `do.rf()` function.
 keyoutputs[[modelno]] = do.rf(train.dat = training_frame, 
@@ -377,7 +378,7 @@ keyoutputs[[modelno]] = do.rf(train.dat = training_frame,
                               model.no = modelno, rf.inputs = rf.inputs,
                               cutoff = c(0.9, 0.1))  
 
-save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
+save("keyoutputs", file = file.path(outputdir, "Random_Forest_Output", paste0("Output_to_", modelno)))
 #keyoutputs$"08"
 
 timediff <- Sys.time() - starttime
