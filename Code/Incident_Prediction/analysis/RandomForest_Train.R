@@ -383,9 +383,9 @@ save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
 timediff <- Sys.time() - starttime
 cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 
-# fn = paste("Model", modelno, "RandomForest_Output.RData", sep= "_")
-# load(file.path(outputdir, 'Random_Forest_Output', fn))
-# importance(rf.out)
+fn = paste("Model", modelno, "RandomForest_Output.RData", sep= "_")
+load(file.path(outputdir, 'Random_Forest_Output', fn))
+importance(rf.out)
 
 library(ggplot2)
 import_df <- as.data.frame(importance(rf.out)) %>%
