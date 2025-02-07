@@ -65,8 +65,6 @@ timezone_info <- data.frame(state = state.abb,
                                         NA, NA, NA, "US/Mountain", "US/Eastern", # SD, TN, TX, UT, VT
                                         "US/Eastern", "US/Pacific", "US/Eastern", "US/Central", "US/Mountain")) %>% # VA, WA, WV, WI, WY
   filter(!is.na(tz_name)) # filter for next step 
-                    
-state <- "PR"
 
 if(state %in% timezone_info$state){
   
