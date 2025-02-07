@@ -99,7 +99,8 @@ if(state == "WA"){
     if(!one_zone){
       temp <- temp %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
         mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = tz_name))
-    } else {temp <- temp %>% mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = time_zone_name))}
+    } else {
+      temp <- temp %>% mutate(time_local = as.POSIXct(ACC_DATE, format = ifelse(grepl("20", i),'%m/%d/%Y %H%M', '%Y-%m-%d %H%M'), tz = time_zone_name))}
 
     temp <- temp %>% select(time_local, crashID)
     

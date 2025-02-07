@@ -22,85 +22,10 @@
 - **Length of the project:** This use case is currently in the exploratory phase. The ROADII team has been updating 2019 work with the Tennessee Highway Patrol to forecast crash probability over the next week. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOT Traffic Managment Centers to evaluate interest and feasibility of the use case. The ROADII team will be updating this repository as stable developments are created. This phase will likely continue through summer 2024. 
 
 
-# Prerequisites
-
-General Requirements:
-- R 4.3.0 or later
-- Historical Crash Data
-
-Requirements for Predictions:
-- Historical Waze Alert Data
-- Historical Waze Jams Data 
-- Weather Forecast
-
-
-Requirements for Training:
-- Historical Crash Data
-- Historical Weather Data
-- Historical Weather Data
-
-# Usage
-
 ## Building
 
 The [Code](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Code) folder contains the code and installation instructions of the ROADII-Lab exploration of the traffic incident Prediction use case. It will be populated with functions, model code, training parameters, and eductional materials to help potential users or stakeholders with the development process for the deployment of their own traffic incident Prediction system. 
 
-##File Structure
-
-- The primary directory is R25-IncidentPrediction/Code/Incident_Prediction. All work should be done from the Incident_Prediction.Rproj R project. 
-- The Analysis folder contains the primary R scripts used to run the Incident_Prediction tool. 
-- The utility folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
-- The Input folder stores all raw data files including HSIS crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data
-- The Intermediate folder contains data that has undergone some cleaning and manipulation. The datacleaning and preparation process be computationally intensive so this folder provides storage for data that only needs to be cleaned once and then reused. 
-- The Output folder contains the primary results from the Analysis scripts, including trained Random Forest models, model diagnostics, and predictions.
-
-
-
-
-The steps to training models and generating predictions are as follows:
-
-1.  Clone the GitHub environment to a location of your choosing on your machine
-2.  Open Code/IncidentPrediction/Incident_Prediction.Rproj - all work needs to be done through this .Rproj file
-
-If a trained model has already been created, skip to step 4
-
-3.  Execute Analysis/RandomForest_Train.R
-
-	RandomForest_Train.R trains a random forest model using historical Waze jams and alerts data, weather data, and roadway configuration data to predict crashes. The first time running this script may take more than an hour depending on the machine being used. Subsequent runs will be quicker but may take more than 30 minutes.
-	
-	Parameters to be set in Analysis/RandomForest_Train.R include:
-	
-	num: string, a name for the model being generated
-	state: string, the state abbreviation for the state which predictions are being generated for   
-	one_zone: boolean, value identifying whether or not the state consists of only one time zone. TRUE if the state consists of one and only one time zone.  
-	time_zone_name: strong, the state's time zone. Must match a valid time zone listed in the OlsonNames function. Execute OlsonNames() to view valid time zone names  
-	time_bins" boolean,  value indicating whether the tool should group data in 6-hour increments  
-	
-	Outputs include:  
-	
-	Model_{model_number}_RandomForest_Output.RData: a random forest model generated using the defined parameters.  
-	AUC_{model_number}.pdf:  A pdf containing an Area-Under-Curve graph for the newly trained random forest model.  
-	{model_number}_RandomForest_pred.csv: A csv containing the predictions performed on the test data used to train the random forest model.   
-	Fitvars_{model_number}.csv: A .csv file containing the names of variables used to fit the random forest model.    
-	importance_barplot{model_number}_{date}.png: A plot measuring the importance of each variable used in fitting the random forest model.   
-	
-4. Execute Analysis/PredictWeek.R
-	
-	PredictWeek.R joins the defined roadway network with predicted weather and imputed Waze data to predict where crashes will occur over the next 7 days.
-	
-	Parameters to be set in Analysis/RandomForest_Train.R include:
-	
-	num: string, the name of the random forest model to be used to predict crashes
-	state: string, the state abbreviation for the state which predictions are being generated for   
-	train_year: numeric, year where historical data is being pulled from. Also part of the name of the called random forest model
-	train_imputed: boolean, a value indicating whether waze data shouild be imputed over the next week
-
-	Outputs include:
-	Output/Predict_Week_Outputs
-
-## Utility Functions
- 
- 
 
 The development team is currently building testing functions. For now, the recommended testing is examining the results to ensure they line up with general knowledge of roads and upcoming weather trends. 
 

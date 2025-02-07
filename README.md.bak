@@ -21,24 +21,6 @@
 - **Purpose of the source code and how it relates to the overall goals of the project:** This repository contains code and documentation for explorations in the generalization and deployment of techniques for detecting traffic incidents and assessing roadway network vulnerabilities using real-time and historical datasets. Intended audiences are state DOTs and traffic management centers wanting to improve their ability to respond quickly to incidents on their roadways, as well as to better understand how traffic incidents affect the larger roadway network.
 - **Length of the project:** This use case is currently in the exploratory phase. The ROADII team has been updating 2019 work with the Tennessee Highway Patrol to forecast crash probability over the next week. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOT Traffic Managment Centers to evaluate interest and feasibility of the use case. The ROADII team will be updating this repository as stable developments are created. This phase will likely continue through summer 2024. 
 
-
-# Prerequisites
-
-General Requirements:
-- R 4.3.0 or later
-- Historical Crash Data
-
-Requirements for Predictions:
-- Historical Waze Alert Data
-- Historical Waze Jams Data 
-- Weather Forecast
-
-
-Requirements for Training:
-- Historical Crash Data
-- Historical Weather Data
-- Historical Weather Data
-
 # Usage
 
 ## Building
@@ -46,66 +28,7 @@ Requirements for Training:
 The [Code](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Code) folder contains the code and installation instructions of the ROADII-Lab exploration of the traffic incident Prediction use case. It will be populated with functions, model code, training parameters, and eductional materials to help potential users or stakeholders with the development process for the deployment of their own traffic incident Prediction system. 
 
 
-The steps to training models and generating predictions are as follows:
-
-1.  Clone the GitHub environment to a location of your choosing on your machine
-2.  Open Code/IncidentPrediction/Incident_Prediction.Rproj - all work should be done through this .Rproj file
-
-If a trained model has already been created, skip to step 
-
-3.  Execute Analysis/RandomForest_Train.R
-
-	RandomForest_Train.R trains a random forest model using historical Waze jams and alerts data, weather data, and roadway configuration data to predict crashes. The first time running this script may take more than an hour depending on the machine being used. Subsequent runs will be quicker but may take more than 30 minutes.
-
-	Parameters to be set in Analysis/RandomForest_Train.R include:
-	
-	num  
-	Class: string  
-	Desc: a name for the model being generated
-	
-	state  
-	Class: string  
-	Desc: the state abbreviation for the state which predictions are being generated for   
-	
-	one_zone  
-	Class: boolean  
-	Desc: a boolean object identifying whether or not the state consists of only one time zone. TRUE if the state consists of one and only one time zone.  
-	
-	time_zone_name  
-	Class: string  
-	Desc: the state's time zone. Must match a valid time zone listed in the OlsonNames function. Execute OlsonNames() to view valid time zone names  
-	
-	time_bins  
-	Class: Boolean  
-	Desc: A boolean object indicating whether the tool should group data in 6-hour increments  
-	
-	Outputs include:  
-	
-	Model_{model_number}_RandomForest_Output.RData: a random forest model generated using the defined parameters.  
-	AUC_{model_number}.pdf:  A pdf containing an Area-Under-Curve graph for the newly trained random forest model.  
-	{model_number}_RandomForest_pred.csv: A csv containing the predictions performed on the test data used to train the random forest model.   
-	Fitvars_{model_number}.csv: A .csv file containing the names of variables used to fit the random forest model.    
-	importance_barplot{model_number}_{date}.png: A plot measuring the importance of each variable used in fitting the random forest model.   
-	
-	
-1.	Download zipped data files and R scripts, preserving the directory structure. Place files into home directory. For Windows users, this is C:\Users\[user]\Documents. If needed, update file paths to locations where data and scripts are saved, although placing files into the home directory should work without any updates.
-2.	Run RandomForest_WazeGrids_TN.R
-a.	Install packages with install.packages(“[package name]”) as needed
-3.	Run PredictWeek_TN.R
-
-
-## Testing
-
 The development team is currently building testing functions. For now, the recommended testing is examining the results to ensure they line up with general knowledge of roads and upcoming weather trends. 
-
-## Execution
-
-
-The steps to running the code are as follows:
-1.	Download zipped data files and R scripts, preserving the directory structure. Place files into home directory. For Windows users, this is C:\Users\[user]\Documents. If needed, update file paths to locations where data and scripts are saved, although placing files into the home directory should work without any updates.
-2.	Run RandomForest_WazeGrids_TN.R
-a.	Install packages with install.packages(“[package name]”) as needed
-3.	Run PredictWeek_TN.R
 
 
 # Additional Notes
