@@ -10,7 +10,6 @@ state <- "WA"
 train_year <- 2021
 train_imputed <- T
 
-
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 inputdir <- file.path(getwd(),"Input")
@@ -77,7 +76,7 @@ if(time_bins){
 day_x_hour <- expand.grid(Day = day_seq, Hour = hour_seq)
 
 day_hour_seq <- as.POSIXct(paste(day_x_hour$Day, day_x_hour$Hour), 
-                           format = '%Y-%m-%d %H', tz = 'America/Chicago')
+                           format = '%Y-%m-%d %H', tz = time_zone_name)
 
 months <- unique(as.integer(format(day_hour_seq, "%m")))
 
@@ -154,7 +153,7 @@ if(time_bins){
 # Use rf.out from Model 5 for this grid size
 # Make sure we have factor variables, with same levels as in the fitted data.
 # Model 05
-fitvars <- read.csv(file.path(outputdir, paste0('Fitvars_', model.no, '.csv')))
+fitvars <- read.csv(file.path(outputdir, "Random_Forest_Output", paste0('Fitvars_', model.no, '.csv')))
 
 # see Precision-recall tradeoff plots from re-fit local
 cutoff = 0.05
