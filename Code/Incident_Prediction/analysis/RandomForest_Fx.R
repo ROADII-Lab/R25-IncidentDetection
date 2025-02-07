@@ -22,6 +22,15 @@ require(pROC)
 
 # thin.dat - value from 0 to 1 for proportion of the training and test data to use in fitting the model. E.g. thin.dat = 0.2, use only 20% of the training and test data; useful for testing new features. 
 
+# train.dat = training_frame
+# test.dat = test_frame
+# #thin.dat = 0.2,
+# response.var = "crash"
+# model.no = modelno 
+# rf.inputs = rf.inputs
+# cutoff = c(0.9, 0.1)
+# thin.dat = NULL
+
 do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.no,
                   test.dat = NULL, test.split = .30,
                   split.by = NULL,
@@ -151,17 +160,17 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   
   dev.off()
 
- out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob)
- save(out.df, file = 'Intermediate/outdf.Rdata')
+ out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob) %>%
+   rename(Obs = {{response.var}},
+          Pred = rf.pred,
+          Prob.Noncrash = X0, 
+          Prob.Crash = X1)
  out.df$Day <- as.numeric(out.df$Day)
- names(out.df)[ncol(out.df)-3:ncol(out.df)] <- c("Obs", "Pred", "Prob.Noncrash", "Prob.Crash")
-  out.df = data.frame(out.df,
+ out.df = data.frame(out.df,
                       TN = out.df$Obs == 0 &  out.df$Pred == "NoCrash",
                       FP = out.df$Obs == 0 &  out.df$Pred == "Crash",
                       FN = out.df$Obs == 1 &  out.df$Pred == "NoCrash",
                       TP = out.df$Obs == 1 &  out.df$Pred == "Crash")
-  
-  
   
   } # end if factor response variable
   
@@ -171,9 +180,11 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
 
     rf.pred <- cut(rf.prob, breaks = c(-100, cutoff[2], 100), include.lowest = T, labels = c("NoCrash","Crash"))
 
-    out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob)
-    out.df$day <- as.numeric(out.df$day)
-    names(out.df)[5:7] <- c("Obs", "Pred", "Prob.Crash")
+    out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob) %>%
+      rename(Obs = {{response.var}},
+             Pred = rf.pred,
+             Prob.Crash = X0)
+    out.df$Day <- as.numeric(out.df$Day)
     out.df = data.frame(out.df,
                         TN = out.df$Obs == 0 &  out.df$Pred == "NoCrash",
                         FP = out.df$Obs == 0 &  out.df$Pred == "Crash",

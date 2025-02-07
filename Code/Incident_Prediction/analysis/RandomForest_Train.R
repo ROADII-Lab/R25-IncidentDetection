@@ -21,7 +21,7 @@ year <- 2021
 # versus training and generating predictions based on individual hours. 
 # If time_bins is set to True, the tool will aggregate the data
 # in 6-hour bins and train on that.
-time_bins <- T
+time_bins <- F
 
 ### Optional parameters to set, or accept default.#############
 # Projection 
@@ -86,7 +86,7 @@ train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RDat
 # at the expected file path. If not, prepare one. If so, notify the user and load the 
 # existing file.
 if(!file.exists(train_fp)){
-
+prepstarttime <- Sys.time()
 # Given that the consolidated training frame does not exist, initiate process
 # to generate one. First generate a vector of all file paths for monthly data frames.
 monthframe_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 1:12, 'month_frame_full.Rdata', sep = "_"))
@@ -248,10 +248,9 @@ prep_data <- function(training_frame){
   return(training_frame)
 }
 
-starttime <- Sys.time()
 training_frame <- prep_data((training_frame))
 test_frame <- prep_data(test_frame)
-timediff <- Sys.time() - starttime
+timediff <- Sys.time() - prepstarttime
 cat(round(timediff, 2), attr(timediff, "units"), "to prep data.")
 
 save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_")))
@@ -260,9 +259,6 @@ save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,
   cat("Training and test frame already exist at: ", train_fp, ". \nIf you wish to generate the data from scratch exit the script; delete, move, or rename the file; and re-run.")
   load(train_fp)
 }
-
-# model1 = lm(crash ~ ., data = temp_train)
-# summary(model1)
 
 bin.mod.diagnostics <- function(predtab){
   
@@ -301,6 +297,8 @@ for(i in seq_along(imputed_values)){
 
 imputed_waze_frame <- do.call(rbind, imputed_waze_data)
 
+# the imputed waze data were calculated by grouping by osm_id, month, weekday, hour and then getting the mean.
+# shouldn't the left_join operations below specify all those join fields?
 training_frame <- left_join(training_frame, imputed_waze_frame)
 test_frame <- left_join(test_frame, imputed_waze_frame)
 
@@ -385,9 +383,9 @@ save("keyoutputs", file = file.path(outputdir,paste0("Output_to_", modelno)))
 timediff <- Sys.time() - starttime
 cat(round(timediff, 2), attr(timediff, "units"), "to train model.")
 
-fn = paste("Model", modelno, "RandomForest_Output.RData", sep= "_")
-load(file.path(outputdir, 'Random_Forest_Output', fn))
-importance(rf.out)
+# fn = paste("Model", modelno, "RandomForest_Output.RData", sep= "_")
+# load(file.path(outputdir, 'Random_Forest_Output', fn))
+# importance(rf.out)
 
 library(ggplot2)
 import_df <- as.data.frame(importance(rf.out)) %>%
@@ -408,6 +406,8 @@ ggsave(plot = importance_plot,
        create.dir = T,
        height = 6, width = 8, units = "in")
 
+gc()
+gc()
 # 
 
 # # In case the factor levels are different between the provided training and test frames, bind the first row of one 
