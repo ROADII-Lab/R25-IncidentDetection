@@ -148,8 +148,6 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   
   # pROC::roc - response, predictor
   model_auc <- pROC::auc(test.dat.use[,response.var], rf.prob[,colnames(rf.prob)=="1"])
-  
-  if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir, "Figures"))}
 
   pdf(file = file.path(outputdir, 'Figures', paste0("AUC_", model.no, ".pdf")), width = 6, height = 6)
   plot(pROC::roc(test.dat.use[,response.var], rf.prob[,colnames(rf.prob)=="1"]),

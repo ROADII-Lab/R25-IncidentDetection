@@ -50,6 +50,7 @@ intermediatedir <- file.path(getwd(), "Intermediate")
 if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
 if(!dir.exists(file.path(outputdir, "Random_Forest_Output"))){dir.create(file.path(outputdir, "Random_Forest_Output"))}
+if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir, "Figures"))}
 
 # Timezones --------------------------------------------------------------
 
