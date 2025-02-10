@@ -1,4 +1,4 @@
-# Get all necessary packages across data prep and analysis scripts for SDI Waze project. Edit as necessary when adding more pac kages
+# Get all necessary packages across data prep and analysis scripts for SDI Waze project. Edit as necessary when adding more packages
 
 loadpacks <- c(
             "Amelia",

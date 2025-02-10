@@ -32,6 +32,7 @@ source('utility/get_packages.R') # installs necessary packages
 library(randomForest)
 library(foreach) # for parallel implementation
 library(doParallel) # includes iterators and parallel
+library(parallelly)
 library(tidyverse)
 library(dplyr)
 library(ROSE)
@@ -358,9 +359,7 @@ test_frame <- test_frame[, new_order]
 # End data prep 
 # <><><><><><><><><><><><><><><><><><><><><><><><>
 
-avail.cores = parallel::detectCores()
-
-if(avail.cores > 8) avail.cores = 12 # Limit usage below max if on r4.4xlarge instance. Comment this out to run largest models.
+avail.cores = parallelly::availableCores(omit = 1)
 
 # Use this to set number of decision trees to use, and key RF parameters. mtry is especially important, should consider tuning this with caret package
 # For now use same parameters for all models for comparision; tune parameters after models are selected
