@@ -233,7 +233,7 @@ gc()
 
 # If applicable, load CAD data for MN so as to join it in
 if((year %in% c(2018,2019,2020)) & (state == "MN")){
-  source('utility/MN_CAD_load.R')
+  source(file.path("utility", "MN_CAD_load.R"))
 }
 
 for(m in 1:12){
@@ -348,7 +348,7 @@ cat("Now adding weather.")
 gc()
 
 # Run Weather Script ------------------------------------------------------
-source(file.path("Utility", "Join_Road_weather.R"))
+source(file.path("utility", "Join_Road_weather.R"))
 
 #### Now apply the join_road_weather function for each month #####
 timeA <- Sys.time()

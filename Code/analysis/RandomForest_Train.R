@@ -27,7 +27,7 @@ test_percentage <- 0.03
 # Setup ---- 
 gc()
 
-source('utility/get_packages.R') # installs necessary package
+source(file.path("utility", "get_packages.R")) # installs necessary package
 
 inputdir <- file.path(getwd(),"Input")
 outputdir <-file.path(getwd(),"Output")
@@ -66,7 +66,7 @@ monthframe_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 
 # if there are 12 .Rdata monthly files at the expected paths then notify the user that we will re-use
 # those files. Otherwise run the osm_query.R script to generate them from scratch.
 if(!all(file.exists(monthframe_fps))){
-  source('utility/osm_query.R') # creates training frames
+  source(file.path("utility", "osm_query.R"))  # creates training frames
 } else {
   # Make sure the user is aware of the situation with respect to existing month frames
   
@@ -77,14 +77,14 @@ if(!all(file.exists(monthframe_fps))){
     cat("are not aggregated. However, time_bins is currently set to TRUE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
     proceed <- readline("Press 'p' to proceed or 'c' to cancel>>")
     if(proceed == 'p'){
-      source('utility/osm_query.R') # creates training frames
+      source(file.path("utility", "osm_query.R"))  # creates training frames
     } else if(proceed == 'c'){stop("User chose to exit script.")}
   } else if(length(unique(temp_train$Hour))<5 & !time_bins){
     cat("Month frames already exist, but they were created with time_bins set to TRUE, meaning that the data \n")
     cat("are aggregated. However, time_bins is currently set to FALSE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
     proceed <- readline("Press 'p' to proceed or 'c' to cancel>>")
     if(proceed == 'p'){
-      source('utility/osm_query.R') # creates training frames
+      source(file.path("utility", "osm_query.R"))  # creates training frames
     } else if(proceed == 'c'){stop("User chose to exit script.")}
   } else {
     cat("Month frames already exist. If you wish to generate the data from scratch exit the script; delete, move, or rename the files; and re-run. This is an example file path for the month of January: ")
@@ -197,9 +197,9 @@ for(m in 1:12){
 # load road network in order to join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
 
 cat("Preparing to join data on historical crashes ('hist_crashes'), road type ('highway'), and speed limit ('maxspeed').\n")
-source("utility/Prep_OSMNetwork.R")
+source(file.path("utility", "Prep_OSMNetwork.R")) 
 
-source("utility/prep_hist_crash.R")
+source(file.path("utility", "prep_hist_crash.R")) 
 
 prep_data <- function(training_frame){
   if(time_bins){
@@ -245,7 +245,7 @@ bin.mod.diagnostics <- function(predtab){
 i <- 1
 
 # read random forest function, do.rf()
-source("analysis/RandomForest_Fx.R")
+source(file.path("analysis", "RandomForest_Fx.R"))
 
 if(imputed_waze == TRUE){
 
@@ -279,7 +279,7 @@ rm(imputed_waze_frame, imputed_waze_data)
 
 
 if((year %in% c(2018,2019,2020)) & (state == "MN")){
-  source('utility/MN_CAD_load.R')
+  source(file.path("utility", "MN_CAD_load.R"))
   training_frame <- left_join(training_frame, CAD)
   test_frame <- left_join(test_frame, CAD)
 }

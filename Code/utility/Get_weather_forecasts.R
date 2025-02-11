@@ -9,13 +9,6 @@
 # for Hawaii, but only puts 2 points there.
 # Eventual TO - DO item - figure out why it doesn't work for Alaska and fix it.
 
-## Setting directories, state, year, projection, etc., here for now, but should move the setting of these parameters 
-## to main parent script/location later
-## (i.e. set them in analysis/PredictWeek.R script)
-
-inputdir <- file.path(getwd(),"Input")
-outputdir<- file.path(getwd(),"Output")
-
 # projection used in training is epsg 5070, so using that here as well. 
 projection <- 5070
 

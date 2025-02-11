@@ -22,12 +22,12 @@ if(!dir.exists(interdir)) { dir.create(interdir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
 if(!dir.exists(predict_week_out_dir)) { dir.create(predict_week_out_dir) }
 
-source('utility/get_packages.R') # installs necessary packages
+source(file.path("utility", "get_packages.R")) # installs necessary package
 
 # source("utility/wazefunctions.R") 
 
 # read random forest function
-source("analysis/RandomForest_Fx.R")
+source(file.path("analysis", "RandomForest_Fx.R"))
 
 # The full model identifier gets created in this next step
 if(train_imputed == TRUE){
