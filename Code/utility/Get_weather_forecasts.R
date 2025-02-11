@@ -2,8 +2,6 @@
 
 # Setup ----
 
-source('utility/get_packages.R')
-
 library(ggmap)
 library(httr) # for GET
 library(tidyverse)
