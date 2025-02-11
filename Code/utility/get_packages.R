@@ -1,49 +1,38 @@
-# Get all necessary packages across data prep and analysis scripts for SDI Waze project. Edit as necessary when adding more packages
+# Title: Install and load packages
+# Purpose: Identifies the requires packages, check if they are installed, if not installs them, then loads all packages.
+# Generated Variables: 
 
-loadpacks <- c(
-            "Amelia",
-            "aws.s3", # AWS convenience functions s3save and s3load
-            "circular", # circular transformation of magvar
-            "corrplot",
-            "data.table",
-            "doParallel",
-            "DT",
-            "foreach", # for parallel implementation
-            "geonames",
-            "getPass",
-            "GGally",
-            "ggmap",
-            "gstat",
-            "kableExtra",
-            "keras",
-            "lubridate",
-            "maps",
-            "mapproj",  # for coord_map, 
-            "maptree", # for better graphing of decision trees
-            "mlbench",
-            "osmdata",
-            "pander",
-            "parallelly",
-            "party",
-            "partykit",
-            "pROC",
-            "performanceEstimation",
-            "randomForest",
-            "RANN",
-            "raster", 
-            "ROSE",
-            "RPostgres",
-            "sf",  # for gIntersection, to clip two shapefiles
-            "sp",
-            "stringr",
-            "terra",
-            "tensorflow",
-            "tibbletime",
-            "tidyverse",
-            "tigris",
-            "utils",
-			      "dplyr",
-			      "rgeos")
+requiredpackages <- c("randomForest", # random forest
+                      "foreach", # for parallel implementation
+                      "doParallel", # includes iterators and parallel
+                      "parallelly", 
+                      "tidyverse", 
+                      "ROSE",
+                      "performanceEstimation",
+                      "caret",
+                      "sf", # for working with spatial data
+                      "tibbletime",
+                      "RANN", # holds nn2 
+                      "osmdata", # pull data from osm servers
+                      "ggmap", 
+                      "httr", # for GET
+                      "xml2", # for xml parsing in tidy way
+                      "XML", # for xmlToList
+                      "jsonlite",
+                      "tigris", # for state shapefiles (or other census geographies)
+                      "pROC")
 
+install_load <- function(packages){
+  for (p in packages) {
+    if (p %in% rownames(installed.packages())) {
+      library(p, character.only=TRUE)
+    } else {
+      install.packages(p)
+      library(p,character.only = TRUE)
+    }
+  }
+}
 
-for(i in loadpacks){if(length(grep(i, (.packages(all.available=T))))==0) install.packages(i, dependencies =TRUE)}
+install_load(packages = requiredpackages)
+
+rm(requiredpackages, install_load)

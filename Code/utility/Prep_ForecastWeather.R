@@ -1,11 +1,6 @@
 # Intro -----------------------------------
 # Purpose: This script sources Get_weather_forecast.R then spatial joins those results with the osm network
 
-library(RANN) # holds nn2 
-library(sf)
-library(osmdata)
-library(dplyr)
-
 projection <- 5070
 
 

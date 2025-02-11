@@ -2,15 +2,6 @@
 
 # Setup ----
 
-library(ggmap)
-library(httr) # for GET
-library(tidyverse)
-library(xml2) # for xml parsing in tidy way
-library(XML) # for xmlToList
-library(jsonlite)
-library(tigris) # for state shapefiles (or other census geographies)
-library(sf)
-
 # Get weather wx_data ----
 
 # The below is a more generalized approach to set the points for which to query weather data 

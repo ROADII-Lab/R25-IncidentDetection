@@ -1,15 +1,4 @@
 
-# Background ----------------------------
-library(dplyr)
-library(tidyr)
-library(osmdata)
-library(sf)
-library(ggplot2)
-library(tigris)
-library(doParallel)
-library(lubridate)
-library(stringr)
-
 top_time <- Sys.time()
 
 # Load Crash Data ------------------------------

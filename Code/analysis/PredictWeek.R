@@ -24,14 +24,6 @@ if(!dir.exists(predict_week_out_dir)) { dir.create(predict_week_out_dir) }
 
 source('utility/get_packages.R') # installs necessary packages
 
-library(randomForest)
-library(foreach) # for parallel implementation
-library(doParallel) # includes iterators and parallel
-library(tidyverse)
-library(sf)
-library(ggplot2)
-library(tibbletime)
-
 # source("utility/wazefunctions.R") 
 
 # read random forest function

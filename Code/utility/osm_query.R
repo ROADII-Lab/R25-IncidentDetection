@@ -1,16 +1,4 @@
 
-# Background ----------------------------
-library(dplyr)
-library(tidyr)
-library(osmdata)
-library(sf)
-library(ggplot2)
-library(tigris)
-library(doParallel)
-library(lubridate)
-library(stringr)
-library(tibbletime)
-
 top_time <- Sys.time()
 
 #source('utility/wazefunctions.R') # contains find_matches function

@@ -27,21 +27,7 @@ test_percentage <- 0.03
 # Setup ---- 
 gc()
 
-source('utility/get_packages.R') # installs necessary packages
-
-library(randomForest)
-library(foreach) # for parallel implementation
-library(doParallel) # includes iterators and parallel
-library(parallelly)
-library(tidyverse)
-library(dplyr)
-library(ROSE)
-library(performanceEstimation)
-library(caret)
-library(stringr)
-#library(PRROC)
-library(sf)
-
+source('utility/get_packages.R') # installs necessary package
 
 inputdir <- file.path(getwd(),"Input")
 outputdir <-file.path(getwd(),"Output")
@@ -371,7 +357,6 @@ fn = paste("Model", modelno, "RandomForest_Output.RData", sep= "_")
 load(file.path(outputdir, 'Random_Forest_Output', fn))
 importance(rf.out)
 
-library(ggplot2)
 import_df <- as.data.frame(importance(rf.out)) %>%
   arrange(desc(MeanDecreaseGini))
 

@@ -1,5 +1,5 @@
 # Random Forest functions for Waze
-require(pROC)
+
 ######################################################################
 # do.rf function for running random forest models in parallel ----
 

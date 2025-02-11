@@ -1,8 +1,4 @@
 
-library(osmdata)
-library(sf)
-library(tigris)
-
 # I created this script as we use copy and pasted this code frequently in different scripts so this will normalize it and make it easier to make changes. 
 # This script is different than Save_Road_Networks.R as that is intended for looping through and saving OSM networks. This script is for loading one state. 
 
