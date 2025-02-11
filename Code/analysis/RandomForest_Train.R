@@ -55,55 +55,7 @@ if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir,
 
 # Timezones --------------------------------------------------------------
 
-timezone_info <- data.frame(state = state.abb,
-                            tz_name = c("US/Central", "US/Alaska", "US/Mountain", "US/Central", "US/Pacific", # AL, AK, AZ, AR, CA
-                                        "US/Mountain", "US/Eastern", "US/Eastern", NA, "US/Eastern", # CO, CT, DE, FL, GA 
-                                        "US/Hawaii", NA, "US/Central", NA, "US/Central", # HI, ID, IL, IN, IA
-                                        NA, NA, "US/Central", "US/Eastern", "US/Eastern", # KS, KY, LA, ME, MD
-                                        "US/Eastern", NA, "US/Central", "US/Central", "US/Central", # MA, MI, MN, MS, MO
-                                        "US/Mountain", NA, "US/Pacific", "US/Eastern", "US/Eastern", # MT, NE, NV, NH, NJ
-                                        "US/Mountain", "US/Eastern", "US/Eastern", NA, "US/Eastern", # NM, NY, NC, ND, OH
-                                        "US/Central", NA, "US/Eastern", "US/Eastern", "US/Eastern", # OK, OR, PA, RI, SC
-                                        NA, NA, NA, "US/Mountain", "US/Eastern", # SD, TN, TX, UT, VT
-                                        "US/Eastern", "US/Pacific", "US/Eastern", "US/Central", "US/Mountain")) %>% # VA, WA, WV, WI, WY
-  filter(!is.na(tz_name)) # filter for next step 
-
-if(state %in% timezone_info$state){
-  
-  time_zone_name <- timezone_info$tz_name[which(timezone_info$state == state)]
-  
-  one_zone <- T
-  
-} else{
-  
-  one_zone <- F
-  
-}
-
-if(!dir.exists(file.path(getwd(), "Shapefiles"))){ dir.create(file.path(getwd(), "Shapefiles")) } # if shapefile path doesn't exist, create it
-
-if(!dir.exists(file.path(getwd(), "Shapefiles", "Time_Zones"))){ dir.create(file.path(getwd(), "Shapefiles", "Time_Zones")) } # if Time_Zones folder doesn't exist, create it
-
-if(file.exists(file.path("Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))){ # check if timezone shapefile is already saved
-  
-  US_timezones <- st_read(file.path("Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp")) # if exists, load it
-  
-} else{ # if it does not exist, pull it from the web and save it (link is subject to change, could be an issue)
-  
-  US_timezones <- st_read("https://services.arcgis.com/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Time_Zones/FeatureServer/0/query?returnGeometry=true&where=1=1&outFields=*&f=geojson")
-  
-  st_write(US_timezones, file.path("Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp")) # save it
-  
-}
-
-tz_adj_to_names <- data.frame(tz_adj = c(-5,-6,-7,-8,-9,-10,-11), tz_name = c("US/Eastern","US/Central","US/Mountain","US/Pacific", "US/Alaska", "US/Hawaii", "US/Samoa"))
-
-timezone_adj <- US_timezones %>% st_transform(crs=projection) %>% 
-  mutate(adjustment = as.numeric(paste0(str_sub(utc, 1, 1), str_sub(utc, 2, 3)))) %>% 
-  select(adjustment) %>% 
-  left_join(tz_adj_to_names,by = join_by(adjustment==tz_adj))
-
-rm(tz_adj_to_names, US_timezones)
+source(file.path("utility", "timezone_adj.R"))
 
 # -------------------------------------------------------------------------
 

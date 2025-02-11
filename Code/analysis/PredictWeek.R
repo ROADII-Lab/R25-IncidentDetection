@@ -111,16 +111,20 @@ link_x_day <- link_x_day %>%
 link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id", "month", "hour", "weekday"))
 rm(imputed_waze)
 
+# Run timezone script 
+
+source(file.path("utility", "timezone_adj.R"))
+
 # Get weather for next week ----
 
-source('utility/Prep_ForecastWeather.R')
+source(file.path("utility", "Prep_ForecastWeather.R"))
 
 link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>% 
   filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
 year <- train_year
-source("utility/prep_hist_crash.R")
+source(file.path("utility", "prep_hist_crash.R"))
 
 next_week <- link_x_day %>%
   rename(Month = month, 
