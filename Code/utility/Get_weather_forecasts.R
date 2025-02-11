@@ -16,38 +16,12 @@
 inputdir <- file.path(getwd(),"Input")
 outputdir<- file.path(getwd(),"Output")
 
-# Indicate whether the state has a unified time zone
-one_zone <-TRUE
-# If one_zone is set to T or TRUE, meaning that the state has one time zone, specify the name of the time zone, selecting from 
-# among the options provided after running the first line below (OlsonNames())
-
-# OlsonNames()
-# time_zone_name <- "US/Central"
-time_zone_name <- "US/Pacific"
-
 # projection used in training is epsg 5070, so using that here as well. 
 projection <- 5070
 
 # The coordinate reference system for the TomorrowIO API is WGS84 (epsg code 4326)
 api_crs <- 4326
 
-#Timezones --------------------------------------------------------------
-onSDC <- T
-
-if(onSDC){
-  US_timezones <- st_read(file.path(inputdir,"Shapefiles","Time_Zones","time_zones_ds_timezone_polygons.shp"))
-}else{
-  US_timezones <- st_read("https://geo.dot.gov/server/rest/services/Hosted/Time_Zones_DS/FeatureServer/0/query?returnGeometry=true&where=1=1&outFields=*&f=geojson")
-}
-
-tz_adj_to_names <- data.frame(tz_adj = c(-5,-6,-7,-8,-9,-10,-11), tz_name = c("US/Eastern","US/Central","US/Mountain","US/Pacific", "US/Alaska", "US/Hawaii", "US/Samoa"))
-
-timezone_adj <- US_timezones %>% st_transform(crs=projection) %>% 
-  mutate(adjustment = as.numeric(paste0(str_sub(utc, 1, 1), str_sub(utc, 2, 3)))) %>% 
-  select(adjustment) %>% 
-  left_join(tz_adj_to_names,by = join_by(adjustment==tz_adj))
-
-rm(tz_adj_to_names)
 #-----------------------------------------------------------------------
 
 state_osm <- ifelse(state == "WA", 'Washington State',
