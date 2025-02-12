@@ -9,6 +9,8 @@ state <- "WA"
 #state <- "MN"
 train_year <- 2021
 train_imputed <- T
+time_bins <- F
+projection <- 5070
 
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
@@ -31,9 +33,9 @@ source(file.path("analysis", "RandomForest_Fx.R"))
 
 # The full model identifier gets created in this next step
 if(train_imputed == TRUE){
-  model.no = paste(state, train_year, "imputed", num, sep = "_")
+  modelno = paste(state, train_year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }else{
-  model.no = paste(state, train_year, "NOTimputed", num, sep = "_")
+  modelno = paste(state, train_year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }
 
 # Load a fitted model from local machine -- run RandomForest_WazeGrids_TN.R to generate models
@@ -41,7 +43,7 @@ if(train_imputed == TRUE){
 # New data will need the same structure as the data used in the model fitting.
 # This script is based on model 05, which performed the best of the models we tested.
 
-load(file.path(outputdir, 'Random_Forest_Output', paste("Model", model.no, "RandomForest_Output.RData", sep= "_")))
+load(file.path(outputdir, 'Random_Forest_Output', paste("Model", modelno, "RandomForest_Output.RData", sep= "_")))
 
 # The below section automatically determines whether to use temporal aggregation based on whether it was used
 # when training the model. If time_bins is set to TRUE, the tool will aggregate the data
@@ -149,111 +151,4 @@ if(time_bins){
 # Use rf.out from Model 5 for this grid size
 # Make sure we have factor variables, with same levels as in the fitted data.
 # Model 05
-fitvars <- read.csv(file.path(outputdir, "Random_Forest_Output", paste0('Fitvars_', model.no, '.csv')))
-
-# see Precision-recall tradeoff plots from re-fit local
-cutoff = 0.05
-
-predict_next_week <- predict(rf.out, next_week, type = "response",
-                             cutoff = c(1-cutoff, cutoff)) 
-
-prob_next_week <- predict(rf.out, next_week, type = "prob",
-                          cutoff = c(1-cutoff, cutoff)) 
-
-colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')
-
-next_week_out <- data.frame(next_week, Crash_pred = predict_next_week, prob_next_week)
-
-
-next_week_out <- next_week_out %>%
-  group_by(Hour, DayOfWeek) %>%
-  mutate(Hourly_CrashRisk = (Prob_Crash-min(Prob_Crash))/(max(Prob_Crash)-min(Prob_Crash))) %>%
-  ungroup()
-
-
-write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
-
-## Save some plots of the results in the Figures folder ##
-save_charts <- function(results_df, # the dataframe object with the results
-                        name_of_results # some name that will help distinguish from other results - will be used in filename for outputs
-){
-  
-  unfaceted_plot = ggplot(data=results_df, mapping=aes(x=Hour, y=Prob_Crash, group = Hour)) + 
-    geom_boxplot(fill = "green") + 
-    labs(title = "Boxplot of Crash Probability by Hour",
-         y = "Crash Probability",
-         x = "Hour")
-  
-  ggsave(plot = unfaceted_plot, 
-         filename = paste0("unfaceted_boxplot", name_of_results, ".png"),
-         path = file.path(outputdir, "Figures"),
-         device = "png",
-         create.dir = T,
-         height = 6, width = 5, units = "in")
-  
-  faceted_plot = ggplot(data=results_df, mapping=aes(x=Hour, y=Prob_Crash, group = Hour)) + 
-    geom_boxplot(fill = "green") + 
-    facet_wrap(~DayOfWeek) + 
-    labs(title = "Boxplot of Crash Probability by Hour (Faceted by Day)",
-         y = "Crash Probability",
-         x = "Hour")
-  
-  ggsave(plot = faceted_plot, 
-         filename = paste0("faceted_boxplot", name_of_results, ".png"),
-         path = file.path(outputdir, "Figures"),
-         device = "png",
-         create.dir = T,
-         height = 6, width = 5, units = "in")
-  
-  by_hour = results_df %>%
-    group_by(Hour) %>%
-    summarize(Median_Prob_Crash = median(Prob_Crash),
-              Mean_Prob_Crash = mean(Prob_Crash))
-  
-  mean_by_hour = ggplot(data=by_hour, mapping=aes(x=Hour, y=Mean_Prob_Crash)) + 
-    geom_point() + 
-    labs(title = "Mean Crash Probability by Hour",
-         y = "Mean Crash Probability",
-         x = "Hour")
-  
-  ggsave(plot = mean_by_hour, 
-         filename = paste0("mean_by_hour", name_of_results, ".png"),
-         path = file.path(outputdir, "Figures"),
-         device = "png",
-         create.dir = T,
-         height = 6, width = 5, units = "in")
-  
-  by_road_type = results_df %>%
-    group_by(highway) %>%
-    summarize(Median_Prob_Crash = median(Prob_Crash),
-              Mean_Prob_Crash = mean(Prob_Crash))
-  
-  mean_by_roadtype = ggplot(data=by_road_type, mapping=aes(x=highway, y=Mean_Prob_Crash)) + 
-    geom_point() + 
-    labs(title = "Mean Crash Probability by Road Type",
-         y = "Mean Crash Probability",
-         x = "Hour")
-  
-  ggsave(plot = mean_by_roadtype, 
-         filename = paste0("mean_by_roadtype", name_of_results, ".png"),
-         path = file.path(outputdir, "Figures"),
-         device = "png",
-         create.dir = T,
-         height = 6, width = 5, units = "in")
-  
-}
-
-save_charts(results_df = next_week_out, 
-            name_of_results = paste0(model.no,'_', Sys.Date())
-            )
-
-
-# Visualize predictions -----
-# use the following objects to make visualizations
-# next_week_out
-
-#next_week_out <- read.csv(file.path(outputdir,paste0('TN_Model_05_Predictions', g, Sys.Date(), '.csv')))
-#VIZ = T
-#if(VIZ){
-#  source('analysis/Visualize_Next_Week.R')
-#}
+ 
