@@ -7,7 +7,7 @@ gc()
 num <- "temp_agg_1"
 state <- "WA"
 #state <- "MN"
-train_year <- 2021
+year <- 2021
 train_imputed <- T
 time_bins <- F
 projection <- 5070
@@ -32,10 +32,10 @@ source(file.path("utility", "get_packages.R")) # installs necessary package
 source(file.path("analysis", "RandomForest_Fx.R"))
 
 # The full model identifier gets created in this next step
-if(train_imputed == TRUE){
-  modelno = paste(state, train_year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
+if(imputed_waze == TRUE){
+  modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }else{
-  modelno = paste(state, train_year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
+  modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }
 
 # Load a fitted model from local machine -- run RandomForest_WazeGrids_TN.R to generate models
@@ -45,15 +45,15 @@ if(train_imputed == TRUE){
 
 load(file.path(outputdir, 'Random_Forest_Output', paste("Model", modelno, "RandomForest_Output.RData", sep= "_")))
 
-# The below section automatically determines whether to use temporal aggregation based on whether it was used
-# when training the model. If time_bins is set to TRUE, the tool will aggregate the data
-# in 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight) and train/predict on that
-# instead of generating predictions based on individual hours. 
-if(length(rf.out$forest$xlevels$Hour)<5){
-  time_bins <- TRUE
-} else {
-  time_bins <- FALSE
-}
+# # The below section automatically determines whether to use temporal aggregation based on whether it was used
+# # when training the model. If time_bins is set to TRUE, the tool will aggregate the data
+# # in 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight) and train/predict on that
+# # instead of generating predictions based on individual hours. 
+# if(length(rf.out$forest$xlevels$Hour)<5){
+#   time_bins <- TRUE
+# } else {
+#   time_bins <- FALSE
+# }
 
 # Create week ----
 # Create osm_id by time variables for the next week, to join everything else into 
