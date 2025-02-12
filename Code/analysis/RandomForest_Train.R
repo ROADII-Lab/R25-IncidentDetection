@@ -52,7 +52,7 @@ if(imputed_waze == TRUE){
   modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }
 
-train_fp <- file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_"))
+train_fp <- file.path(intermediatedir,paste(state, year, ifelse(time_bins, "tbins", ""), "train_test_frames.RData", sep = "_"))
 
 # check whether there is already a consolidated and prepped training frame
 # at the expected file path. If not, prepare one. If so, notify the user and load the 
