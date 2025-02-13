@@ -1,15 +1,6 @@
 
-# I created this script as we use copy and pasted this code frequently in different scripts so this will normalize it and make it easier to make changes. 
-# This script is different than Save_Road_Networks.R as that is intended for looping through and saving OSM networks. This script is for loading one state. 
-
-state_osm <- state.name[which(state.abb == state)]
-
-state_osm <- ifelse(state_osm == "Washington", 'Washington State', state_osm)
-
-state_osm <- gsub(" ", "_", state_osm) # Normalize state name
-
 # Create directory for the road network file and state boundary file, if it does not yet exist.
-if(!dir.exists(file.path(inputdir,'Roads_Boundary', state_osm))){dir.create(file.path(inputdir,'Roads_Boundary', state_osm), recursive = T)}
+if(!dir.exists(file.path(inputdir,'Roads_Boundary', state))){dir.create(file.path(inputdir,'Roads_Boundary', state), recursive = T)}
 
 # Load Road Data ----------------------
 
@@ -22,17 +13,32 @@ set_overpass_url(new_url)
 ##identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential')
 road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
 
-network_file <- paste0(state_osm,"_network")
-boundary_file <- paste0(state_osm,"_boundary")
-file_path <- file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg'), paste0(network_file,'.shp'))
+network_file <- paste0(state,"_network")
+boundary_file <- paste0(state,"_boundary")
+file_path <- file.path(inputdir,'Roads_Boundary', state, paste0(network_file, '.gpkg'), paste0(network_file,'.shp'))
 
 if (file.exists(file.path(file_path))){
 
   state_network <- read_sf(file_path) %>% select(osm_id, highway, maxspeed)
 
   print("File Found")
+  
 } else{
+  
+  state_osm <- state.name[which(state.abb == state)]
+  
+  state_osm <- ifelse(state_osm == "Washington", 'Washington State', state_osm) # WA
+  
+  state_osm <- ifelse(state_osm == "New York", "New York State", state_osm) # NY
+  
+  state_osm <- gsub(" ", "_", state_osm) # Normalize state name
+  
+  state_osm <- paste0(state_osm, "_US") # this is needed for Georgia, and maybe other states that share names with countires.
+  
   state_bbox <- getbb(state_osm) # Retrieves relevant coordinates; always a rectangle
+  
+  rm(state_osm) # no longer need state_osm
+  
   n = as.numeric(length(road_types)) 
   datalist <- list()
   datalist = vector("list", length = n)
@@ -40,6 +46,7 @@ if (file.exists(file.path(file_path))){
   l = 0
   
   for (i in road_types){
+    
     l = l + 1 
     print(paste("File Not Found. Pulling", state, i, "OSM Data from Server"))
     map_data <- opq(bbox = state_bbox) %>%
@@ -53,19 +60,12 @@ if (file.exists(file.path(file_path))){
   
   total_network <- do.call(bind_rows, datalist)
   
-  # if (!(dir.exists(state_osm))){
-  #   dir.create(state_osm)}
-  
   total_network <- st_transform(total_network, crs = projection) 
   
   # Pull state boundaries
-  if (state_osm == 'Washington_State'){
-    state_border <- 'Washington'
-  }else{
-    state_border <- state_osm
-  }
-  state_maps <- states(cb = TRUE, year = 2021) %>%
-    filter_state(state_border) %>%
+
+  state_maps <- states(cb = TRUE, year = year) %>%
+    filter(STUSPS == state) %>%
     st_transform(crs = projection)
   
   #Filter out roadways outside the state
@@ -82,9 +82,9 @@ if (file.exists(file.path(file_path))){
     replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
 
   
-  write_sf(state_network, file.path(inputdir,'Roads_Boundary', state_osm, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
-  write_sf(state_maps, file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg')), driver = "ESRI Shapefile")
-  rm(state_border)
+  write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
+  write_sf(state_maps, file.path(inputdir,'Roads_Boundary', state, paste0(boundary_file, '.gpkg')), driver = "ESRI Shapefile")
+
 }
 
 #ggplot() + geom_sf(data = state_network)

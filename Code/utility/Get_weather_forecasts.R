@@ -15,13 +15,6 @@ projection <- 5070
 # The coordinate reference system for the TomorrowIO API is WGS84 (epsg code 4326)
 api_crs <- 4326
 
-#-----------------------------------------------------------------------
-
-state_osm <- ifelse(state == "WA", 'Washington State',
-                    ifelse(state == "MN", "Minnesota", NA))
-
-state_osm <- gsub(" ", "_", state_osm) # Normalize state name
-
 ########
 # Access state boundary using tigris package, which loads Census TIGER/Line Shapefiles
 # default coordinate reference system for this is EPSG 4269 for all states, including Hawaii and Alaska, however - 
@@ -29,21 +22,20 @@ state_osm <- gsub(" ", "_", state_osm) # Normalize state name
 # since we will be using this to form the API queries. Ultimately, we then convert the outputs from this script 
 # to the default projection that we've been using (epsg 5070, defined above as 'projection')
 
-boundary_file <- paste0(state_osm,"_boundary")
-file_path <- file.path(inputdir,'Roads_Boundary', state_osm, paste0(boundary_file, '.gpkg'), paste0(boundary_file,'.shp'))
+boundary_file <- paste0(state,"_boundary")
+file_path <- file.path(inputdir,'Roads_Boundary', state, paste0(boundary_file, '.gpkg'), paste0(boundary_file,'.shp'))
 
 if (file.exists(file.path(file_path))){
   print("State boundary file found")
   state_map <- read_sf(file_path) %>% st_transform(crs = api_crs)
+  
 } else{
-  if (state_osm == 'Washington_State'){
-    state_border <- 'Washington'
-  }else{
-    state_border <- state_osm
-  }
-  state_map <- states(cb = TRUE, year = year(Sys.Date())) %>%
-    filter_state(state_border) %>%
+  
+  # Pull state boundaries
+  state_map <- states(cb = TRUE, year = year) %>%
+    filter(STUSPS == state) %>%
     st_transform(crs = projection)
+  
   }
 
 # Overlay a grid of points within the state - current resolution is 1 degree by 1 degree - 

@@ -26,7 +26,7 @@ state_network <- state_network %>% select(osm_id)
 
 # load raw file 
 
-crash_files <- list.files(file.path(inputdir,"Crash", state_osm), pattern = 'crash.shp$', full.names = TRUE)
+crash_files <- list.files(file.path(inputdir,"Crash", state), pattern = 'crash.shp$', full.names = TRUE)
 
 n = as.numeric(length(crash_files)) 
 datalist <- list()
@@ -37,7 +37,7 @@ l = 0
 #i <- "Input/Crash/Minnesota/mn21crash.shp"
 
 if(state == "MN"){
-  timestamps <- read.csv(file.path(inputdir,'Crash', state_osm, paste0(state_osm, '_timestamps.csv'))) %>%
+  timestamps <- read.csv(file.path(inputdir,'Crash', state, paste0(state, '_timestamps.csv'))) %>%
     rename(INCIDEN = INCIDENT_ID) %>%
     mutate(DATE_TIME_OF_INCIDENT = as.POSIXct(DATE_TIME_OF_INCIDENT, format = "%m/%d/%Y %H:%M"))
   
