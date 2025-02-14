@@ -173,7 +173,7 @@ for(m in 1:12){
   crash_indices <- which(is_crash)
   non_crash_indices <- which (!is_crash) 
 
-  crash_sample_size <- length(crash_indices) * 0.5
+  crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
   non_crash_sample_size <- min(length(crash_sample), length(crash_indices))
