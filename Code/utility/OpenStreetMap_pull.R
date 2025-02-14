@@ -1,6 +1,7 @@
 # Title: OpenStreetMap (OSM) Pull
 # Purpose: Pulls OpenStreetMap data and processes it.
 # Generated Variables: 
+## state_network
 
 # Link to OSM network -----------------------------------------------
 
@@ -48,7 +49,6 @@ state_osm <- gsub(" ", "_", state_osm) # Normalize state name
 state_osm <- paste0(state_osm, "_US") # this is needed for Georgia, and maybe other states that share names with countries.
 
 state_bbox <- getbb(state_osm) # Retrieves relevant coordinates; always a rectangle
-  
 
 # Perform OSM pull --------------------------------------------------------
 
@@ -101,3 +101,5 @@ write_sf(state_map, file.path(inputdir,'Roads_Boundary', state, paste0(state, '_
 write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
 
 #ggplot() + geom_sf(data = state_network) # view road network to test if it's valid
+
+rm(total_network, datalist, lines, map_data, road_types, state_bbox, state_osm, state_map) # clean environment
