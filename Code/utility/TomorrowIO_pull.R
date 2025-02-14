@@ -9,9 +9,6 @@
 # for Hawaii, but only puts 2 points there.
 # Eventual TO - DO item - figure out why it doesn't work for Alaska and fix it.
 
-# projection used in training is epsg 5070, so using that here as well. 
-projection <- 5070
-
 # The coordinate reference system for the TomorrowIO API is WGS84 (epsg code 4326)
 api_crs <- 4326
 
@@ -26,6 +23,7 @@ boundary_file <- paste0(state,"_boundary")
 file_path <- file.path(inputdir,'Roads_Boundary', state, paste0(boundary_file, '.gpkg'), paste0(boundary_file,'.shp'))
 
 if (file.exists(file.path(file_path))){
+  
   print("State boundary file found")
   state_map <- read_sf(file_path) %>% st_transform(crs = api_crs)
   

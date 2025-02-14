@@ -3,10 +3,21 @@
 
 projection <- 5070
 
+# Load Road Network --------------------------------------------------------------
 
-# Load Roads --------------------------------------------------------------
+if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))){
 
-source(file.path("Utility", "Prep_OSMNetwork.R"))
+  print("State road network found.")
+  
+  state_network <- read_sf(file_path) 
+
+} else{
+  
+  print("State road network not found. Pulling from OpenStreetMaps and performing post processing.")
+
+  source(file.path("utility", "OpenStreetMap_pull.R"))
+
+}
 
 # Weather Merge -----------------------------------------------------------
 
@@ -20,7 +31,7 @@ if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
   if(file.exists(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))) {
     load(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
   } else {
-    source('utility/Get_weather_forecasts.R')
+    source(file.path("utility", "TomorrowIO_pull.R"))
   }
 
 # make points file for KNN 

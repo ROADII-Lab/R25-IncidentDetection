@@ -32,6 +32,9 @@ projection <- 5070
 # Define the percentage of the population to use in the test sample. 
 test_percentage <- 0.03
 
+##identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential')
+road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
+
 # Compute Model Name ------------------------------------------------------
 if(train_imputed == TRUE){
   modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
