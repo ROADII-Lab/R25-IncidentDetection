@@ -8,7 +8,7 @@ num <- "temp_agg_1"
 state <- "WA"
 #state <- "MN"
 year <- 2021
-train_imputed <- T
+imputed_waze <- T
 time_bins <- F
 projection <- 5070
 
@@ -81,7 +81,7 @@ day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
 imputed_waze <- data.frame()
 
 for (m in months){
-  load(file.path(interdir, "Month_Frames", paste(state, train_year, "month_frame_imputed_waze",m,".RData", sep = "_")))
+  load(file.path(interdir, "Month_Frames", paste(state, year, "month_frame_imputed_waze",m,".RData", sep = "_")))
   imputed_waze <- rbind(imputed_waze, waze_averages)
   rm(waze_averages)
   gc()
@@ -117,7 +117,6 @@ link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>
   filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
-year <- train_year
 source(file.path("utility", "prep_hist_crash.R"))
 
 next_week <- link_x_day %>%
@@ -148,7 +147,7 @@ if(time_bins){
 
 # Make predictions ----
 
-fitvars <- read.csv(file.path(outputdir, "Random_Forest_Output", paste0('Fitvars_', model.no, '.csv')))
+fitvars <- read.csv(file.path(outputdir, "Random_Forest_Output", paste0('Fitvars_', modelno, '.csv')))
 
 # see Precision-recall tradeoff plots from re-fit local
 cutoff = 0.05
@@ -170,7 +169,7 @@ next_week_out <- next_week_out %>%
   ungroup()
 
 
-write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(model.no,'_', Sys.Date(), '.csv')), row.names = F)
+write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(modelno,'_', Sys.Date(), '.csv')), row.names = F)
 
 ## Save some plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results
@@ -243,7 +242,7 @@ save_charts <- function(results_df, # the dataframe object with the results
 }
 
 save_charts(results_df = next_week_out, 
-            name_of_results = paste0(model.no,'_', Sys.Date())
+            name_of_results = paste0(modelno,'_', Sys.Date())
 )
 
  
