@@ -23,7 +23,7 @@ if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_net
   
   print("State road network found.")
   
-  state_network <- read_sf(file_path) 
+  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp'))) 
   
 } else{
   
@@ -210,7 +210,7 @@ for (m in 1:12){
   # save the temp object
   if(!dir.exists(file.path(intermediatedir,'Month_Frames'))) { dir.create(file.path(intermediatedir,'Month_Frames')) }
   
-  save(list = c('temp_train'), file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame", m,".RData", sep = "_")))
+  save(list = c('temp_train'), file = file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame", m,".RData", sep = "_")))
   timediff = Sys.time() - starttime
   
   # clear memory
@@ -251,7 +251,7 @@ if((year %in% c(2018,2019,2020)) & (state == "MN")){
 
 for(m in 1:12){
   starttime = Sys.time()
-  load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame", m,".RData", sep = "_")))
+  load(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame", m,".RData", sep = "_")))
   # read in data frames for that month
   waze_temp = read.csv(waze.files.year[m]) 
   waze_temp = waze_temp %>%
@@ -341,8 +341,9 @@ for(m in 1:12){
   }
   
   # save the objects
-  save(list = c('temp_train'), file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
-  save(waze_averages, file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_imputed_waze", m,".RData", sep = "_")))
+  save(list = c('temp_train'), file = file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_waze", m,".RData", sep = "_")))
+  save(waze_averages, file = file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_waze", m,".RData", sep = "_")))
+  file.remove(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame", m,".RData", sep = "_")))
   timediff = Sys.time() - starttime
   
   # clear memory
@@ -371,7 +372,7 @@ for(m in 1:12){
   innertime = Sys.time()
   
   # Do first half of the month first
-  load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
+  load(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_waze", m,".RData", sep = "_")))
   
   temp_train = temp_train %>% filter(day <= 15)
   gc()
@@ -380,14 +381,14 @@ for(m in 1:12){
   rm(temp_train)
   gc()
   
-  save(temp_trainA, file = file.path(intermediatedir, 'Month_Frames', paste(state, year, m, 'month_frame_full_A.Rdata', sep = "_")))
+  save(temp_trainA, file = file.path(intermediatedir, 'Month_Frames', paste(state, year, m, ifelse(time_bins, "tbins", ""), 'month_frame_full_A.Rdata', sep = "_")))
   
   rm(temp_trainA)
   
   gc()
   
   # then do second half of the month
-  load(file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame_waze", m,".RData", sep = "_")))
+  load(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_waze", m,".RData", sep = "_")))
   
   temp_train = temp_train %>% filter(day > 15)
   gc()
@@ -397,12 +398,13 @@ for(m in 1:12){
   gc()
   
   # load back up the first half of the month
-  load(file.path(intermediatedir, 'Month_Frames', paste(state, year, m, 'month_frame_full_A.Rdata', sep = "_")))
+  load(file.path(intermediatedir, 'Month_Frames', paste(state, year, m, ifelse(time_bins, "tbins", ""), 'month_frame_full_A.Rdata', sep = "_")))
   
   temp_train = bind_rows(temp_trainA, temp_train)
   
-  save(temp_train, file = file.path(intermediatedir, 'Month_Frames', paste(state, year, m, 'month_frame_full.Rdata', sep = "_")))
-  
+  save(temp_train, file = file.path(intermediatedir, 'Month_Frames', paste(state, year, m, ifelse(time_bins, "tbins", ""), 'month_frame_full.Rdata', sep = "_")))
+  file.remove(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_waze", m,".RData", sep = "_")))
+  file.remove(file.path(intermediatedir, 'Month_Frames', paste(state, year, m, ifelse(time_bins, "tbins", ""), 'month_frame_full_A.Rdata', sep = "_")))
   rm(temp_train, temp_trainA)
   
   gc()

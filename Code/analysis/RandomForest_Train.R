@@ -1,7 +1,7 @@
 # Random forest models of crash estimation for a given state. 
 
 ## Parameters to set before running#################################
-num <- "temp_agg_1" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "temp_agg_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 state <- "WA"
 
@@ -15,7 +15,7 @@ imputed_waze <- T
 # versus training and generating predictions based on individual hours. 
 # If time_bins is set to True, the tool will aggregate the data
 # in 6-hour bins and train on that.
-time_bins <- F
+time_bins <- T
 
 ### Optional parameters to set, or accept default.#############
 # Projection 
@@ -52,7 +52,7 @@ if(imputed_waze == TRUE){
   modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
 }
 
-train_fp <- file.path(intermediatedir,paste(state, year, ifelse(time_bins, "tbins", ""), "train_test_frames.RData", sep = "_"))
+train_fp <- file.path(intermediatedir,paste(modelno, "train_test_frames.RData", sep = "_"))
 
 # check whether there is already a consolidated and prepped training frame
 # at the expected file path. If not, prepare one. If so, notify the user and load the 
@@ -61,7 +61,7 @@ if(!file.exists(train_fp)){
 prepstarttime <- Sys.time()
 # Given that the consolidated training frame does not exist, initiate process
 # to generate one. First generate a vector of all file paths for monthly data frames.
-monthframe_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 1:12, 'month_frame_full.Rdata', sep = "_"))
+monthframe_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 1:12, ifelse(time_bins, "tbins", ""), 'month_frame_full.Rdata', sep = "_"))
 
 # if there are 12 .Rdata monthly files at the expected paths then notify the user that we will re-use
 # those files. Otherwise run the osm_query.R script to generate them from scratch.
@@ -197,7 +197,22 @@ for(m in 1:12){
 # load road network in order to join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
 
 cat("Preparing to join data on historical crashes ('hist_crashes'), road type ('highway'), and speed limit ('maxspeed').\n")
-source(file.path("utility", "Prep_OSMNetwork.R")) 
+
+# Load Road Network --------------------------------------------------------------
+
+if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))){
+  
+  print("State road network found.")
+  
+  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp'))) 
+  
+} else{
+  
+  print("State road network not found. Pulling from OpenStreetMaps and performing post processing.")
+  
+  source(file.path("utility", "OpenStreetMap_pull.R"))
+  
+}
 
 source(file.path("utility", "prep_hist_crash.R")) 
 
@@ -225,7 +240,7 @@ test_frame <- prep_data(test_frame)
 timediff <- Sys.time() - prepstarttime
 cat(round(timediff, 2), attr(timediff, "units"), "to prep data.")
 
-save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,paste(state, year, "train_test_frames.RData", sep = "_")))
+save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,paste(state, year, ifelse(time_bins, "tbins", ""), "train_test_frames.RData", sep = "_")))
 
 } else {
   cat("Training and test frame already exist at: ", train_fp, ". \nIf you wish to generate the data from scratch exit the script; delete, move, or rename the file; and re-run.")
@@ -250,7 +265,7 @@ source(file.path("analysis", "RandomForest_Fx.R"))
 if(imputed_waze == TRUE){
 
 imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
-                             pattern = paste(state, year, "month_frame_imputed_waze", sep = "_"), 
+                             pattern = paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_waze", sep = "_"), 
                              full.names = TRUE)
 
 imputed_waze_data <- list()
