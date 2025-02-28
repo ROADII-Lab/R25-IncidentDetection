@@ -4,10 +4,11 @@ gc()
 
 # <><><><><> Parameters to enter - must match model that you trained<><><><><>
 
-num <- "temp_agg_1"
+num <- "01A"
 state <- "WA"
 #state <- "MN"
 year <- 2021
+
 imputed_waze <- T
 time_bins <- F
 projection <- 5070
@@ -15,12 +16,12 @@ projection <- 5070
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 inputdir <- file.path(getwd(),"Input")
-interdir <- file.path(getwd(),"Intermediate")
+intermediatedir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
 predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
 
 # Make outputdir and intermediatedir if not already there
-if(!dir.exists(interdir)) { dir.create(interdir) }
+if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
 if(!dir.exists(predict_week_out_dir)) { dir.create(predict_week_out_dir) }
 
@@ -81,7 +82,7 @@ day_hour_seq <- format(day_hour_seq, '%Y-%j %H')
 imputed_waze <- data.frame()
 
 for (m in months){
-  load(file.path(interdir, "Month_Frames", paste(state, year, "month_frame_imputed_waze",m,".RData", sep = "_")))
+  load(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_waze", m,".RData", sep = "_")))
   imputed_waze <- rbind(imputed_waze, waze_averages)
   rm(waze_averages)
   gc()

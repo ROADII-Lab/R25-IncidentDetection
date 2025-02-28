@@ -124,19 +124,25 @@ total_crashes <- do.call(bind_rows, datalist) %>%
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   # removing geometry to speed group by operation and limit use of memory. Will add geometry back in later, but it will be the geometry for
   # the road segment, not the geometry for the crash point, because there are sometimes multiple crashes per observation (row)
-  st_drop_geometry()
+  st_drop_geometry() %>%
+  group_by(osm_id, time_local) %>%
+  summarise(crash = n(), .groups = "drop")
 
 if(time_bins){
   total_crashes <- total_crashes %>% 
-    as_tbl_time(index = time_local) %>%
-    collapse_by("6 hours", side = "start", clean = TRUE)
+    as_tsibble(index = time_local, key = osm_id) %>%
+    arrange(osm_id, time_local) %>%
+    group_by(osm_id) %>%
+    index_by(interval = floor_date(time_local, "6 hours")) %>%
+    summarise(crash = sum(crash)) %>%
+    ungroup() %>%
+    rename(time_local = interval)
 }
 
 total_crashes <- total_crashes %>% 
   mutate(month = as.integer(lubridate::month(time_local)),
          day = as.integer(lubridate::day(time_local)),
          hour = as.integer(lubridate::hour(time_local)),
-         crash = 1,
          zone=tz(time_local)) %>%
   select(osm_id, month, day, hour, crash) %>%
   group_by(osm_id, month, day, hour) %>%
@@ -191,11 +197,17 @@ for (m in 1:12){
     # merge with expanded version of date/time training frame
     cbind(dates_exp, row.names=NULL) 
   
+  #### THIS IS TAKING TOO LONG - NEED TO ADJUST APPROACH #######
   if(time_bins){
     temp_train = temp_train %>% 
-      as_tbl_time(index = dates) %>%
-      collapse_by("6 hours", side = "start", clean = TRUE)
+      as_tsibble(index = dates, key = osm_id) %>%
+      arrange(osm_id, dates) %>%
+      group_by(osm_id) %>%
+      index_by(interval = floor_date(dates, "6 hours")) %>% 
+      slice_head(n = 1) %>%
+      ungroup()
   }
+  #################################################################
   
   temp_train <- temp_train %>% 
     # add month, day, and hour columns
@@ -221,7 +233,7 @@ for (m in 1:12){
   gc()
 }
 
-rm(total_crashes, dates, dates_exp, datalist, crash_files, file_path, i, l)
+rm(total_crashes, dates, dates_exp, datalist, crash_files, i, l)
 gc()
 #load(file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame", m,".RData", sep = "_")))
 
@@ -422,7 +434,7 @@ cat(paste0("Weather Script took ", dif_time, " minutes."))
 rm(timeA, timeB, dif_time)
 
 # Remove variables and gc() before moving on
-rm(KNN, precip, road_points, snow, state_network_KNN, state_stations, stations, stations_KNN, temp, temp_df, temp_df_c, working_df, working_list, wx, xy, overall_time, precip_time, snow_time, starttime,
-   temp_time, year2, timezone_adj, tz_adjustments, US_timezones)
+rm(road_points, state_stations, stations, stations_KNN, wx, xy, starttime,
+   year2, timezone_adj, tz_adjustments)
 
 gc()

@@ -1,7 +1,7 @@
 # Random forest models of crash estimation for a given state. 
 
 ## Parameters to set before running#################################
-num <- "temp_agg_2" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "01B" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
 state <- "WA"
 
@@ -15,7 +15,7 @@ imputed_waze <- T
 # versus training and generating predictions based on individual hours. 
 # If time_bins is set to True, the tool will aggregate the data
 # in 6-hour bins and train on that.
-time_bins <- T
+time_bins <- F
 
 ### Optional parameters to set, or accept default.#############
 # Projection 
@@ -237,15 +237,62 @@ prep_data <- function(training_frame){
 
 training_frame <- prep_data((training_frame))
 test_frame <- prep_data(test_frame)
+
+# add imputed waze data, if applicable
+if(imputed_waze == TRUE){
+  
+  imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
+                               pattern = paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_waze", sep = "_"), 
+                               full.names = TRUE)
+  
+  imputed_waze_data <- list()
+  
+  for(i in seq_along(imputed_values)){
+    load(imputed_values[i])
+    colnames(waze_averages)[2:ncol(waze_averages)] <- str_to_title(colnames(waze_averages)[2:ncol(waze_averages)])
+    waze_averages$osm_id <- factor(waze_averages$osm_id)
+    waze_averages$Month <- factor(waze_averages$Month)
+    waze_averages$Weekday <- factor(waze_averages$Weekday)
+    waze_averages$Hour <- factor(waze_averages$Hour)
+    waze_averages <- waze_averages %>% rename(weekday = Weekday)
+    imputed_waze_data[[i]] <- waze_averages
+    gc()
+  }
+  
+  imputed_waze_frame <- do.call(rbind, imputed_waze_data)
+  
+  training_frame <- left_join(training_frame, imputed_waze_frame)
+  test_frame <- left_join(test_frame, imputed_waze_frame)
+  
+  rm(imputed_waze_frame, imputed_waze_data)
+  
+  if((year %in% c(2018,2019,2020)) & (state == "MN")){
+    source(file.path("utility", "MN_CAD_load.R"))
+    training_frame <- left_join(training_frame, CAD)
+    test_frame <- left_join(test_frame, CAD)
+  }
+  
+  gc()
+}
+
+# sort column positions in alphabetical order
+new_order = sort(colnames(training_frame))
+training_frame <- training_frame[, new_order]
+test_frame <- test_frame[, new_order]
+
 timediff <- Sys.time() - prepstarttime
 cat(round(timediff, 2), attr(timediff, "units"), "to prep data.")
 
-save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,paste(state, year, ifelse(time_bins, "tbins", ""), "train_test_frames.RData", sep = "_")))
+save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,paste(modelno, "train_test_frames.RData", sep = "_")))
 
 } else {
   cat("Training and test frame already exist at: ", train_fp, ". \nIf you wish to generate the data from scratch exit the script; delete, move, or rename the file; and re-run.")
   load(train_fp)
 }
+
+# <><><><><><><><><><><><><><><><><><><><><><><><>
+# End data prep 
+# <><><><><><><><><><><><><><><><><><><><><><><><>
 
 bin.mod.diagnostics <- function(predtab){
   
@@ -261,56 +308,6 @@ i <- 1
 
 # read random forest function, do.rf()
 source(file.path("analysis", "RandomForest_Fx.R"))
-
-if(imputed_waze == TRUE){
-
-imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
-                             pattern = paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_waze", sep = "_"), 
-                             full.names = TRUE)
-
-imputed_waze_data <- list()
-
-for(i in seq_along(imputed_values)){
-  load(imputed_values[i])
-  colnames(waze_averages)[2:ncol(waze_averages)] <- str_to_title(colnames(waze_averages)[2:ncol(waze_averages)])
-  waze_averages$osm_id <- factor(waze_averages$osm_id)
-  waze_averages$Month <- factor(waze_averages$Month)
-  waze_averages$Weekday <- factor(waze_averages$Weekday)
-  waze_averages$Hour <- factor(waze_averages$Hour)
-  waze_averages <- waze_averages %>% rename(weekday = Weekday)
-  imputed_waze_data[[i]] <- waze_averages
-  gc()
-}
-
-imputed_waze_frame <- do.call(rbind, imputed_waze_data)
-
-# the imputed waze data were calculated by grouping by osm_id, month, weekday, hour and then getting the mean.
-# shouldn't the left_join operations below specify all those join fields?
-training_frame <- left_join(training_frame, imputed_waze_frame)
-test_frame <- left_join(test_frame, imputed_waze_frame)
-
-rm(imputed_waze_frame, imputed_waze_data)
-
-
-
-if((year %in% c(2018,2019,2020)) & (state == "MN")){
-  source(file.path("utility", "MN_CAD_load.R"))
-  training_frame <- left_join(training_frame, CAD)
-  test_frame <- left_join(test_frame, CAD)
-}
-
-gc()
-}
-
-# sort column positions in alphabetical order
-new_order = sort(colnames(training_frame))
-training_frame <- training_frame[, new_order]
-test_frame <- test_frame[, new_order]
-
-
-# <><><><><><><><><><><><><><><><><><><><><><><><>
-# End data prep 
-# <><><><><><><><><><><><><><><><><><><><><><><><>
 
 avail.cores = parallelly::availableCores(omit = 1)
 
@@ -392,80 +389,3 @@ ggsave(plot = importance_plot,
 
 gc()
 gc()
-# 
-
-# # In case the factor levels are different between the provided training and test frames, bind the first row of one 
-# # to the other and then delete it. This will equalize them.
-# test_frame = rbind(training_frame[1,],test_frame)
-# test_frame = test_frame[-1,]
-# # Do the same in reverse as well.
-# training_frame = rbind(test_frame[1,], training_frame)
-# training_frame = training_frame[-1,]
-
-
-# if(!(exists("training_frame"))){
-#   print("Training frame not found in environment")
-#   load('Intermediate/training_frame.Rdata')
-# }
-# 
-# if(!(exists("test_frame"))){
-#   print("Test frame not found in environment")
-#   load('Intermediate/test_frame.Rdata')
-# }
-
-# if(any(colnames(training_frame) != colnames(test_frame))){
-#   stop("Test Frame and Training Frame do not match. Check:")
-#   print(setdiff(names(training_frame),names(test_frame)))
-# }else(print("Training and Test Match"))
-# 
-# 
-# for(i in colnames(training_frame)){
-#   if(class(training_frame[,i]) != class(test_frame[,i])){
-#     stop("class of ", i, " does not match")}else{
-#       print(paste0(i, " is good to go!", sep = " "))
-#     }
-# }
-
-#source('utility/wazefunctions.R')
-
-# starttime <- Sys.time()
-# rose_train <- ROSE(crash ~ ., data = temp_train)$data
-# timediff <- Sys.time() - starttime
-# cat(round(timediff, 2), attr(timediff, "units"), "to complete ROSE sample.")
-
-# table(rose_train$crash)
-
-# # function to sample data to avoid memory limitations
-# thin_data <- function(dataframe){
-#   dataframe = dataframe[sample(1:nrow(dataframe), size = nrow(dataframe)*sample_percentage),]
-#   return(dataframe)
-# }
-# 
-# # apply the function, if applicable
-# if(!is.null(sample_percentage)) {
-#   temp_train <- thin_data(temp_train)
-# }
-
-###### testing #####  
-# test.dat = NULL
-# test.split = .30
-# split.by = NULL
-# 
-# train.dat = training_frame
-# thin.dat = 0.2
-# response.var = "crash"
-# model.no = modelno
-# rf.inputs = rf.inputs
-# cutoff = c(0.9, 0.1)
-################
-# 
-# # if there are 12 .Rdata monthly files at the expected paths then notify the user that we will re-use
-# # those files. Otherwise run the osm_query.R script to generate them from scratch.
-# train_test_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 1:12, 'month_frame_full.Rdata', sep = "_"))
-# 
-# if(!all(file.exists(train_test_fps))){
-#   source('utility/osm_query.R') # creates training frames
-# } else {
-#   cat("Training files already exist. If you wish to generate the data from scratch exit the script; delete, move, or rename the files; and re-run. This is an example file path for the month of January: ")
-#   cat(train_test_fps[1])
-# }

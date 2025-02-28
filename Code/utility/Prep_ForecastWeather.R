@@ -9,7 +9,7 @@ if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_net
 
   print("State road network found.")
   
-  state_network <- read_sf(file_path) 
+  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))
 
 } else{
   
@@ -66,7 +66,7 @@ weather_forecast <- road_points %>%
   save(weather_forecast, file = file.path(inputdir, "Weather", prepname))
 
    rm(KNN, ID_geometry, grd, queries, state_map, weather_points, weather_points.proj, wx_dat_i,
-      api_crs, timezone_adj, US_timezones, road_points)
+      api_crs, timezone_adj, road_points)
   
   } else {
   load(file.path(inputdir, "Weather", prepname))
