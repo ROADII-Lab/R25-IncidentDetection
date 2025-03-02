@@ -11,7 +11,7 @@ requiredpackages <- c("randomForest", # random forest
                       "performanceEstimation",
                       "caret",
                       "sf", # for working with spatial data
-                      "tibbletime",
+                      "tsibble", # for working with time bins
                       "RANN", # holds nn2 
                       "osmdata", # pull data from osm servers
                       "ggmap", 

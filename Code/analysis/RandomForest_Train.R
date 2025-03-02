@@ -15,13 +15,19 @@ imputed_waze <- T
 # versus training and generating predictions based on individual hours. 
 # If time_bins is set to True, the tool will aggregate the data
 # in 6-hour bins and train on that.
-time_bins <- F
+time_bins <- T
 
 ### Optional parameters to set, or accept default.#############
 # Projection 
 projection <- 5070
 
 test_percentage <- 0.03
+
+# this sets the size of the bin when 'time_bins' above is set to T for true.
+# when using hours, the size of the interval must be less than 24 hours.
+# if the number of hours is not a factor of 24 then the final interval will
+# not be the same size as the others (will be smaller, i.e. the remainder)
+time_interval <- "6 hours"
 ##############################################################
 
 # Setup ---- 

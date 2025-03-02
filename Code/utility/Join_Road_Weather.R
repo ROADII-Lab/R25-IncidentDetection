@@ -225,6 +225,34 @@ if(time_bins){
     ungroup()
 }
 
+###########################################################################
+if(time_bins){
+  wx <- wx %>% 
+    mutate(Date = ymd_h(paste0(year, "-", Month, "-", Day, " ", Hour))) %>%
+    as_tsibble(index = Date, key = osm_id) %>%
+    arrange(osm_id, Date) %>%
+    group_by(osm_id) %>%
+    # time_interval is defined in RandomForest_Train.R script. 
+    index_by(interval = floor_date(time_local, time_interval)) %>%
+    summarise(precipitation = mean(precipitation, na.rm = T),
+              temperature = mean(temperature, na.rm = T),
+              snow_depth = mean(snow_depth, na.rm = T),
+              .groups = "drop") %>%
+
+
+if(time_bins){
+  total_crashes <- total_crashes %>% 
+    as_tsibble(index = time_local, key = osm_id) %>%
+    arrange(osm_id, time_local) %>%
+    group_by(osm_id) %>%
+    # time_interval is defined in RandomForest_Train.R script. 
+    index_by(interval = floor_date(time_local, time_interval)) %>%
+    summarise(crash = sum(crash), .groups = "drop") %>%
+    rename(time_local = interval)
+}
+###########################################################################
+
+
 gc()
 
 ####### Define function to join the weather for a given data frame (will be applied month-by-month) ######

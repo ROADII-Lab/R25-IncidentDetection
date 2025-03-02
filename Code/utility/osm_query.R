@@ -133,9 +133,9 @@ if(time_bins){
     as_tsibble(index = time_local, key = osm_id) %>%
     arrange(osm_id, time_local) %>%
     group_by(osm_id) %>%
-    index_by(interval = floor_date(time_local, "6 hours")) %>%
-    summarise(crash = sum(crash)) %>%
-    ungroup() %>%
+    # time_interval is defined in RandomForest_Train.R script. 
+    index_by(interval = floor_date(time_local, time_interval)) %>%
+    summarise(crash = sum(crash), .groups = "drop") %>%
     rename(time_local = interval)
 }
 
@@ -174,9 +174,9 @@ for (m in 1:12){
   starttime = Sys.time()
   # create sequence of hours for the month
   if(m<12){
-    dates <- seq(from = as.POSIXct(yearmonths.1[m]), to = as.POSIXct(yearmonths.1[m+1]), by = "hour")
+    dates <- seq(from = as.POSIXct(yearmonths.1[m]), to = as.POSIXct(yearmonths.1[m+1]), by = ifelse(time_bins, time_interval, "hour"))
   } else {
-    dates <- seq(from = as.POSIXct(yearmonths.1[m]), to = as.POSIXct(c(paste(year+1, "01-01", sep="-"))), by = "hour")
+    dates <- seq(from = as.POSIXct(yearmonths.1[m]), to = as.POSIXct(c(paste(year+1, "01-01", sep="-"))), by = ifelse(time_bins, time_interval, "hour"))
   }
   # trim off the last hour, which is for the following month
   dates <- head(dates, -1)
@@ -196,18 +196,6 @@ for (m in 1:12){
     arrange(osm_id) %>%
     # merge with expanded version of date/time training frame
     cbind(dates_exp, row.names=NULL) 
-  
-  #### THIS IS TAKING TOO LONG - NEED TO ADJUST APPROACH #######
-  if(time_bins){
-    temp_train = temp_train %>% 
-      as_tsibble(index = dates, key = osm_id) %>%
-      arrange(osm_id, dates) %>%
-      group_by(osm_id) %>%
-      index_by(interval = floor_date(dates, "6 hours")) %>% 
-      slice_head(n = 1) %>%
-      ungroup()
-  }
-  #################################################################
   
   temp_train <- temp_train %>% 
     # add month, day, and hour columns
@@ -276,25 +264,33 @@ for(m in 1:12){
       mutate(time_local = as.POSIXct(time_local, tz = tz_name))
   } else {waze_temp <- waze_temp %>% mutate(time_local = as.POSIXct(time_local, tz = time_zone_name))}
   
-  waze_temp = waze_temp %>% st_drop_geometry() 
+  waze_temp = waze_temp %>% 
+    st_drop_geometry() %>%
+    mutate(n = 1) %>%
+    group_by(osm_id, time_local, alert_type) %>% 
+    summarize(n = sum(n), .groups = "drop") %>%
+    pivot_wider(names_from = alert_type, values_from = n)
   
-  if(time_bins){
-    waze_temp = waze_temp %>% 
-      as_tbl_time(index = time_local) %>%
-      collapse_by("6 hours", side = "start", clean = TRUE)
-  }
+  waze_temp = waze_temp %>% 
+    as_tsibble(index = time_local, key = osm_id) %>%
+    arrange(osm_id, time_local) %>%
+    group_by(osm_id) %>%
+    # time_interval is defined in RandomForest_Train.R script. 
+    # if time bins are not being used then it just aggregates by hour.
+    index_by(interval = floor_date(time_local, ifelse(time_bins, time_interval, "hours"))) %>%
+    summarise(WEATHERHAZARD = sum(WEATHERHAZARD),
+              JAM = sum(JAM),
+              ROAD_CLOSED = sum(ROAD_CLOSED),
+              ACCIDENT = sum(ACCIDENT), 
+              .groups = "drop") %>%
+    rename(time_local = interval)
   
   waze_temp = waze_temp %>% 
     mutate(
            month = lubridate::month(time_local),
            day = as.numeric(lubridate::day(time_local)),
            hour = as.numeric(lubridate::hour(time_local))
-    ) %>%
-    select(osm_id, month, day, hour, alert_type) %>%
-    mutate(n = 1) %>%
-    group_by(osm_id, month, day, hour, alert_type) %>% 
-    summarize(n = sum(n)) %>%
-    pivot_wider(names_from = alert_type, values_from = n)
+    ) 
     
   temp_train = temp_train %>% 
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
@@ -314,13 +310,22 @@ for(m in 1:12){
       mutate(osm_id = as.character(osm_id))
     
     if(time_bins){
-      waze_temp = waze_temp %>%
-        mutate(hour = case_when(hour >= 0 & hour < 6 ~ 0,
-                             hour >= 6 & hour < 12 ~ 6,
-                             hour >= 12 & hour < 18 ~ 12,
-                             hour >= 18 & hour < 24 ~ 18)) %>%
-        group_by(osm_id, month, day, hour) %>%
-        summarize(level_mode = mean(level_mode, na.rm = T))
+      waze_temp = waze_temp %>% 
+        mutate(time = as.POSIXct(paste0(year, "-", month, "-", day, " ", hour, ":00:00"))) %>%
+        as_tsibble(index = time, key = osm_id) %>% 
+        arrange(osm_id, time) %>%
+        group_by(osm_id) %>%
+        # time_interval is defined in RandomForest_Train.R script. 
+        # if time bins are not being used then it just aggregates by hour.
+        index_by(interval = floor_date(time, ifelse(time_bins, time_interval, "hours"))) %>%
+        summarise(level_mode = mean(level_mode, na.rm = T), .groups = "drop") %>%
+        mutate(
+          month = lubridate::month(interval),
+          day = as.numeric(lubridate::day(interval)),
+          hour = as.numeric(lubridate::hour(interval))
+        ) %>% 
+        as.data.frame() %>%
+        select(!interval)
     }
     
     temp_train = temp_train %>% 
@@ -328,6 +333,7 @@ for(m in 1:12){
       replace_na(list(level_mode = 0)) %>%
       rename(jam_level = level_mode)
   }
+  
   # create the imputed averages - two different versions depending on whether there are data on jams level
   if(length(waze.jams.files.year) > 0){
     waze_averages <- temp_train %>%
