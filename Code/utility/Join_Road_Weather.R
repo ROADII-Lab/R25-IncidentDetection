@@ -1,12 +1,7 @@
 # Info --------------------------------------------------------------------
 # Purpose: Merges hourly weather data with road segments. 
 # Author: Joey Reed (joseph.reed1@dot.gov)
-# Last edited: 3/25/2024
-
-# Notes: 
-# Some crazy high numbers for precip and temp. 
-# There is still a lot of NAs for snow when doing it weekly
-# Need more weather data
+# Last edited: 3/03/2025
 
 # Prep --------------------------------------------------------------------
 
@@ -160,7 +155,8 @@ wx <- state_hourly_hist_weather1 %>% bind_rows(state_hourly_hist_weather2) %>%
   group_by(Year, Month, Day, Hour, nrow) %>% # variables to keep 
   summarise(precipitation = mean(precipitation, na.rm = TRUE), # gets rid of duplicate hour reports for a station
             temperature = mean(temperature, na.rm = TRUE),
-            snow_depth = max(snow_depth)) %>% # max makes sense for depth right? 
+            snow_depth = max(snow_depth),
+            .groups = "drop") %>% # max makes sense for depth right? 
   mutate_all(~ifelse(is.nan(.), NA, .)) 
 
 # Loading Daily Data ------------------------------------------------------
@@ -214,44 +210,24 @@ gc()
 
 if(time_bins){
   wx <- wx %>% 
-    mutate(Date = ymd_h(paste0(year, "-", Month, "-", Day, " ", Hour))) %>%
-    as_tbl_time(index = Date) %>%
-    collapse_by("6 hours", side = "start", clean = TRUE) %>%
-    mutate(Hour = lubridate::hour(Date)) %>%
-    group_by(Year, Month, Day, Hour, nrow) %>%
-    summarize(precipitation = mean(precipitation, na.rm = T),
-              temperature = mean(temperature, na.rm = T),
-              snow_depth = mean(snow_depth, na.rm = T)) %>%
-    ungroup()
-}
-
-###########################################################################
-if(time_bins){
-  wx <- wx %>% 
-    mutate(Date = ymd_h(paste0(year, "-", Month, "-", Day, " ", Hour))) %>%
-    as_tsibble(index = Date, key = osm_id) %>%
-    arrange(osm_id, Date) %>%
-    group_by(osm_id) %>%
+    mutate(Date = ymd_h(paste0(Year, "-", Month, "-", Day, " ", Hour))) %>%
+    as_tsibble(index = Date, key = nrow) %>%
+    arrange(nrow, Date) %>%
+    group_by(nrow) %>%
     # time_interval is defined in RandomForest_Train.R script. 
-    index_by(interval = floor_date(time_local, time_interval)) %>%
+    index_by(interval = floor_date(x = Date, unit = ifelse(time_bins, time_interval, "hours"))) %>%
     summarise(precipitation = mean(precipitation, na.rm = T),
               temperature = mean(temperature, na.rm = T),
               snow_depth = mean(snow_depth, na.rm = T),
               .groups = "drop") %>%
-
-
-if(time_bins){
-  total_crashes <- total_crashes %>% 
-    as_tsibble(index = time_local, key = osm_id) %>%
-    arrange(osm_id, time_local) %>%
-    group_by(osm_id) %>%
-    # time_interval is defined in RandomForest_Train.R script. 
-    index_by(interval = floor_date(time_local, time_interval)) %>%
-    summarise(crash = sum(crash), .groups = "drop") %>%
-    rename(time_local = interval)
+    as.data.frame() %>%
+    ungroup() %>%
+    mutate(Hour = hour(interval),
+           Day = day(interval),
+           Month = month(interval),
+           Year = year(interval)) %>%
+    select(!interval)
 }
-###########################################################################
-
 
 gc()
 

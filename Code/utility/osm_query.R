@@ -134,7 +134,7 @@ if(time_bins){
     arrange(osm_id, time_local) %>%
     group_by(osm_id) %>%
     # time_interval is defined in RandomForest_Train.R script. 
-    index_by(interval = floor_date(time_local, time_interval)) %>%
+    index_by(interval = floor_date(x = time_local, unit = ifelse(time_bins, time_interval, "hours"))) %>%
     summarise(crash = sum(crash), .groups = "drop") %>%
     rename(time_local = interval)
 }
@@ -277,7 +277,7 @@ for(m in 1:12){
     group_by(osm_id) %>%
     # time_interval is defined in RandomForest_Train.R script. 
     # if time bins are not being used then it just aggregates by hour.
-    index_by(interval = floor_date(time_local, ifelse(time_bins, time_interval, "hours"))) %>%
+    index_by(interval = floor_date(x = time_local, unit = ifelse(time_bins, time_interval, "hours"))) %>%
     summarise(WEATHERHAZARD = sum(WEATHERHAZARD),
               JAM = sum(JAM),
               ROAD_CLOSED = sum(ROAD_CLOSED),
@@ -317,7 +317,7 @@ for(m in 1:12){
         group_by(osm_id) %>%
         # time_interval is defined in RandomForest_Train.R script. 
         # if time bins are not being used then it just aggregates by hour.
-        index_by(interval = floor_date(time, ifelse(time_bins, time_interval, "hours"))) %>%
+        index_by(interval = floor_date(x = time, unit = ifelse(time_bins, time_interval, "hours"))) %>%
         summarise(level_mode = mean(level_mode, na.rm = T), .groups = "drop") %>%
         mutate(
           month = lubridate::month(interval),
