@@ -136,7 +136,8 @@ if(time_bins){
     # time_interval is defined in RandomForest_Train.R script. 
     index_by(interval = floor_date(x = time_local, unit = ifelse(time_bins, time_interval, "hours"))) %>%
     summarise(crash = sum(crash), .groups = "drop") %>%
-    rename(time_local = interval)
+    rename(time_local = interval) %>%
+    as.data.frame()
 }
 
 total_crashes <- total_crashes %>% 
@@ -257,12 +258,23 @@ for(m in 1:12){
   waze_temp = waze_temp %>%
     st_as_sf(coords = c("lon", "lat"), crs=4326) %>%
     st_transform(projection) %>% 
-    st_join(state_network %>% select(osm_id), join = st_nearest_feature)
+    st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
+    mutate(format_issue = is.na(as.POSIXct(time_local,format = "%Y-%m-%d %H:%M:%S")))
+  
+  if(any(waze_temp$format_issue)){
+    cat('Warning: ', nrow(waze_temp %>% filter(format_issue == T)), " observation(s) in month ", m, " do(es) not have the expected datetime format of '%Y-%m-%d %H:%M:%S' and was/were removed to avoid an error.")
+    waze_temp = waze_temp %>% 
+      filter(format_issue == F) %>%
+      select(!format_issue)
+  }
   
   if(!one_zone){
-    waze_temp <- waze_temp %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
+    waze_temp = waze_temp %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
       mutate(time_local = as.POSIXct(time_local, tz = tz_name))
-  } else {waze_temp <- waze_temp %>% mutate(time_local = as.POSIXct(time_local, tz = time_zone_name))}
+  } else {waze_temp = waze_temp %>% 
+    mutate(time_local = as.POSIXct(time_local, 
+                                   tz = time_zone_name,
+                                   format = "%Y-%m-%d %H:%M:%S"))}
   
   waze_temp = waze_temp %>% 
     st_drop_geometry() %>%
@@ -283,14 +295,16 @@ for(m in 1:12){
               ROAD_CLOSED = sum(ROAD_CLOSED),
               ACCIDENT = sum(ACCIDENT), 
               .groups = "drop") %>%
-    rename(time_local = interval)
+    rename(time_local = interval) %>%
+    as.data.frame()
   
   waze_temp = waze_temp %>% 
     mutate(
            month = lubridate::month(time_local),
            day = as.numeric(lubridate::day(time_local)),
            hour = as.numeric(lubridate::hour(time_local))
-    ) 
+    ) %>%
+    select(!time_local)
     
   temp_train = temp_train %>% 
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
