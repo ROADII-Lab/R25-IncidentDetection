@@ -122,22 +122,6 @@ for(m in 1:12){
   
   load(monthframe_fps[m])
   
-  # if(time_bins){
-  #   temp_train <- temp_train %>% 
-  #     as_tbl_time(index = time_local) %>%
-  #     collapse_by("6 hours", side = "start", clean = TRUE) %>%
-  #     group_by(osm_id, Month, Day, Hour, day_of_week, weekday) %>%
-  #     summarize(crash = sum(crash),
-  #               WEATHERHAZARD = mean(WEATHERHAZARD, na.rm = T),
-  #               JAM = mean(JAM, na.rm = T),
-  #               ROAD_CLOSED = mean(ROAD_CLOSED, na.rm = T),
-  #               ACCIDENT = mean(ACCIDENT, na.rm = T),
-  #               jam_level = mean(jam_level, na.rm = T),
-  #               precipitation = mean(precipitation, na.rm = T),
-  #               temperature = mean(temperature, na.rm = T),
-  #               SNOW = mean(SNOW, na.rm = T))
-  # }
-  
   temp_train <- temp_train %>% 
     mutate(crash = ifelse(crash >= 1, 1, 0),
            crash = factor(crash))
@@ -223,10 +207,7 @@ if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_net
 source(file.path("utility", "prep_hist_crash.R")) 
 
 prep_data <- function(training_frame){
-  if(time_bins){
-    training_frame <- training_frame %>%
-      mutate(Hour = paste(as.character(Hour), as.character(Hour + 6), sep = "-"))
-  }
+
   training_frame <- training_frame %>%
     replace_na(list(precipitation = 0, SNOW = 0)) %>%
     left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%

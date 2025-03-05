@@ -175,9 +175,9 @@ for (m in 1:12){
   starttime = Sys.time()
   # create sequence of hours for the month
   if(m<12){
-    dates <- seq(from = as.POSIXct(yearmonths.1[m]), to = as.POSIXct(yearmonths.1[m+1]), by = ifelse(time_bins, time_interval, "hour"))
+    dates <- seq(from = ymd_hms(paste0(yearmonths.1[m], " 00:00:00")), to = ymd_hms(paste0(yearmonths.1[m+1], " 00:00:00")), by = ifelse(time_bins, time_interval, "hour"))
   } else {
-    dates <- seq(from = as.POSIXct(yearmonths.1[m]), to = as.POSIXct(c(paste(year+1, "01-01", sep="-"))), by = ifelse(time_bins, time_interval, "hour"))
+    dates <- seq(from = ymd_hms(paste0(yearmonths.1[m], " 00:00:00")), to = ymd_hms(paste0(year+1, "-01-01 00:00:00")), by = ifelse(time_bins, time_interval, "hour"))
   }
   # trim off the last hour, which is for the following month
   dates <- head(dates, -1)
