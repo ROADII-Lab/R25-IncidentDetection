@@ -4,13 +4,13 @@ gc()
 
 # <><><><><> Parameters to enter - must match model that you trained<><><><><>
 
-num <- "01A"
+num <- "01B"
 state <- "WA"
 #state <- "MN"
 year <- 2021
 
 imputed_waze <- T
-time_bins <- F
+time_bins <- T
 projection <- 5070
 
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -45,16 +45,6 @@ if(imputed_waze == TRUE){
 # This script is based on model 05, which performed the best of the models we tested.
 
 load(file.path(outputdir, 'Random_Forest_Output', paste("Model", modelno, "RandomForest_Output.RData", sep= "_")))
-
-# # The below section automatically determines whether to use temporal aggregation based on whether it was used
-# # when training the model. If time_bins is set to TRUE, the tool will aggregate the data
-# # in 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight) and train/predict on that
-# # instead of generating predictions based on individual hours. 
-# if(length(rf.out$forest$xlevels$Hour)<5){
-#   time_bins <- TRUE
-# } else {
-#   time_bins <- FALSE
-# }
 
 # Create week ----
 # Create osm_id by time variables for the next week, to join everything else into 
@@ -140,11 +130,6 @@ new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
 next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
-
-if(time_bins){
-  next_week <- next_week %>%
-    mutate(Hour = paste(as.character(Hour), as.character(Hour + 6), sep = "-"))
-}
 
 # Make predictions ----
 
