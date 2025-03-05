@@ -74,10 +74,25 @@ total_network <- st_transform(total_network, crs = projection) # convert project
 
 # Perform filter ----------------------------------------------------------
 
-# Pull state boundaries
-state_map <- states(cb = TRUE, year = year) %>% # pull the state boundries  
-  filter(STUSPS == state) %>% # filter for the state
-  st_transform(crs = projection) # convert projection
+if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg')))){ # Look for the boundary file if it already exist
+  
+  print("State boundary file found.")
+  
+  state_map <- read_sf(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg'))) %>% st_transform(crs = api_crs) # if exists, load it
+  
+} else{ # else pull it from the web
+  
+  # Pull state boundaries
+  state_map <- states(cb = TRUE, year = year) %>%
+    filter(STUSPS == state) %>%
+    st_transform(crs = projection)
+  
+  # Create directory for the road network file and state boundary file, if it does not yet exist.
+  if(!dir.exists(file.path(inputdir,'Roads_Boundary', state))){dir.create(file.path(inputdir,'Roads_Boundary', state), recursive = T)}
+  
+  write_sf(state_map, file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg')), driver = "ESRI Shapefile") # save it for later
+  
+}
   
 state_network <- st_join(total_network, state_map, join = st_within) %>%
   filter(!is.na(NAME)) %>%
@@ -90,12 +105,6 @@ state_network <- st_join(total_network, state_map, join = st_within) %>%
   replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T))) # replace NA's with numeric
 
 # Save files to computer --------------------------------------------------
-
-# Create directory for the road network file and state boundary file, if it does not yet exist.
-if(!dir.exists(file.path(inputdir,'Roads_Boundary', state))){dir.create(file.path(inputdir,'Roads_Boundary', state), recursive = T)}
-
-# Save the state outline for future use
-write_sf(state_map, file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg')), driver = "ESRI Shapefile")  
   
 # Save the state road network for future use
 write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")

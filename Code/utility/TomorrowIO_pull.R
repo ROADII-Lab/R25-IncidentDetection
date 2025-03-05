@@ -1,6 +1,6 @@
-# Get weather forecasts for state of interest
-
-# Setup ----
+# Title: TomorrowIO Pull
+# Purpose: Pulls TomorrowIO data and processes it.
+# Generated Variables: 
 
 # Get weather wx_data ----
 
@@ -19,22 +19,25 @@ api_crs <- 4326
 # since we will be using this to form the API queries. Ultimately, we then convert the outputs from this script 
 # to the default projection that we've been using (epsg 5070, defined above as 'projection')
 
-boundary_file <- paste0(state,"_boundary")
-file_path <- file.path(inputdir,'Roads_Boundary', state, paste0(boundary_file, '.gpkg'), paste0(boundary_file,'.shp'))
-
-if (file.exists(file.path(file_path))){
+if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg')))){ # Look for the boundary file if it already exist
   
-  print("State boundary file found")
-  state_map <- read_sf(file_path) %>% st_transform(crs = api_crs)
+  print("State boundary file found.")
   
-} else{
+  state_map <- read_sf(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg'))) %>% st_transform(crs = api_crs) # if exists, load it
+  
+} else{ # else pull it from the web
   
   # Pull state boundaries
   state_map <- states(cb = TRUE, year = year) %>%
     filter(STUSPS == state) %>%
     st_transform(crs = projection)
   
-  }
+  # Create directory for the road network file and state boundary file, if it does not yet exist.
+  if(!dir.exists(file.path(inputdir,'Roads_Boundary', state))){dir.create(file.path(inputdir,'Roads_Boundary', state), recursive = T)}
+  
+  write_sf(state_map, file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg')), driver = "ESRI Shapefile") # save it for later
+  
+}
 
 # Overlay a grid of points within the state - current resolution is 1 degree by 1 degree - 
 # This is imperfect because the distances between longitude degrees are greater as one 
@@ -51,13 +54,12 @@ grd <- state_map %>%
 #   geom_sf(data = state_map, aes(), fill = NA, alpha = 1) +
 #   geom_sf(data = grd, aes())
 
-# Create dataframe with the longitude and latitude of the grid points.
-queries <- st_coordinates(grd) %>% as.data.frame() %>% 
+# Create dataframe with the longitude and latitude of the grid points for the query
+queries <- st_coordinates(grd) %>% 
+  as.data.frame() %>% 
   mutate(ID = row.names(.))
 
-# Using TomorrowIO now for the actual API call (can add NOAA GFS as an option later)
-TomorrowIO = T
-if(TomorrowIO) {
+
   # User needs to visit the tomorrow io website to obtain a free account and then put their api key into
   # a text file called "WeatherAPI_key.txt" in the "Weather" folder within the "Input" folder.
   # Next line obtains the user's api key.
@@ -156,4 +158,3 @@ if(TomorrowIO) {
 
   save(list=c('weather_points', 'weather_points.proj'),
        file = file.path(inputdir, "Weather", fn))
-}
