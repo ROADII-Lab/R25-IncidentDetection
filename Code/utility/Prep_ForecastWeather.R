@@ -28,10 +28,14 @@ if(!file.exists(file.path(inputdir, 'Weather', prepname))) {
   # Get weather forecast for the next week
   # First check to see if forecast has been run already from today (to not over-use API call)
 
-  if(file.exists(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))) {
+  if(file.exists(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))){
+    
     load(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
+    
   } else {
+    
     source(file.path("utility", "TomorrowIO_pull.R"))
+    
   }
 
 # make points file for KNN 

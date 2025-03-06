@@ -1,7 +1,6 @@
 # Title: OpenStreetMap (OSM) Pull
 # Purpose: Pulls OpenStreetMap data and processes it.
-# Generated Variables: 
-## state_network
+# Generated Variables: state_network
 
 # Link to OSM network -----------------------------------------------
 
@@ -86,6 +85,20 @@ if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_bound
   state_map <- states(cb = TRUE, year = year) %>%
     filter(STUSPS == state) %>%
     st_transform(crs = projection)
+  
+  if(state == "AK") { # need to cut out Aleaution Islands as they break the point generation.
+    
+    state_map <- state_map %>%
+      st_transform(4326) %>%
+      st_crop(xmin = -180,
+              xmax = 0,
+              ymax = 90,
+              ymin = -90) %>%
+      st_transform(projection)
+    
+    print("Predictions will not be generated for Alaskan points beyond the international date line.")
+    
+  }
   
   # Create directory for the road network file and state boundary file, if it does not yet exist.
   if(!dir.exists(file.path(inputdir,'Roads_Boundary', state))){dir.create(file.path(inputdir,'Roads_Boundary', state), recursive = T)}

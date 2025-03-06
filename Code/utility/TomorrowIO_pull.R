@@ -1,29 +1,42 @@
 # Title: TomorrowIO Pull
 # Purpose: Pulls TomorrowIO data and processes it.
-# Generated Variables: 
+# Generated Variables: weather_points, weather_points.proj
 
-# Get weather wx_data ----
+# Check API Key -----------------------------------------------------------
 
-# The below is a more generalized approach to set the points for which to query weather data 
-# (based on state of interest). Method seems to work for all states except for Alaska. It does work
-# for Hawaii, but only puts 2 points there.
-# Eventual TO - DO item - figure out why it doesn't work for Alaska and fix it.
+if(file.exists("WeatherAPI_key.txt")){ # if the WeatherAPI_key.txt exists, then check if it has a API key.
+  
+  if(length(scan('WeatherAPI_key.txt', what = 'character')) == 0){
+    
+    stop("No TomorrowIO API Key found. Navigate to https://www.tomorrow.io/, create an account, 
+         and create a TomorrowIO API Key which should be placed in ",
+         getwd(), "/WeatherAPI_key.txt.")
+    
+  }else{
+    
+    print("TomorrowIO API Key Found! Proceeding with TomorrowIO pull.")
+    
+    w_key = scan('WeatherAPI_key.txt', what = 'character')
+    
+  }
+  
+} else{
+  
+  suppressMessages(file.create("WeatherAPI_key.txt"))
+  
+  stop("No TomorrowIO API Key found. Navigate to https://www.tomorrow.io/, create an account, 
+         and create a TomorrowIO API Key which should be placed in ",
+       getwd(), "/WeatherAPI_key.txt.")
+  
+}
 
-# The coordinate reference system for the TomorrowIO API is WGS84 (epsg code 4326)
-api_crs <- 4326
-
-########
-# Access state boundary using tigris package, which loads Census TIGER/Line Shapefiles
-# default coordinate reference system for this is EPSG 4269 for all states, including Hawaii and Alaska, however - 
-# in the below code converting this immediately to the coordinate reference system for the TomorrowIO API,
-# since we will be using this to form the API queries. Ultimately, we then convert the outputs from this script 
-# to the default projection that we've been using (epsg 5070, defined above as 'projection')
+# State Boundary File -----------------------------------------------------
 
 if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg')))){ # Look for the boundary file if it already exist
-  
+
   print("State boundary file found.")
   
-  state_map <- read_sf(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg'))) %>% st_transform(crs = api_crs) # if exists, load it
+  state_map <- read_sf(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_boundary.gpkg'))) %>% st_transform(crs = 4326) # if exists, load it
   
 } else{ # else pull it from the web
   
@@ -32,6 +45,20 @@ if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_bound
     filter(STUSPS == state) %>%
     st_transform(crs = projection)
   
+  if(state == "AK") { # need to cut out Aleaution Islands as they break the point generation.
+    
+    state_map <- state_map %>%
+      st_transform(4326) %>%
+      st_crop(xmin = -180,
+              xmax = 0,
+              ymax = 90,
+              ymin = -90) %>%
+      st_transform(projection)
+    
+    print("Predictions will not be generated for Alaskan points beyond the international date line.")
+    
+  }
+  
   # Create directory for the road network file and state boundary file, if it does not yet exist.
   if(!dir.exists(file.path(inputdir,'Roads_Boundary', state))){dir.create(file.path(inputdir,'Roads_Boundary', state), recursive = T)}
   
@@ -39,31 +66,121 @@ if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_bound
   
 }
 
-# Overlay a grid of points within the state - current resolution is 1 degree by 1 degree - 
-# This is imperfect because the distances between longitude degrees are greater as one 
-# moves closer to the equator and smaller as one moves closer to one of the poles.
-# Close enough for our purposes as it puts about the right number of query points in each 
-# state.
-grd <- state_map %>% 
-  st_make_grid(cellsize = c(1.2,1.2), what = "centers") %>% 
-  st_intersection(state_map) %>%
-  st_transform(crs = api_crs)
+# Create points for API pull -------------------------------------------------------
+
+# Need to create points within a state
+# The free version of Tomorrow IO can only pull 25 points so ideally we find 25 points within each state. 
+# A 5x5 for a perfect square should produce 25 points, but for more complex shaped state (like TX, AK, CA) a lot of this grid get's cut off
+# Therefore 5 is the min, but we should try larger grids until there is the most amount of points < 25.
+
+x <- 5 
+
+repeat{
+  
+  try_x <- state_map %>% 
+    st_make_grid(n = c(x, x), what = "centers") %>% 
+    st_intersection(state_map)
+  
+  if(length(try_x) > 25) break # as mentioned above if we find a grid size thats > 25 we want to use x-1 grid size. 
+  
+  grd <- try_x # if try_x has < 25 points assign it as the next possible grd
+  
+  x <- x + 1 # for the repeat to look at the next grid size
+    
+}
+
+grd <- st_transform(grd, crs = 4326) # convert to API CRS
 
 # Uncomment the below code to view the grid overlay
 # ggplot() +
 #   geom_sf(data = state_map, aes(), fill = NA, alpha = 1) +
 #   geom_sf(data = grd, aes())
 
-# Create dataframe with the longitude and latitude of the grid points for the query
+# Create dataframe with the longitude and latitude of the grid points for the query, and the 
 queries <- st_coordinates(grd) %>% 
   as.data.frame() %>% 
-  mutate(ID = row.names(.))
+  mutate(ID = row.names(.)) %>% 
+  mutate(url = paste0('https://api.tomorrow.io/v4/weather/forecast?location=', Y, ',', X, '&apikey=', w_key, '&units=metric')) 
+
+rm(x, try_x, grd)
 
 
-  # User needs to visit the tomorrow io website to obtain a free account and then put their api key into
-  # a text file called "WeatherAPI_key.txt" in the "Weather" folder within the "Input" folder.
-  # Next line obtains the user's api key.
-  w_key = scan(file.path(inputdir,"Weather", 'WeatherAPI_key.txt'), what = 'character')
+# Query TomorrowIO ---------------------------------------------------------------
+
+# create blank dataframes to populate with weather data
+weather_daily <- data.frame(ID = as.character(),
+                            date = Date(), 
+                            snowAccumulationSum = numeric())
+  
+weather_hourly <- data.frame(ID = as.character(),
+                             lon = numeric(),
+                             lat = numeric(),
+                             utc_hour = POSIXct(), 
+                             temperature = numeric(),
+                             snowAccumulation = numeric(),
+                             rainAccumulation = numeric())
+  
+for(i in 1:nrow(queries)){ # Loop over the json queries for each forecast point and add to the data frames (daily and hourly)
+    
+  wx_dat_i = fromJSON(queries$url[i])
+    
+  wx_dat_daily_values = wx_dat_i$timelines$daily$values %>% # extract the weather attributes for the six days as a dataframe
+    mutate(date = as.Date(wx_dat_i$timelines$daily$time), # extract the dates and assign to a new column
+           ID = queries$ID[i]) %>%
+    select(ID, date, snowAccumulationSum) # select the necessary columns
+
+  wx_dat_hourly_values = wx_dat_i$timelines$hourly$values %>% # extract the weather attributes for the 120 hours as a dataframe
+    mutate(utc_hour = ymd_hms(wx_dat_i$timelines$hourly$time), # extract the hours and assign to a new column
+           ID = queries$ID[i],
+           lon = queries$X[i],
+           lat = queries$Y[i]) %>%
+    select(ID, lon, lat, utc_hour,temperature, rainAccumulation) # select the necessary columns 
+    
+    # add forecasts for this point to the data frames along with the rest of the points
+    weather_daily <- rbind(weather_daily,wx_dat_daily_values)
+    weather_hourly <- rbind(weather_hourly,wx_dat_hourly_values)
+    
+    Sys.sleep(0.34) # Pause for 0.34 seconds in between each query because the limit is 3 requests per second
+    
+}
+
+cat(paste0("TomorrowIO API pulled at ", Sys.time()))
+
+# Data Post-Processing ----------------------------------------------------
+
+# merge 
+weather_points <- weather_hourly %>% 
+  mutate(date = date(utc_hour)) %>% 
+  left_join(weather_daily, by=c("ID", "date"), relationship = "many-to-many") %>% 
+  select(-date) 
+
+# add spatial to a seperate DF, we need both
+weather_points.proj <- weather_points %>%
+  st_as_sf(coords = c('lon', 'lat'),
+           crs = 4326) %>% 
+  st_transform(crs=projection)
+  
+if(one_zone){ # if one time zone, adjust the time to local time
+  
+  weather_points.proj <- weather_points.proj %>% 
+    mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))
+ 
+} else { # if not, figure out which timezone each point is in and adjust it 
+  
+weather_points.proj <- weather_points.proj %>% 
+  st_join(timezone_adj, join = st_nearest_feature) %>% 
+  mutate(time_local = as.POSIXct(utc_hour, tz = tz_name))
+
+}
+
+# save the weather pull
+save(list=c('weather_points', 'weather_points.proj'),
+      file = file.path(inputdir, "Weather", paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
+  
+rm(wx_dat_daily_values, wx_dat_hourly_values, wx_dat_i, queries, state_map, weather_daily, weather_hourly, w_key)
+
+# Additional Details about TomorrowIO -------------------------------------
+
   # This is the format needed for an API call in TomorrowIO using "Forecast" endpoint, with four parameters that
   # need to be filled in (latitude, longitude, API key, units):
   # https://api.tomorrow.io/v4/weather/forecast?location={latitude},{longitude}&apikey={key}&units={imperial/metric}
@@ -73,88 +190,9 @@ queries <- st_coordinates(grd) %>%
   # View this page and click on one of the 'recipes' for detail: https://docs.tomorrow.io/reference/post-timelines
   # There is also the "Realtime" endpoint: https://docs.tomorrow.io/reference/realtime-weather
   
-  # Next line appends a column to the queries dataframe with the constructed url for each query.
-  queries = queries %>% 
-    mutate(url = paste0('https://api.tomorrow.io/v4/weather/forecast?location=',Y,',',X,'&apikey=', w_key,'&units=metric')) 
-  
   # Daily data are available for 6 days (including the current day, so only 5 future days)
   # Hourly data are available for 120 hours in the future (i.e. 5 future days), so about the 
   # same timeframe. We can discuss whether we want to shift to use hourly data instead of daily.
   # By default, time zone is Coordinated Universal Time (UTC)... the offset will vary by state
   # based on the time zone(s). May also vary based on whether it is daylight savings or standard time?
-   
-  # TO-DO: figure out what to do for the larger states (limit for TomorrowIO is 25 requests per hour,
-  # so grd object created above should not have more than 25 points).
   
-  # create blank dataframes to populate with weather data
-  weather_daily <- data.frame(ID = as.character(),
-                              date = Date(), 
-                              snowAccumulationSum = numeric())
-  
-  weather_hourly <- data.frame(ID = as.character(),
-                               lon = numeric(),
-                               lat = numeric(),
-                               utc_hour = POSIXct(), 
-                               temperature = numeric(),
-                               snowAccumulation = numeric(),
-                               rainAccumulation = numeric())
-  
-  # uncomment this for testing/development 
-  # i <- 1
-  
-  # Loop over the json queries for each forecast point and add to the data frames (daily and hourly)
-  # Pause for 0.34 seconds in between each query because the limit is 3 requests per second
-  # Note there are also limits of 25 requests per hour and 500 requests per day.
-   
-  for(i in 1:nrow(queries)){
-    wx_dat_i = fromJSON(queries$url[i])
-    
-    # extract the weather attributes for the six days as a dataframe
-    wx_dat_daily_values = wx_dat_i$timelines$daily$values %>%
-    #extract the dates and assign to a new column
-      mutate(date = as.Date(wx_dat_i$timelines$daily$time),
-             ID = queries$ID[i]) %>%
-    #subset to only retain the necessary columns
-      select(ID, date, snowAccumulationSum)
-
-    # extract the weather attributes for the 120 hours as a dataframe
-    wx_dat_hourly_values = wx_dat_i$timelines$hourly$values %>% 
-      # extract the hours and assign to a new column
-      mutate(utc_hour = ymd_hms(wx_dat_i$timelines$hourly$time),
-             ID = queries$ID[i],
-             lon = queries$X[i],
-             lat = queries$Y[i]) %>%
-      # subset to only retain the necessary columns - Joey removed sleet and ice
-      select(ID, lon, lat, utc_hour,temperature, rainAccumulation)
-    
-    # add forecasts for this point to the data frames along with the rest of the points
-    weather_daily <- rbind(weather_daily,wx_dat_daily_values)
-    weather_hourly <- rbind(weather_hourly,wx_dat_hourly_values)
-    
-    Sys.sleep(0.34)
-  }
-
-  cat(paste0("TomorrowIO API pulled at ", Sys.time()))
-  
-  weather_points <- weather_hourly %>% 
-    mutate(date = date(utc_hour)) %>% 
-    left_join(weather_daily, by=c("ID", "date"), relationship = "many-to-many") %>% 
-    select(-date)
-  
-  rm(wx_dat_daily_values, wx_dat_hourly_values, weather_daily, weather_hourly)
-
-  weather_points.proj <- st_as_sf(weather_points,
-                                 coords = c('lon', 'lat'),
-                                 crs = api_crs) %>% st_transform(crs=projection)
-  
-  # Set local time based on time zone and the UTC hour
-  if(!one_zone){
-    weather_points.proj <- weather_points.proj %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
-      mutate(time_local = as.POSIXct(utc_hour, tz = tz_name))
-  } else {weather_points.proj <- weather_points.proj %>% mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))}
-  
-  # Save forecasts ----
-  fn = paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")
-
-  save(list=c('weather_points', 'weather_points.proj'),
-       file = file.path(inputdir, "Weather", fn))
