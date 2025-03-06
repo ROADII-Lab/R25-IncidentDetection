@@ -19,20 +19,8 @@ if(!dir.exists(waze_jams_dir)){dir.create(waze_jams_dir, recursive = T)}
 
 # Load Road Network --------------------------------------------------------------
 
-if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))){
+source(file.path("utility", "OpenStreetMap_pull.R"))
   
-  print("State road network found.")
-  
-  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp'))) 
-  
-} else{
-  
-  print("State road network not found. Pulling from OpenStreetMaps and performing post processing.")
-  
-  source(file.path("utility", "OpenStreetMap_pull.R"))
-  
-}
-
 state_network <- state_network %>% select(osm_id)
 
 # Load Crash Data ------------------------------

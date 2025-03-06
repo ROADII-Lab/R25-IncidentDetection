@@ -2,6 +2,18 @@
 # Purpose: Pulls OpenStreetMap data and processes it.
 # Generated Variables: state_network
 
+# Check if Ran ------------------------------------------------------------
+
+if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))){
+  
+  print("State road network found.")
+  
+  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp'))) 
+  
+} else{
+  
+  print("State road network not found. Pulling from OpenStreetMaps and performing post processing.")
+
 # Link to OSM network -----------------------------------------------
 
 # all possible urls for set_overpass_url as shown in help(set_overpass_url)
@@ -125,3 +137,5 @@ write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(netwo
 #ggplot() + geom_sf(data = state_network) # view road network to test if it's valid
 
 rm(total_network, datalist, lines, map_data, road_types, state_bbox, state_osm, state_map) # clean environment
+
+}

@@ -1,43 +1,21 @@
-# Intro -----------------------------------
-# Purpose: This script sources TomorrowIO_pull.R then spatial joins those results with the osm network
+# Title: Prep_ForecastWeather
+# Purpose: This script sources TomorrowIO_pull.R then spatial joins those results with the osm network.
+# Generated Variables: weather_forecast
 
-projection <- 5070
-
+if(file.exists(file.path(inputdir, 'Weather', paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData")))) { # check if this script has already been ran
+  
+  load(file.path(inputdir, "Weather", paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData")))
+                 
+} else{ # if not, go through a pull osm, tomorrowIO, and then merge.
+  
 # Load Road Network --------------------------------------------------------------
 
-if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))){
+source(file.path("utility", "OpenStreetMap_pull.R"))
 
-  print("State road network found.")
-  
-  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))
+# Weather Pull ----------------------------------------------------------
 
-} else{
-  
-  print("State road network not found. Pulling from OpenStreetMaps and performing post processing.")
-
-  source(file.path("utility", "OpenStreetMap_pull.R"))
-
-}
-
-# Weather Merge -----------------------------------------------------------
-
-prepname = paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData")
-
-if(!file.exists(file.path(inputdir, 'Weather', prepname))) { # check if this script has already been ran
-
-  # Get weather forecast for the next week
-  # First check to see if forecast has been run already from today (to not over-use API call)
-
-  if(file.exists(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))){
+source(file.path("utility", "TomorrowIO_pull.R"))
     
-    load(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
-    
-  } else {
-    
-    source(file.path("utility", "TomorrowIO_pull.R"))
-    
-  }
-
 # Perform KNN -------------------------------------------------------------
   
 # KNN needs points not lines so we first generate the road points
@@ -82,13 +60,13 @@ if(time_bins){ # if time_bin = T, collapse into 6 hour segments
   
 }
    
-save(weather_forecast, file = file.path(inputdir, "Weather", prepname)) # save the weather forecast by ROAD script
+save(weather_forecast, file = file.path(inputdir, "Weather", paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData"))) # save the weather forecast by ROAD script
 
    rm(KNN, ID_geometry, grd, queries, state_map, weather_points, weather_points.proj, wx_dat_i,
       api_crs, timezone_adj, road_points)
   
-  } else {
+} 
     
-  load(file.path(inputdir, "Weather", prepname))
 
-    }
+
+    

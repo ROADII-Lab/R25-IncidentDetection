@@ -2,6 +2,14 @@
 # Purpose: Pulls TomorrowIO data and processes it.
 # Generated Variables: weather_points, weather_points.proj
 
+# Check if Ran ------------------------------------------------------------
+
+if(file.exists(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))){ 
+    
+  load(file.path(inputdir, 'Weather', paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
+    
+} else {
+
 # Check API Key -----------------------------------------------------------
 
 if(file.exists("WeatherAPI_key.txt")){ # if the WeatherAPI_key.txt exists, then check if it has a API key.
@@ -178,6 +186,8 @@ save(list=c('weather_points', 'weather_points.proj'),
       file = file.path(inputdir, "Weather", paste0("Weather_Forecasts_", state, "_", Sys.Date(), ".RData")))
   
 rm(wx_dat_daily_values, wx_dat_hourly_values, wx_dat_i, queries, state_map, weather_daily, weather_hourly, w_key)
+
+}
 
 # Additional Details about TomorrowIO -------------------------------------
 
