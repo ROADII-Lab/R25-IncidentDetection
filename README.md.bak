@@ -49,7 +49,6 @@ Requirements for Training:
 The [Code](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Code) folder contains the code and installation instructions of the ROADII-Lab exploration of the traffic incident Prediction use case. It will be populated with functions, model code, training parameters, and eductional materials to help potential users or stakeholders with the development process for the deployment of their own traffic incident Prediction system. 
 
 
-
 The steps for training models and generating predictions are as follows:
 
 1. Clone the GitHub repository to a directory of your choice on your machine.
@@ -65,8 +64,6 @@ If a trained model already exists, skip to step 4.
 
    - `num`: (string) A name for the model being generated.
    - `state`: (string) The state abbreviation for which predictions are being generated.
-   - `one_zone`: (boolean) Indicates whether the state consists of only one time zone (`TRUE` if it does).
-   - `time_zone_name`: (string) The state's time zone. Must match a valid time zone listed in the `OlsonNames` function. Run `OlsonNames()` to view valid names.
    - `time_bins`: (boolean) Indicates whether the tool should group data into 6-hour increments.
 
    Outputs include:
@@ -92,19 +89,22 @@ If a trained model already exists, skip to step 4.
 
    - `Output/Predict_Week_Outputs/`: The directory containing prediction results.
 
-
-
 ## Utility Functions
 
- - utility/Prep_OSMNetwork.R: Sourced by osm_query.R. Pulls the Open Street Maps road network for a defined state using the overpass api, filters for specified classes of roads in the state's boundary; default road classes being pulled are "motorway", "trunk", "primary", "secondary" and "tertiary". The script currently retains the OSM_ID, highway class, and maxspeed for each OSM link. For open street map definitions go to https://wiki.openstreetmap.org/wiki/Key:highway.
- - utility/osm_query.R: osm_query.R builds the connects the road and crash networks. First, Prep_OSMNetwork is sourced which provides the road network crashes will be mapped to. Crash data is then loaded, normalized to a defined coordinate reference system (5070 by default) and joined to the nearest OSM link of the roadway network. Please review the HSIS data section if you'd like to provide new crash data.  
- - utility/Join_Road_Weather.R: Joins hourly weather data to the historical road network. Pulls in hourly GHCN weather station data. Cleans data by removing duplicates, and identifies the mean precipitation, temperature, and maximum snow depth recorded at eahc hour for each station. The map of stations by hour is then joined to the road network by identifying the weather station nearest each OSM link. 
-
+- `utility/get_packages.R`: sourced in `RandomForest_Train.R`. Installs and loads the R-packages necessary for using the tool.
+- `utility/timezone_adj.R`: sourced in `RandomForest_Train.R`. Determines if the state has one timezone and generates the shape files required if the state covers multiple time zones. 
+- `utility/Prep_OSMNetwork.R`: Sourced by `osm_query.R`. Pulls the OpenStreetMap (OSM) road network for a specified state using the Overpass API. It filters for selected road classes within the state's boundary. The default road classes include `motorway`, `trunk`, `primary`, `secondary`, and `tertiary`. The script retains the `OSM_ID`, highway class, and `maxspeed` for each OSM link. For OpenStreetMap definitions, visit [OSM Highway Key](https://wiki.openstreetmap.org/wiki/Key:highway).
+- `utility/osm_query.R`: This script connects the road network with crash data. First, `Prep_OSMNetwork.R` is sourced to provide the roadway network onto which crashes will be mapped. Crash data is then loaded, normalized to a defined coordinate reference system (`5070` by default), and joined to the nearest OSM roadway link. Refer to the HSIS data section if you need to incorporate new crash data.
+- `utility/Join_Road_Weather.R`: Joins hourly weather data to the historical road network. It integrates hourly GHCN weather station data, cleans the dataset by removing duplicates, and calculates the mean precipitation, temperature, and maximum snow depth recorded at each hour for every station. The station-hour mapping is then linked to the roadway network by assigning each OSM link to the nearest weather station.
+- `utility/OpenStreetMap_pull.R`: sourced in `RandomForest_Train.R` Generates the state's roadway network if required. 
+- `utility/prep_hist_crash.R`: sourced in `RandomForest_Train.R`. Reads and prepares user provided historical crash data. User will likely need to modify based on their specific dataset. Script expects crashes to be in the form of shapefiles. HIstorical crash data will requires precise lat-long coordinates and timestamps at minimum.
 
 The development team is currently building testing functions. For now, the recommended testing is examining the results to ensure they line up with general knowledge of roads and upcoming weather trends. 
 
 
 # Additional Notes
+
+- `Analysis/RandomForest_Fx.R`
 
 The [Demos](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Demos) folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and performance metrics for the solutions developed for this use case. This will be updated once more work is created with partner organizations. 
 
