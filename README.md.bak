@@ -104,7 +104,7 @@ The development team is currently building testing functions. For now, the recom
 
 # Additional Notes
 
-- `Analysis/RandomForest_Fx.R`
+- `Analysis/RandomForest_Fx.R`: Sourced in `Analysis/RandomForest_Train`. This script defines a the function `do.rf` which is used for training a random forest model, and saving certain model diagnostics.
 
 The [Demos](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Demos) folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and performance metrics for the solutions developed for this use case. This will be updated once more work is created with partner organizations. 
 

@@ -37,12 +37,12 @@ Requirements for Training:
 
 # File Structure
 
-- The primary directory is R25-IncidentPrediction/Code/Incident_Prediction. All work should be done from the Incident_Prediction.Rproj R project. 
-- The Analysis folder contains the primary R scripts used to run the Incident_Prediction tool. 
-- The utility folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
-- The Input folder stores all raw data files including HSIS crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data
-- The Intermediate folder contains data that has undergone some cleaning and manipulation. The datacleaning and preparation process be computationally intensive so this folder provides storage for data that only needs to be cleaned once and then reused. 
-- The Output folder contains the primary results from the Analysis scripts, including trained Random Forest models, model diagnostics, and predictions.
+- The primary directory is `R25-IncidentPrediction/Code`. All work should be done from the Incident_Prediction.Rproj R project. 
+- The `Analysis` folder contains the primary R scripts used to run the Incident_Prediction tool. 
+- The `utility` folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
+- The `Input` folder stores all raw data files including HSIS crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data
+- The `Intermediate` folder contains data that has undergone some cleaning and manipulation. The datacleaning and preparation process be computationally intensive so this folder provides storage for data that only needs to be cleaned once and then reused. 
+- The `Output` folder contains the primary results from the Analysis scripts, including trained Random Forest models, model diagnostics, and predictions.
 
 ## Usage
 
