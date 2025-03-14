@@ -37,12 +37,12 @@ Requirements for Training:
 
 # File Structure
 
-- The primary directory is R25-IncidentPrediction/Code/Incident_Prediction. All work should be done from the Incident_Prediction.Rproj R project. 
-- The Analysis folder contains the primary R scripts used to run the Incident_Prediction tool. 
-- The utility folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
-- The Input folder stores all raw data files including HSIS crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data
-- The Intermediate folder contains data that has undergone some cleaning and manipulation. The datacleaning and preparation process be computationally intensive so this folder provides storage for data that only needs to be cleaned once and then reused. 
-- The Output folder contains the primary results from the Analysis scripts, including trained Random Forest models, model diagnostics, and predictions.
+- The primary directory is `R25-IncidentPrediction/Code`. All work should be done from the Incident_Prediction.Rproj R project. 
+- The `Analysis` folder contains the primary R scripts used to run the Incident_Prediction tool. 
+- The `utility` folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
+- The `Input` folder stores all raw data files including HSIS crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data
+- The `Intermediate` folder contains data that has undergone some cleaning and manipulation. The datacleaning and preparation process be computationally intensive so this folder provides storage for data that only needs to be cleaned once and then reused. 
+- The `Output` folder contains the primary results from the Analysis scripts, including trained Random Forest models, model diagnostics, and predictions.
 
 ## Usage
 
@@ -87,7 +87,7 @@ If a trained model already exists, skip to step 4.
 
    Outputs include:
 
-   - `Output/Predict_Week_Outputs/`: The directory containing prediction results.
+   - `Output/Predict_Week_Outputs`: The directory containing prediction results.
 
 ## Utility Functions
 
@@ -97,7 +97,7 @@ If a trained model already exists, skip to step 4.
 - `utility/osm_query.R`: This script connects the road network with crash data. First, `Prep_OSMNetwork.R` is sourced to provide the roadway network onto which crashes will be mapped. Crash data is then loaded, normalized to a defined coordinate reference system (`5070` by default), and joined to the nearest OSM roadway link. Refer to the HSIS data section if you need to incorporate new crash data.
 - `utility/Join_Road_Weather.R`: Joins hourly weather data to the historical road network. It integrates hourly GHCN weather station data, cleans the dataset by removing duplicates, and calculates the mean precipitation, temperature, and maximum snow depth recorded at each hour for every station. The station-hour mapping is then linked to the roadway network by assigning each OSM link to the nearest weather station.
 - `utility/OpenStreetMap_pull.R`: sourced in `RandomForest_Train.R` Generates the state's roadway network if required. 
-- `utility/prep_hist_crash.R`: sourced in `RandomForest_Train.R`. Reads and prepares user provided historical crash data. User will likely need to modify based on their specific dataset. Script expects crashes to be in the form of shapefiles. HIstorical crash data will requires precise lat-long coordinates and timestamps at minimum.
+- `utility/prep_hist_crash.R`: sourced in `RandomForest_Train.R`. Reads and prepares user provided historical crash data. User will likely need to modify based on their specific dataset. Script expects crashes to be in the form of shapefiles. Historical crash data requires precise lat-long coordinates and timestamps at minimum.
 
 The development team is currently building testing functions. For now, the recommended testing is examining the results to ensure they line up with general knowledge of roads and upcoming weather trends. 
 
