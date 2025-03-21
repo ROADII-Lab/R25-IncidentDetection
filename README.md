@@ -15,6 +15,10 @@
 
 - **Title:** Traffic Incident Prediction through ML methods
 - **Purpose and goals of the project:** This use case aims to create a data collection and modeling process that will forecast crash probability for the next 4-7 days along highways and major roadways at a state-level. These data could be used for operations, management, and traveler information. 
+![WA Probability Dashboard](./resources/ZoomOutDashLowRisk.png)
+The above image was generated using a model run for Washington State and reflects the crash probability for roadsegments on March 7th at 5:00 PM PST. 
+![WA Probability Zoomed Dashboard](./resources/ZoomedHighSegment.png)
+The above image was generated using a model run for Washington State and reflects the crash probability for roadsegments in the Seattle area on March 6th at 12:00 AM PST.
 - **Purpose of the source code and how it relates to the overall goals of the project:** This repository contains code and documentation for explorations in the generalization and deployment of techniques for detecting traffic incidents and assessing roadway network vulnerabilities using real-time and historical datasets. Intended audiences are state DOTs and traffic management centers wanting to improve their ability to respond quickly to incidents on their roadways, as well as to better understand how traffic incidents affect the larger roadway network.
 - **Length of the project:** This use case is currently in the exploratory phase. The ROADII team has been updating 2019 work with the Tennessee Highway Patrol to forecast crash probability over the next week. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOT Traffic Managment Centers to evaluate interest and feasibility of the use case. The ROADII team will be updating this repository as stable developments are created. This phase will likely continue through summer 2024. 
 
@@ -24,6 +28,7 @@
 General Requirements:
 - R 4.3.0 or later
 - Internet Connection
+-Tableau Reader
 
 Requirements for Predictions:
 - Historical Waze Alert Data
@@ -88,6 +93,7 @@ If a trained model already exists, skip to step 4.
    Outputs include:
 
    - `Output/Predict_Week_Outputs`: The directory containing prediction results.
+5. Access Dashboard   
 
 ## Utility Functions
 
