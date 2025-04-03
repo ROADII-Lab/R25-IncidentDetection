@@ -20,6 +20,31 @@ intermediatedir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
 predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
 
+# for testing purposes
+if(state == "WI"){
+  date_time_col <- NA
+  date_col <- "CRSHDATE"
+  time_col <- "CRSHTIME" 
+  time_format <- "mdy_HM" # must be in a format that lubridate can recognize within the time
+}
+
+if(state == "WA"){ # MN will require some preprocessing to work with this new format
+  date_time_col <- NA
+  date_col <- "ACC_DATE"
+  time_col <- "TIME" # date/time definition, must be in the same order as time format, will concatenate automatically
+  time_format <- "ymd_HM" # must be in a format that lubridate can recognize within the time  
+}
+
+if(state == "MN"){
+  date_time_col <- "time_local"
+  date_col <- NA
+  time_col <- NA # date/time definition, must be in the same order as time format, will concatenate automatically
+  time_format <- "ymd_HMS" # must be in a format that lubridate can recognize within the time  
+}
+
+lat_col <- NA # if uploading xlsx, or csv's define the latitude variable name (if left NA, it will choose the best fit)
+lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (if left NA, it will choose the best fit)
+
 # Make outputdir and intermediatedir if not already there
 if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
@@ -33,11 +58,13 @@ source(file.path("utility", "get_packages.R")) # installs necessary package
 source(file.path("analysis", "RandomForest_Fx.R"))
 
 # The full model identifier gets created in this next step
-if(imputed_waze == TRUE){
-  modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
-}else{
-  modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
-}
+modelno = paste(state,
+                year, 
+                ifelse(imputed_waze, "imputed", "NOTimputed"),
+                ifelse(time_bins, "tbins", "hourly"), 
+                num, 
+                sep = "_")
+
 
 # Load a fitted model from local machine -- run RandomForest_WazeGrids_TN.R to generate models
 # Loads rf.out, the model object, which we will feed new data to predict on.
@@ -108,7 +135,13 @@ link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>
   filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
 rm(weather_forecast)
 
-source(file.path("utility", "prep_hist_crash.R"))
+# hist_crashes ---------------------------------------------------------
+
+source(file.path("utility", "load_crashes.R"))
+
+source(file.path("utility", "prep_hist_crash2.R"))
+
+# Next Week ---------------------------------------------------------------
 
 next_week <- link_x_day %>%
   rename(Month = month, 

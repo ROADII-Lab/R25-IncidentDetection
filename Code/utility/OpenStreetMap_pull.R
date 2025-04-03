@@ -132,7 +132,7 @@ state_network <- st_join(total_network, state_map, join = st_within) %>%
 # Save files to computer --------------------------------------------------
   
 # Save the state road network for future use
-write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(network_file, '.gpkg')), driver = "ESRI Shapefile")
+write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(state, '_network.gpkg')), driver = "ESRI Shapefile")
 
 #ggplot() + geom_sf(data = state_network) # view road network to test if it's valid
 

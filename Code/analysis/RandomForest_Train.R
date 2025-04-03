@@ -1,21 +1,63 @@
 # Random forest models of crash estimation for a given state. 
 
+inputdir <- file.path(getwd(),"Input")
+outputdir <-file.path(getwd(),"Output")
+intermediatedir <- file.path(getwd(), "Intermediate")
+
+# Make outputdir and intermediatedir if not already there
+if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
+if(!dir.exists(outputdir)) { dir.create(outputdir) }
+if(!dir.exists(file.path(outputdir, "Random_Forest_Output"))){dir.create(file.path(outputdir, "Random_Forest_Output"))}
+if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir, "Figures"))}
+
 ## Parameters to set before running#################################
 num <- "01B" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
-state <- "WA"
+state <- "WI"
 
 # Year
 year <- 2021
 
 ##Use Imputed Waze?
-imputed_waze <- T
+imputed_waze <- F
 
 # Indicate whether to aggregate into 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight), 
 # versus training and generating predictions based on individual hours. 
 # If time_bins is set to True, the tool will aggregate the data
 # in 6-hour bins and train on that.
-time_bins <- T
+time_bins <- F
+
+# historical crash data
+
+crash_filepath <- file.path(file.path(inputdir,"Crash", state)) # define the location of the crash variables
+
+
+# for testing purposes
+if(state == "WI"){
+  date_time_col <- NA
+  date_col <- "CRSHDATE"
+  time_col <- "CRSHTIME" 
+  time_format <- "mdy_HM" # must be in a format that lubridate can recognize within the time
+}
+
+if(state == "WA"){ # MN will require some preprocessing to work with this new format
+  date_time_col <- NA
+  date_col <- "ACC_DATE"
+  time_col <- "TIME" # date/time definition, must be in the same order as time format, will concatenate automatically
+  time_format <- "ymd_HM" # must be in a format that lubridate can recognize within the time  
+}
+
+if(state == "MN"){
+  date_time_col <- "time_local"
+  date_col <- NA
+  time_col <- NA # date/time definition, must be in the same order as time format, will concatenate automatically
+  time_format <- "ymd_HMS" # must be in a format that lubridate can recognize within the time  
+}
+
+lat_col <- NA # if uploading xlsx, or csv's define the latitude variable name (if left NA, it will choose the best fit)
+lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (if left NA, it will choose the best fit)
+
+
 
 ### Optional parameters to set, or accept default.#############
 # Projection 
@@ -35,16 +77,6 @@ gc()
 
 source(file.path("utility", "get_packages.R")) # installs necessary package
 
-inputdir <- file.path(getwd(),"Input")
-outputdir <-file.path(getwd(),"Output")
-intermediatedir <- file.path(getwd(), "Intermediate")
-
-# Make outputdir and intermediatedir if not already there
-if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
-if(!dir.exists(outputdir)) { dir.create(outputdir) }
-if(!dir.exists(file.path(outputdir, "Random_Forest_Output"))){dir.create(file.path(outputdir, "Random_Forest_Output"))}
-if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir, "Figures"))}
-
 # Timezones --------------------------------------------------------------
 
 source(file.path("utility", "timezone_adj.R"))
@@ -52,49 +84,82 @@ source(file.path("utility", "timezone_adj.R"))
 # -------------------------------------------------------------------------
 
 # The full model identifier gets created in this next step
-if(imputed_waze == TRUE){
-  modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
-}else{
-  modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
-}
 
-train_fp <- file.path(intermediatedir,paste(modelno, "train_test_frames.RData", sep = "_"))
+modelno = paste(state,
+                year, 
+                ifelse(imputed_waze, "imputed", "NOTimputed"),
+                ifelse(time_bins, "tbins", "hourly"), 
+                num, 
+                sep = "_")
+  
+train_fp <- file.path(intermediatedir, paste(modelno, "train_test_frames.RData", sep = "_"))
 
-# check whether there is already a consolidated and prepped training frame
-# at the expected file path. If not, prepare one. If so, notify the user and load the 
-# existing file.
+# check whether there is already a consolidated and prepped training frame at the expected file path. If not, prepare one. If so, notify the user and load the existing file.
 if(!file.exists(train_fp)){
+  
 prepstarttime <- Sys.time()
-# Given that the consolidated training frame does not exist, initiate process
-# to generate one. First generate a vector of all file paths for monthly data frames.
+
+# Given that the consolidated training frame does not exist, initiate process to generate one. First generate a vector of all file paths for monthly data frames.
+
 monthframe_fps <- file.path(intermediatedir, 'Month_Frames', paste(state, year, 1:12, ifelse(time_bins, "tbins", ""), 'month_frame_full.Rdata', sep = "_"))
 
-# if there are 12 .Rdata monthly files at the expected paths then notify the user that we will re-use
-# those files. Otherwise run the osm_query.R script to generate them from scratch.
+# if there are 12 .Rdata monthly files at the expected paths then notify the user that we will re-use those files. Otherwise run the osm_query.R script to generate them from scratch.
+
 if(!all(file.exists(monthframe_fps))){
-  source(file.path("utility", "osm_query.R"))  # creates training frames
-} else {
-  # Make sure the user is aware of the situation with respect to existing month frames
   
+  source(file.path("utility", "osm_query.R"))  # creates training frames
+  
+} else { # Make sure the user is aware of the situation with respect to existing month frames
+ 
   load(monthframe_fps[1])
   
   if(length(unique(temp_train$Hour))>4 & time_bins){
+    
     cat("Month frames already exist, but they were created with time_bins set to FALSE, meaning that the data \n")
     cat("are not aggregated. However, time_bins is currently set to TRUE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
+    
     proceed <- readline("Press 'p' to proceed or 'c' to cancel>>")
+    
     if(proceed == 'p'){
+      
       source(file.path("utility", "osm_query.R"))  # creates training frames
-    } else if(proceed == 'c'){stop("User chose to exit script.")}
-  } else if(length(unique(temp_train$Hour))<5 & !time_bins){
+      
+      } 
+    
+    if(proceed == 'c'){
+      
+      stop("User chose to exit script.")
+      
+    }
+    
+  } else{ 
+  
+  if(length(unique(temp_train$Hour)) < 5 & !time_bins){
+    
     cat("Month frames already exist, but they were created with time_bins set to TRUE, meaning that the data \n")
     cat("are aggregated. However, time_bins is currently set to FALSE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
+    
     proceed <- readline("Press 'p' to proceed or 'c' to cancel>>")
+    
     if(proceed == 'p'){
+      
       source(file.path("utility", "osm_query.R"))  # creates training frames
-    } else if(proceed == 'c'){stop("User chose to exit script.")}
-  } else {
+      
+    }
+  
+    if(proceed == 'c'){
+      
+      stop("User chose to exit script.")
+      
+      }
+  } 
+    else {
+      
     cat("Month frames already exist. If you wish to generate the data from scratch exit the script; delete, move, or rename the files; and re-run. This is an example file path for the month of January: ")
     cat(monthframe_fps[1], '\n\n')
+    
+    }
+    
   }
   
 }
@@ -114,10 +179,9 @@ training_frame <- test_frame <-  data.frame(osm_id = character(),
                                             SNOW = numeric(),
                                             crash = factor())
 
-
-m <- 1
+#m <- 1
 for(m in 1:12){
-#for(m in 1:12){
+  
   starttime <- Sys.time()
   
   load(monthframe_fps[m])
@@ -190,21 +254,13 @@ cat("Preparing to join data on historical crashes ('hist_crashes'), road type ('
 
 # Load Road Network --------------------------------------------------------------
 
-if (file.exists(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp')))){
-  
-  print("State road network found.")
-  
-  state_network <- read_sf(file.path(inputdir, "Roads_Boundary", state, paste0(state, '_network.gpkg'), paste0(state, '_network.shp'))) 
-  
-} else{
-  
-  print("State road network not found. Pulling from OpenStreetMaps and performing post processing.")
-  
-  source(file.path("utility", "OpenStreetMap_pull.R"))
-  
-}
+source(file.path("utility", "OpenStreetMap_pull.R"))
 
-source(file.path("utility", "prep_hist_crash.R")) 
+# Prep Hist Crashes -----------------------------------------------------------
+
+source(file.path("utility", "load_crashes.R")) 
+
+source(file.path("utility", "prep_hist_crash2.R"))
 
 prep_data <- function(training_frame){
 
