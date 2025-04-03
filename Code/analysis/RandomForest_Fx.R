@@ -196,7 +196,7 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
             file = file.path(outputdir, 'Random_Forest_Output', paste(model.no, "RandomForest_pred.csv", sep = "_")),
             row.names = F)
   
-  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name") 
+  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name", "time_interval") 
   if(is.null(test.dat)) savelist = c(savelist, "testrows", "trainrows")
   if(!is.null(thin.dat)) savelist = c(savelist, "test.dat.use")
   

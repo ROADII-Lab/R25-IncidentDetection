@@ -48,15 +48,21 @@ weather_forecast <- road_points %>%
          date = utc_hour) %>% 
   select(osm_id, date, temperature, precipitation, SNOW) # only keep variables of interest
 
-if(time_bins){ # if time_bin = T, collapse into 6 hour segments
+if(time_bins){
   
-  weather_forecast <- weather_forecast %>% 
-    as_tbl_time(index = date) %>%
-    collapse_by("6 hours", side = "start", clean = TRUE) %>%
-    group_by(osm_id, date) %>%
-    summarize(temperature = mean(temperature, na.rm = T), 
+  weather_forecast <- weather_forecast %>%
+    as_tsibble(index = date, key = osm_id) %>%
+    arrange(osm_id, date) %>%
+    group_by(osm_id) %>%
+    # time_interval was defined in RandomForest_Train.R script when the model was trained originally. 
+    # if time bins are not being used then it just aggregates by hour.
+    index_by(interval = floor_date(x = date, unit = ifelse(time_bins, time_interval, "hours"))) %>%
+    summarise(temperature = mean(temperature, na.rm = T), 
               precipitation = mean(precipitation, na.rm = T), 
-              SNOW = mean(SNOW, na.rm = T))
+              SNOW = mean(SNOW, na.rm = T),
+              .groups = "drop") %>%
+    rename(date = interval) %>%
+    as.data.frame()
   
 }
    
