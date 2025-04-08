@@ -158,28 +158,15 @@ cat(paste0("TomorrowIO API pulled at ", Sys.time()))
 
 # merge 
 weather_points <- weather_hourly %>% 
-  mutate(date = date(utc_hour)) %>% 
-  left_join(weather_daily, by=c("ID", "date"), relationship = "many-to-many") %>% 
-  select(-date) 
+  rename(date = utc_hour) %>%
+  left_join(weather_daily, by=c("ID", "date"), relationship = "many-to-one") %>% # each row in weather_hourly should match at most one row in weather_daily, hence "many-to-one" relationship
+  mutate(date = with_tz(date, tzone = time_zone_name))
 
 # add spatial to a seperate DF, we need both
 weather_points.proj <- weather_points %>%
   st_as_sf(coords = c('lon', 'lat'),
            crs = 4326) %>% 
   st_transform(crs=projection)
-  
-if(one_zone){ # if one time zone, adjust the time to local time
-  
-  weather_points.proj <- weather_points.proj %>% 
-    mutate(time_local = as.POSIXct(utc_hour, tz = time_zone_name))
- 
-} else { # if not, figure out which timezone each point is in and adjust it 
-  
-weather_points.proj <- weather_points.proj %>% 
-  st_join(timezone_adj, join = st_nearest_feature) %>% 
-  mutate(time_local = as.POSIXct(utc_hour, tz = tz_name))
-
-}
 
 # save the weather pull
 save(list=c('weather_points', 'weather_points.proj'),

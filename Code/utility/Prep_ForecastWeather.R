@@ -44,8 +44,7 @@ weather_forecast <- road_points %>%
   mutate(ID = as.character(V1)) %>% 
   full_join(weather_points, by= "ID", relationship="many-to-many") %>% # bring weather in
   rename(precipitation = rainAccumulation, # to match names in NN
-         SNOW = snowAccumulationSum,
-         date = utc_hour) %>% 
+         SNOW = snowAccumulationSum) %>% 
   select(osm_id, date, temperature, precipitation, SNOW) # only keep variables of interest
 
 if(time_bins){

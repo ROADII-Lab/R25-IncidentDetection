@@ -54,6 +54,9 @@ source(file.path("utility", "get_packages.R")) # installs necessary package
 
 # source("utility/wazefunctions.R") 
 
+# Run timezone script 
+source(file.path("utility", "timezone_adj.R"))
+
 # read random forest function
 source(file.path("analysis", "RandomForest_Fx.R"))
 
@@ -111,7 +114,7 @@ link_x_day <- expand.grid(osm_id = link_seq,
                           date = day_hour_seq)
 
 link_x_day <- link_x_day %>%
-  mutate(date = as.POSIXct(date, format = '%Y-%j %H'),
+  mutate(date = as.POSIXct(date, format = '%Y-%j %H', tz = time_zone_name),
          Year = format(date, '%Y'),
          month = as.integer(format(date, '%m')),
          hour = as.numeric(format(date, '%H')),
@@ -122,10 +125,6 @@ link_x_day <- link_x_day %>%
 
 link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id", "month", "hour", "weekday"))
 rm(imputed_waze)
-
-# Run timezone script 
-
-source(file.path("utility", "timezone_adj.R"))
 
 # Get weather for next week ----
 
