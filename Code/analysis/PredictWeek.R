@@ -130,8 +130,7 @@ rm(imputed_waze)
 
 source(file.path("utility", "Prep_ForecastWeather.R"))
 
-link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date")) %>% 
-  filter(!is.na(SNOW)) # filter for times we have weather forecasts for 
+link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date"))
 rm(weather_forecast)
 
 # hist_crashes ---------------------------------------------------------
@@ -161,7 +160,8 @@ next_week <- link_x_day %>%
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
-next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
+next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T),
+                                           SNOW = 0))
 
 # Make predictions ----
 
