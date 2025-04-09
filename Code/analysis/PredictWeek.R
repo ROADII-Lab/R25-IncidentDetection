@@ -2,6 +2,11 @@ rm(list=ls()) # Start fresh
 
 gc()
 
+inputdir <- file.path(getwd(),"Input")
+intermediatedir <- file.path(getwd(),"Intermediate")
+outputdir<- file.path(getwd(),"Output")
+predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
+
 # <><><><><> Parameters to enter - must match model that you trained<><><><><>
 
 num <- "01B"
@@ -13,12 +18,11 @@ imputed_waze <- T
 time_bins <- T
 projection <- 5070
 
-# <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+# historical crash data
 
-inputdir <- file.path(getwd(),"Input")
-intermediatedir <- file.path(getwd(),"Intermediate")
-outputdir<- file.path(getwd(),"Output")
-predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
+crash_filepath <- file.path(file.path(inputdir,"Crash", state)) # define the location of the crash variables
+
+# <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 # for testing purposes
 if(state == "WI"){
@@ -133,6 +137,10 @@ source(file.path("utility", "Prep_ForecastWeather.R"))
 link_x_day <- left_join(link_x_day, weather_forecast, by=c("osm_id", "date"))
 rm(weather_forecast)
 
+# Load Road Network --------------------------------------------------------------
+
+source(file.path("utility", "OpenStreetMap_pull.R"))
+
 # hist_crashes ---------------------------------------------------------
 
 source(file.path("utility", "load_crashes.R"))
@@ -160,8 +168,13 @@ next_week <- link_x_day %>%
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
-next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T),
-                                           SNOW = 0))
+if("maxspeed" %in% colnames(next_week)){
+  next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
+}
+
+if("SNOW" %in% colnames(next_week)){
+  next_week <- next_week %>% replace_na(list(SNOW = 0))
+}
 
 # Make predictions ----
 
