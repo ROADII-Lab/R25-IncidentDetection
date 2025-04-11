@@ -123,7 +123,7 @@ getmode <- function(v) {
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
 
-tz_adjust <- getmode(tz_adjustments$adjustment)
+tz_adjust <- getmode(tz_adjustments$adjustment) # This determines what additional year of historical data needs to be pulled based on the tz adjustment
 
 if(tz_adjust<0){ # if the timezone is < 0 
   
@@ -181,27 +181,27 @@ start.time = Sys.time()
 if(year2 > year){
   
   state_daily_hist_weather1 <- state_daily_hist_weather1 %>% 
-    mutate(Date = ymd(DATE),
+    mutate(Date = ymd(DATE, tz = time_zone_name),
+           year = year(Date),
            Day = yday(Date)) %>%
-    select(Day, SNOW, LONGITUDE, LATITUDE) 
+    select(Day, year, SNOW, LONGITUDE, LATITUDE) 
   
   state_daily_hist_weather2 <- load_statedaily(year_var = year2)  
   
   state_daily_hist_weather2 <- state_daily_hist_weather2 %>% 
-    mutate(Date = ymd(DATE),
-           Day = yday(Date)+365) %>% 
-    filter(Day == 366) %>% # only care about day 1 of Year 2
-    select(Day, SNOW, LONGITUDE, LATITUDE) 
+    mutate(Date = ymd(DATE, tz = time_zone_name),
+           year = year(Date),
+           Day = yday(Date)) %>% 
+    select(Day, year, SNOW, LONGITUDE, LATITUDE) 
   
   xy <- state_daily_hist_weather1 %>% 
     rbind(state_daily_hist_weather2) %>%
+    filter(year == year) %>%
+    select(-year) %>% 
     st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs=4326) %>%
     st_transform(crs = projection) 
   
-} else{ # if in Guam - needs to be fixed, no time as of now 
-  
-  
-}
+} 
 
 
 # Remove variables and gc() before next run

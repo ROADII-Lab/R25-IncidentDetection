@@ -8,27 +8,29 @@
 
 
 timezone_info <- data.frame(state = state.abb,
-                            tz_name = c("US/Central", NA, "US/Mountain", "US/Central", "US/Pacific", # AL, AK, AZ, AR, CA
-                                        "US/Mountain", "US/Eastern", "US/Eastern", NA, "US/Eastern", # CO, CT, DE, FL, GA 
-                                        "US/Hawaii", NA, "US/Central", NA, "US/Central", # HI, ID, IL, IN, IA
-                                        NA, NA, "US/Central", "US/Eastern", "US/Eastern", # KS, KY, LA, ME, MD
-                                        "US/Eastern", NA, "US/Central", "US/Central", "US/Central", # MA, MI, MN, MS, MO
-                                        "US/Mountain", NA, "US/Pacific", "US/Eastern", "US/Eastern", # MT, NE, NV, NH, NJ
-                                        "US/Mountain", "US/Eastern", "US/Eastern", NA, "US/Eastern", # NM, NY, NC, ND, OH
-                                        "US/Central", NA, "US/Eastern", "US/Eastern", "US/Eastern", # OK, OR, PA, RI, SC
-                                        NA, NA, NA, "US/Mountain", "US/Eastern", # SD, TN, TX, UT, VT
+                            tz_name = c("US/Central", "US/Alaska", "US/Mountain", "US/Central", "US/Pacific", # AL, AK, AZ, AR, CA
+                                        "US/Mountain", "US/Eastern", "US/Eastern", "US/Eastern", "US/Eastern", # CO, CT, DE, FL, GA 
+                                        "US/Hawaii", "US/Mountain", "US/Central", "US/Eastern", "US/Central", # HI, ID, IL, IN, IA
+                                        "US/Central", "US/Eastern", "US/Central", "US/Eastern", "US/Eastern", # KS, KY, LA, ME, MD
+                                        "US/Eastern", "US/Eastern", "US/Central", "US/Central", "US/Central", # MA, MI, MN, MS, MO
+                                        "US/Mountain", "US/Central", "US/Pacific", "US/Eastern", "US/Eastern", # MT, NE, NV, NH, NJ
+                                        "US/Mountain", "US/Eastern", "US/Eastern", "US/Central", "US/Eastern", # NM, NY, NC, ND, OH
+                                        "US/Central", "US/Mountain", "US/Eastern", "US/Eastern", "US/Eastern", # OK, OR, PA, RI, SC
+                                        "US/Central", "US/Eastern", "US/Central", "US/Mountain", "US/Eastern", # SD, TN, TX, UT, VT
                                         "US/Eastern", "US/Pacific", "US/Eastern", "US/Central", "US/Mountain")) %>% # VA, WA, WV, WI, WY
   filter(!is.na(tz_name)) # filter for next step 
 
-if(state %in% timezone_info$state){
+time_zone_name <- timezone_info$tz_name[which(timezone_info$state == state)]
+
+if(state %in% c("AK", "FL", "ID", "IN", "KS", "KY", "MI", "NE", "ND", "OR", "SD", "TN", "TX")){
   
-  time_zone_name <- timezone_info$tz_name[which(timezone_info$state == state)]
+  one_zone <- F
   
-  one_zone <- T
+  print(paste0(state, " has multiple timezones. The model will be ran in: ", time_zone_name))
   
 } else{
   
-  one_zone <- F
+  one_zone <- T
   
 }
 

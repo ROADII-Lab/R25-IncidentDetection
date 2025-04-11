@@ -13,7 +13,7 @@ if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir,
 ## Parameters to set before running#################################
 num <- "01B" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 
-state <- "WI"
+state <- "MN"
 
 # Year
 year <- 2021
