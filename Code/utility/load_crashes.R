@@ -152,5 +152,5 @@
   
   crashes <- crashes %>% 
     mutate(time_var = parse_date_time(time_var, orders = time_format),
-           time_var = time_var + hour(adjustment), # add adjustment - to put everything in the easternmost time zone of the state
+           time_var = time_var + hours(adjustment), # add adjustment - to put everything in the easternmost time zone of the state
            time_var = force_tz(time_var, tz = time_zone_name)) # set time zone
