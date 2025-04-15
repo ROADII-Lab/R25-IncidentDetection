@@ -1,4 +1,28 @@
-# Random Forest functions for Waze
+# Random Forest and other helper functions
+
+# Function to calculate mode
+get_mode = function(x) {
+  uniq_x = unique(na.omit(x))
+  uniq_x[which.max(tabulate(match(x, uniq_x)))]
+}
+
+# Function to fill NA values in a data frame
+fill_na = function(df) {
+  # Apply function to each column
+  df_filled = df
+  for (col in names(df_filled)) {
+    if (is.numeric(df_filled[[col]])) {
+      # Fill NA with median for numeric columns
+      median_value = median(df_filled[[col]], na.rm = TRUE)
+      df_filled[[col]][is.na(df_filled[[col]])] = median_value
+    } else if (is.factor(df_filled[[col]])) {
+      # Fill NA with mode for factor columns
+      mode_value = get_mode(df_filled[[col]])
+      df_filled[[col]][is.na(df_filled[[col]])] = mode_value
+    }
+  }
+  return(df_filled)
+}
 
 ######################################################################
 # do.rf function for running random forest models in parallel ----

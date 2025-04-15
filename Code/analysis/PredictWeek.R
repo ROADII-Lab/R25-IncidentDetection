@@ -168,13 +168,7 @@ next_week <- link_x_day %>%
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
-if("maxspeed" %in% colnames(next_week)){
-  next_week <- next_week %>% replace_na(list(maxspeed = median(state_network$maxspeed, na.rm = T)))
-}
-
-if("SNOW" %in% colnames(next_week)){
-  next_week <- next_week %>% replace_na(list(SNOW = 0))
-}
+next_week <- fill_na(next_week) # function defined in RandomForest_Fx.R
 
 # Make predictions ----
 

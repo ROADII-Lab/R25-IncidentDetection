@@ -83,6 +83,11 @@ source(file.path("utility", "timezone_adj.R"))
 
 # -------------------------------------------------------------------------
 
+# read random forest function, do.rf() and other helper functions
+source(file.path("analysis", "RandomForest_Fx.R"))
+
+# -------------------------------------------------------------------------
+
 # The full model identifier gets created in this next step
 
 modelno = paste(state,
@@ -265,7 +270,6 @@ source(file.path("utility", "prep_hist_crash2.R"))
 prep_data <- function(training_frame){
 
   training_frame <- training_frame %>%
-    replace_na(list(precipitation = 0, SNOW = 0)) %>%
     left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
     left_join(hist_crashes, by = "osm_id") %>%
     mutate(Month = factor(Month, ordered = F),
@@ -273,7 +277,8 @@ prep_data <- function(training_frame){
            Hour = factor(Hour, ordered = F),
            weekday = factor(weekday, ordered = F),
            osm_id = factor(osm_id, ordered = F),
-           highway = factor(highway, ordered = F))
+           highway = factor(highway, ordered = F)) %>%
+    fill_na() # function defined in RandomForest_Fx.R
 
   return(training_frame)
 }
@@ -349,9 +354,6 @@ bin.mod.diagnostics <- function(predtab){
 
 i <- 1
 
-# read random forest function, do.rf()
-source(file.path("analysis", "RandomForest_Fx.R"))
-
 avail.cores = parallelly::availableCores(omit = 1)
 
 # Use this to set number of decision trees to use, and key RF parameters. mtry is especially important, should consider tuning this with caret package
@@ -362,9 +364,9 @@ keyoutputs = redo_outputs = list() # to store model diagnostics
 
 # Omit as predictors in this vector:
 if(imputed_waze == TRUE){
-  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week")
+  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week", "ref")
 }else{
-  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level")
+  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref")
 }
 
 response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
