@@ -171,6 +171,7 @@ for(m in 1:12){
     st_as_sf(coords = c("lon", "lat"), crs=4326) %>%
     st_transform(projection) %>% 
     st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
+    rename(time_var = time_local) %>%
     mutate(format_issue = is.na(as.POSIXct(time_var,format = "%Y-%m-%d %H:%M:%S")))
   
   if(any(waze_temp$format_issue)){
@@ -179,14 +180,6 @@ for(m in 1:12){
       filter(format_issue == F) %>%
       select(!format_issue)
   }
-  
-  if(!one_zone){
-    waze_temp = waze_temp %>% st_join(timezone_adj, join = st_nearest_feature) %>% 
-      mutate(time_var = as.POSIXct(time_var, tz = tz_name))
-  } else {waze_temp = waze_temp %>% 
-    mutate(time_var = as.POSIXct(time_var, 
-                                   tz = time_zone_name,
-                                   format = "%Y-%m-%d %H:%M:%S"))}
   
   waze_temp = waze_temp %>% 
     st_drop_geometry() %>%
