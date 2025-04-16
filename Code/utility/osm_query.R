@@ -134,7 +134,7 @@ for (m in 1:12){
   gc()
 }
 
-rm(total_crashes, dates, dates_exp, datalist, crash_files, i, l)
+rm(total_crashes, dates, dates_exp, datalist, crash_files)
 gc()
 #load(file = file.path(intermediatedir,'Month_Frames',paste(state, year, "month_frame", m,".RData", sep = "_")))
 
@@ -172,7 +172,8 @@ for(m in 1:12){
     st_transform(projection) %>% 
     st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
     rename(time_var = time_local) %>%
-    mutate(format_issue = is.na(as.POSIXct(time_var,format = "%Y-%m-%d %H:%M:%S")))
+    mutate(time_var = as.POSIXct(time_var,format = "%Y-%m-%d %H:%M:%S"),
+           format_issue = is.na(time_var))
   
   if(any(waze_temp$format_issue)){
     cat('Warning: ', nrow(waze_temp %>% filter(format_issue == T)), " observation(s) in month ", m, " do(es) not have the expected datetime format of '%Y-%m-%d %H:%M:%S' and was/were removed to avoid an error.")
