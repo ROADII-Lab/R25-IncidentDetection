@@ -1,23 +1,16 @@
-library(dplyr)
-library(tidyr)
-library(readr)
-library(lubridate)
 
-# Load the dataset
-####################################################
-######### UPDATE WITH ACTUAL ROADII PATH ##########
-####################################################
-datatall <- read_csv("~/GitHub/MACVSM/Dashboard/MN.csv")
+# This script is called by PredictWeek.R
+# next_week_out is a data frame that is already in memory because PredictWeek.R created it
 
-datatall <- datatall %>% select(osm_id, date,Hourly_CrashRisk)
+next_week_out <- next_week_out %>% select(osm_id, date, Hourly_CrashRisk)
 
-DateInfo <- datatall %>%
+DateInfo <- next_week_out %>%
   select(date) %>%
   distinct() %>%
   arrange(date) %>%
   rename(Date = date)
 
-CrashPrediction <- datatall %>%
+CrashPrediction <- next_week_out %>%
   select(osm_id, date, Hourly_CrashRisk) %>%
   group_by(osm_id, date) %>%
   summarise(Hourly_CrashRisk = mean(Hourly_CrashRisk, na.rm = TRUE)) %>%

@@ -20,7 +20,9 @@ requiredpackages <- c("randomForest", # random forest
                       "XML", # for xmlToList
                       "jsonlite",
                       "tigris", # for state shapefiles (or other census geographies)
-                      "pROC")
+                      "pROC",
+                      "openxlsx", # used in createdash
+                      "zip") # used in createdash
 
 install_load <- function(packages){
   for (p in packages) {
