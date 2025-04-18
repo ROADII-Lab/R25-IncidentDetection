@@ -26,9 +26,9 @@ The above image was generated using a model run for Washington State and reflect
 # 2. Prerequisites
 
 General Requirements:
-- R 4.3.0 or later
 - Internet Connection
--Tableau Reader
+- Tableau Reader (free to download)
+- R 4.3.0 or later (free to download)
 
 Requirements for Predictions:
 - Historical Waze Alert Data
@@ -93,6 +93,7 @@ If a trained model already exists, skip to step 4.
    Outputs include:
 
    - `Output/Predict_Week_Outputs`: The directory containing prediction results.
+5. Access Dashboard   
 
 ## Utility Functions
 

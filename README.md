@@ -16,9 +16,9 @@
 - **Title:** Traffic Incident Prediction through ML methods
 - **Purpose and goals of the project:** This use case aims to create a data collection and modeling process that will forecast crash probability for the next 4-7 days along highways and major roadways at a state-level. These data could be used for operations, management, and traveler information. 
 ![WA Probability Dashboard](./resources/ZoomOutDashLowRisk.png)
-The above image was generated using a model run for Washington State and reflects the crash probability for roadsegments on March 7th at 5:00 PM PST. 
+The above image was generated using a model generated for Washington State and reflects the crash probability for road segments on March 7th at 5:00 PM PST. 
 ![WA Probability Zoomed Dashboard](./resources/ZoomedHighSegment.png)
-The above image was generated using a model run for Washington State and reflects the crash probability for roadsegments in the Seattle area on March 6th at 12:00 AM PST.
+The above image was generated using a model generated for Washington State and reflects the crash probability for road segments in the Seattle area on March 6th at 12:00 AM PST.
 - **Purpose of the source code and how it relates to the overall goals of the project:** This repository contains code and documentation for explorations in the generalization and deployment of techniques for detecting traffic incidents and assessing roadway network vulnerabilities using real-time and historical datasets. Intended audiences are state DOTs and traffic management centers wanting to improve their ability to respond quickly to incidents on their roadways, as well as to better understand how traffic incidents affect the larger roadway network.
 - **Length of the project:** This use case is currently in the exploratory phase. The ROADII team has been updating 2019 work with the Tennessee Highway Patrol to forecast crash probability over the next week. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOT Traffic Managment Centers to evaluate interest and feasibility of the use case. The ROADII team will be updating this repository as stable developments are created. This phase will likely continue through summer 2024. 
 
@@ -26,9 +26,9 @@ The above image was generated using a model run for Washington State and reflect
 # 2. Prerequisites
 
 General Requirements:
-- R 4.3.0 or later
 - Internet Connection
--Tableau Reader
+- Tableau Reader (free to download)
+- R 4.3.0 or later (free to download)
 
 Requirements for Predictions:
 - Historical Waze Alert Data
@@ -59,41 +59,34 @@ The steps for training models and generating predictions are as follows:
 1. Clone the GitHub repository to a directory of your choice on your machine.
 2. Open `Code/IncidentPrediction/Incident_Prediction.Rproj`—all scripts must be executed through this `.Rproj` file.
 
-If a trained model already exists, skip to step 4.
+3. Open `Code/master_script.R` 
 
-3. Run `Analysis/RandomForest_Train.R`
-
-   This script trains a random forest model using historical Waze jams and alerts data, weather data, and roadway configuration data to predict crashes. The initial execution may take over an hour, depending on your machine. Subsequent runs will be faster but may still take more than 30 minutes.
-
-   Parameters to set in `Analysis/RandomForest_Train.R`:
-
+   This script is where all parameters are set by the user, and the two primary analysis scripts are sourced. Parameters set in this script include:
+   
    - `num`: (string) A name for the model being generated.
    - `state`: (string) The state abbreviation for which predictions are being generated.
    - `time_bins`: (boolean) Indicates whether the tool should group data into 6-hour increments.
-
-   Outputs include:
-
+   - `imputed_waze`: (boolean) Indicates whether Waze data should be imputed for the upcoming week.
+   - `projection`: (integer) Defines the geographic projection or coordinate reference system to be used. This is commonly either 5070 (North America) or 4326 (Global) 
+   - `test_percentage`: (numeric) Defines the percentage of the observations to be used in the test sample. 
+   - `road_types`: (character) Road type or list of road types to query for. Potential types include motorway, trunk, primary, secondary, and tertiary, defined according to OpenStreetMap. For OpenStreetMap definitions, visit [OSM Highway Key](https://wiki.openstreetmap.org/wiki/Key:highway).
+   
+   The user then has the option to source `analysis/RandomForest_Train.R` and `analysis/PredictWeek.R`. 
+   
+   Random_Forest_Train.R trains a random forest model using historical Waze jams and alerts data, weather data, and roadway configuration data to predict crashes. The initial execution may take over an hour, depending on your machine. Subsequent runs will be faster but may still take more than 30 minutes.
+   
+   Outputs from RandomForest_Train include:
    - `Model_{model_number}_RandomForest_Output.RData`: The trained random forest model.
    - `AUC_{model_number}.pdf`: A PDF with an Area-Under-Curve graph for the trained model.
    - `{model_number}_RandomForest_pred.csv`: A CSV containing predictions on the test dataset.
    - `Fitvars_{model_number}.csv`: A CSV listing the variables used in model training.
    - `importance_barplot{model_number}_{date}.png`: A bar plot showing the importance of each variable used in the model.
+   
+   Predict_Week.R  combines the defined roadway network with predicted weather and imputed Waze data then uses a trained random forest model to forecast crash locations for the next seven days. It then generates a Tableau dashboard to visualize the resulting predictions.
+   
+   Note that Predict_Week requires a model generated from Random_Forest_Train to make predictions. Therefore, the user must run Random_Forest_Train at least once before using Predict_Week.R to generate crash predictions. Once Random_Forest_Train has been executed, and random forest model will be saved and can be used in all future executions of Predict_Week.
 
-4. Run `Analysis/PredictWeek.R`
-
-   This script combines the defined roadway network with predicted weather and imputed Waze data to forecast crash locations for the next seven days.
-
-   Parameters to set in `Analysis/PredictWeek.R`:
-
-   - `num`: (string) The name of the trained random forest model used for predictions.
-   - `state`: (string) The state abbreviation for which predictions are being generated.
-   - `train_year`: (numeric) The year of historical data being used, also included in the model name.
-   - `train_imputed`: (boolean) Indicates whether Waze data should be imputed for the upcoming week.
-
-   Outputs include:
-
-   - `Output/Predict_Week_Outputs`: The directory containing prediction results.
-5. Access Dashboard   
+4. Dashboard Walkthrough   
 
 ## Utility Functions
 
