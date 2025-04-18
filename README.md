@@ -88,6 +88,12 @@ The steps for training models and generating predictions are as follows:
 
 4. Dashboard Walkthrough   
 
+Below is an example of the Tableau dashboard generated from Predict_Week.R which visualizes crash predictions by segment of the next week. 
+
+![WA Probability Zoomed Dashboard Low Risk](./resources/ZoomedSegmentLowRisk.png)
+
+The dashboard allows the users to filter for crash probabilities on specific roadways, cycle through days and hours of the week, filter for specific roadway types and more. 
+
 ## Utility Functions
 
 - `utility/get_packages.R`: This script is sourced in `RandomForest_Train.R` and installs and loads the R packages necessary for using the tool.
