@@ -3,7 +3,7 @@
 
 config_dir <- file.path(getwd(),"config")
 
-create_dashboard <- function(RoadNetwork, CrashPrediction, DateInfo) {
+create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo) {
   # Define paths
   zip_file <- file.path(config_dir, "TableauDashboard.zip")
   unzip_folder <- file.path(config_dir, "UnzippedFiles")
@@ -14,7 +14,7 @@ create_dashboard <- function(RoadNetwork, CrashPrediction, DateInfo) {
   unzip(zip_file, exdir = unzip_folder)
   
   # Overwrite the CrashPrediction.csv
-  write_csv(CrashPrediction, prediction_path)
+  write_csv(CrashPredictions, prediction_path)
   
   # Overwrite the DateInfo.xlsx
   write.xlsx(DateInfo, dateinfo_path)
@@ -29,4 +29,4 @@ create_dashboard <- function(RoadNetwork, CrashPrediction, DateInfo) {
   
 }
 
-create_dashboard(RoadNetwork = state_network, CrashPrediction = CrashPrediction, DateInfo = DateInfo)
+create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo)
