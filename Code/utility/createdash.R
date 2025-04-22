@@ -12,8 +12,8 @@ create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo) {
   
   # Define paths for output files
   prediction_path <- file.path(clean_dash_folder, "CrashPrediction.csv")
-  dateinfo_path <- file.path(clean_dash_folder, "DateInfo.xlsx")
-  network_path <- file.path(clean_dash_folder, "RoadNetwork.shp")  # Adjust accordingly
+  dateinfo_path <- file.path(clean_dash_folder, "DateInfo.csv")
+  network_path <- file.path(clean_dash_folder, "RoadNetwork.shp") 
 
   # Unzip the Tableau dashboard files
   unzip(zip_file, exdir = unzip_folder)
@@ -21,11 +21,11 @@ create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo) {
   # Overwrite the CrashPrediction.csv
   write_csv(CrashPredictions, prediction_path)
   
-  # Overwrite the DateInfo.xlsx
-  writexl::write_xlsx(DateInfo, dateinfo_path)  # Correct function call to write xlsx
+  # Overwrite the DateInfo.csv
+  write_csv(DateInfo, dateinfo_path)
   
   # Overwrite the road network shapefile
-  sf::write_sf(RoadNetwork, network_path, delete_layer = TRUE)
+  write_sf(RoadNetwork, network_path, delete_layer = TRUE)
   
   template_path <- file.path(unzip_folder, 'TableauDashboard.twb')
   
