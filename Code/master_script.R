@@ -2,24 +2,31 @@
 # This script allows users to adjust the parameters and individually run the random forest training scripts and the prediction script.
 
 # Mandatory Parameters ----------------------------------------------------
-# These parameters need to be defined specifically to user's use case. 
+# The user must define the below parameters according to their use case. 
 
-# Define a unique identifier for this run.
-num <- "temp_agg_1" 
+# Define a unique identifier for this model run.
+# Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+num <- "01B" 
 
-# Define the state.
+# Define the state, using abbreviation.
 state <- "WA"
 
 # Define the year.
 year <- 2021
 
-# Indicate whether to aggregate into 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight), 
-# versus training and generating predictions based on individual hours. 
-# If time_bins is set to TRUE, the tool will aggregate the data
-# in 6-hour bins and train on that.
-time_bins <- F
+# Indicate whether to aggregate data into multi-hour bins, 
+# versus training and generating predictions based on individual hours.
+time_bins <- T
 
-# Indicate if imputed Waze values exist or not. 
+# Indicate the size of the bin when 'time_bins' above is set to T for true.
+# When using hours, the size of the interval must be less than 24 hours.
+# Note: if the number of hours is not a factor of 24 then the final interval will
+# not be the same size as the others (it will be smaller, i.e. the remainder).
+# As an example, if "6 hours" is entered for the time_interval, then the data will be 
+# aggregated into the following bins: bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight).
+time_interval <- "6 hours"
+
+# Indicate if imputed Waze values will be used. 
 # TRUE will use the imputed Waze files, FALSE will not. 
 imputed_waze <- T
 
@@ -32,7 +39,8 @@ projection <- 5070
 # Define the percentage of the population to use in the test sample. 
 test_percentage <- 0.03
 
-##identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential')
+##Identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential').
+# Note: if including 'residential it may take a long time to query all the data from open street maps.
 road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
 
 # Compute Model Name ------------------------------------------------------

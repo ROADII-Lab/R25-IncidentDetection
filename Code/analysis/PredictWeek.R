@@ -7,17 +7,6 @@ intermediatedir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
 predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
 
-# <><><><><> Parameters to enter - must match model that you trained<><><><><>
-
-num <- "01B"
-state <- "WA"
-#state <- "MN"
-year <- 2021
-
-imputed_waze <- T
-time_bins <- T
-projection <- 5070
-
 # historical crash data
 
 crash_filepath <- file.path(file.path(inputdir,"Crash", state)) # define the location of the crash variables

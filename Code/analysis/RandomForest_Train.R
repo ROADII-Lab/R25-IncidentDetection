@@ -10,27 +10,9 @@ if(!dir.exists(outputdir)) { dir.create(outputdir) }
 if(!dir.exists(file.path(outputdir, "Random_Forest_Output"))){dir.create(file.path(outputdir, "Random_Forest_Output"))}
 if(!dir.exists(file.path(outputdir, "Figures"))){dir.create(file.path(outputdir, "Figures"))}
 
-## Parameters to set before running#################################
-num <- "01B" # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
-
-state <- "MN"
-
-# Year
-year <- 2021
-
-##Use Imputed Waze?
-imputed_waze <- F
-
-# Indicate whether to aggregate into 6-hour bins (Midnight-6AM, 6AM-12PM, 12-6PM, 6PM-Midnight), 
-# versus training and generating predictions based on individual hours. 
-# If time_bins is set to True, the tool will aggregate the data
-# in 6-hour bins and train on that.
-time_bins <- F
-
 # historical crash data
 
 crash_filepath <- file.path(file.path(inputdir,"Crash", state)) # define the location of the crash variables
-
 
 # for testing purposes
 if(state == "WI"){
@@ -57,19 +39,6 @@ if(state == "MN"){
 lat_col <- NA # if uploading xlsx, or csv's define the latitude variable name (if left NA, it will choose the best fit)
 lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (if left NA, it will choose the best fit)
 
-
-
-### Optional parameters to set, or accept default.#############
-# Projection 
-projection <- 5070
-
-test_percentage <- 0.03
-
-# this sets the size of the bin when 'time_bins' above is set to T for true.
-# when using hours, the size of the interval must be less than 24 hours.
-# if the number of hours is not a factor of 24 then the final interval will
-# not be the same size as the others (will be smaller, i.e. the remainder)
-time_interval <- "6 hours"
 ##############################################################
 
 # Setup ---- 
@@ -118,7 +87,7 @@ if(!all(file.exists(monthframe_fps))){
  
   load(monthframe_fps[1])
   
-  if(length(unique(temp_train$Hour))>4 & time_bins){
+  if(length(unique(temp_train$Hour))==24 & time_bins){
     
     cat("Month frames already exist, but they were created with time_bins set to FALSE, meaning that the data \n")
     cat("are not aggregated. However, time_bins is currently set to TRUE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
@@ -139,7 +108,7 @@ if(!all(file.exists(monthframe_fps))){
     
   } else{ 
   
-  if(length(unique(temp_train$Hour)) < 5 & !time_bins){
+  if(length(unique(temp_train$Hour)) < 24 & !time_bins){
     
     cat("Month frames already exist, but they were created with time_bins set to TRUE, meaning that the data \n")
     cat("are aggregated. However, time_bins is currently set to FALSE in this script. \nIf you wish to cancel press 'c' to exit the script. You can then move or rename the month frames \nin the Intermediate folder or adjust the value for time_bins, and re-run. \nOtherwise, press 'p' to proceed, which will overwrite the existing month frames.\n")
