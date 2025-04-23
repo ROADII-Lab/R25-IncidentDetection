@@ -6,6 +6,8 @@
 
 # Define a unique identifier for this model run.
 # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
+# Note: the full model name gets created by combining the num parameter below with other tags, including the state, 
+# year, whether or not time_bins is TRUE and whether or not imputed_waze is TRUE. Output files are named in this way.
 num <- "01B" 
 
 # Define the state, using abbreviation.
@@ -42,13 +44,6 @@ test_percentage <- 0.03
 ##Identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential').
 # Note: if including 'residential it may take a long time to query all the data from open street maps.
 road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
-
-# Compute Model Name ------------------------------------------------------
-if(train_imputed == TRUE){
-  modelno = paste(state, year, "imputed", ifelse(time_bins, "tbins",""), num, sep = "_")
-}else{
-  modelno = paste(state, year, "NOTimputed", ifelse(time_bins, "tbins",""), num, sep = "_")
-}
 
 # RandomForest_Train.R ----------------------------------------------------
 # Run this source code to train the random forest model.

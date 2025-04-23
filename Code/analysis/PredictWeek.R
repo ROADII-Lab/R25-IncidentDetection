@@ -1,6 +1,3 @@
-rm(list=ls()) # Start fresh
-
-gc()
 
 inputdir <- file.path(getwd(),"Input")
 intermediatedir <- file.path(getwd(),"Intermediate")
@@ -185,11 +182,6 @@ next_week_out <- next_week_out %>%
 
 write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(modelno,'_', Sys.Date(), '.csv')), row.names = F)
 
-# Create and display the dashboard
-source(file.path("utility", "pivotdash.R"))
-
-source(file.path("utility", "createdash.R"))
-
 ## Save some plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results
                         name_of_results # some name that will help distinguish from other results - will be used in filename for outputs
@@ -264,4 +256,7 @@ save_charts(results_df = next_week_out,
             name_of_results = paste0(modelno,'_', Sys.Date())
 )
 
- 
+# Create and display the dashboard
+source(file.path("utility", "pivotdash.R"))
+
+source(file.path("utility", "createdash.R"))
