@@ -18,8 +18,20 @@ CrashPredictions <- next_week_out %>%
   summarise(Hourly_CrashRisk = mean(Hourly_CrashRisk, na.rm = TRUE)) %>%
   pivot_wider(names_from = date, values_from = Hourly_CrashRisk)
 
+add_hour_if_missing <- function(date_string) {
+  if (grepl(" ", date_string)) {
+    return(date_string)
+  } else {
+    return(paste0(date_string, " 00:00")) 
+  }
+}
+
+# Apply the function to the column names of CrashPredictions
+new_colnames <- sapply(colnames(CrashPredictions)[-1], add_hour_if_missing)
+colnames(CrashPredictions)[-1] <- new_colnames
+
 # Pull date info from columns
-date_columns <- as.POSIXct(names(CrashPredictions)[-1]) 
+date_columns <- as.POSIXct(names(CrashPredictions)[-1], format="%Y-%m-%d %H:%M")
 min_date <- min(date_columns)
 
 # Rename columns based on the difference in hours from the minimum date
