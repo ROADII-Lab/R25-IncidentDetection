@@ -98,6 +98,17 @@ for (m in months){
   gc()
 }
 
+if((year %in% c(2018,2019,2020)) & (state == "MN")){
+  imputed_CAD <- data.frame()
+  
+  for (m in months){
+    load(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_CAD", m,".RData", sep = "_")))
+    imputed_CAD <- rbind(imputed_CAD, CAD_averages)
+    rm(CAD_averages)
+    gc()
+  }
+}
+
 link_seq <- sort(unique(imputed_waze$osm_id))
 
 link_x_day <- expand.grid(osm_id = link_seq,
@@ -115,6 +126,17 @@ link_x_day <- link_x_day %>%
 
 link_x_day <- left_join(link_x_day, imputed_waze, by = c("osm_id", "month", "hour", "weekday"))
 rm(imputed_waze)
+
+if((year %in% c(2018,2019,2020)) & (state == "MN")){
+  link_x_day <- left_join(link_x_day, imputed_CAD, by = c("osm_id", "month", "hour", "weekday")) %>%
+    fill_na() %>%
+    rename(Avg_cad_crash = avg_CAD_CRASH,
+           Avg_cad_hazard = avg_CAD_HAZARD,
+           Avg_cad_none  = avg_CAD_None,
+           Avg_cad_roadwork  = avg_CAD_ROADWORK,
+           Avg_cad_stall  = avg_CAD_STALL)
+  rm(imputed_CAD)
+}
 
 # Get weather for next week ----
 
@@ -141,8 +163,7 @@ next_week <- link_x_day %>%
          Average_jams = average_jams,
          Average_weather = average_weather,
          Average_closure = average_closure,
-         Average_accident = average_accident,
-         Average_jam_level = average_jam_level) %>%
+         Average_accident = average_accident) %>%
   left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
   left_join(hist_crashes, by = "osm_id") %>%
   mutate(Month = factor(Month, levels = rf.out$forest$xlevels$Month),
@@ -150,6 +171,17 @@ next_week <- link_x_day %>%
          weekday = factor(weekday, levels = rf.out$forest$xlevels$weekday),
          SNOW = as.numeric(SNOW),
          highway = factor(highway, levels = rf.out$forest$xlevels$highway))
+
+# # If applicable, load CAD data for MN so as to join it in
+# if((year %in% c(2018,2019,2020)) & (state == "MN")){
+#   source(file.path("utility", "MN_CAD_load.R"))
+#   next_week <- left_join(next_week, imputed_CAD, by = c("osm_id" = "osm_id", "Month" = "month", "weekday" = "weekday", "Hour" = "hour"))
+# }
+
+if("average_jam_level" %in% colnames(next_week)){
+  next_week <- next_week %>% 
+    mutate(Average_jam_level = average_jam_level)
+}
 
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]

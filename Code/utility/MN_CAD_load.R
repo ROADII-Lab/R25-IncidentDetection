@@ -27,19 +27,30 @@ CAD <- read.csv(file.path(inputdir,"Crash",paste0(year, "_mndot_cadevents.csv"))
   st_drop_geometry() %>%
   dplyr::select(osm_id, centraltime, class)
 
-if(time_bins){
-  CAD <- CAD %>% 
-    as_tbl_time(index = centraltime) %>%
-    collapse_by("6 hours", side = "start", clean = TRUE)
-}
+CAD <- CAD %>% 
+  mutate(n = 1) %>%
+  group_by(osm_id, centraltime, class) %>% 
+  summarize(n = sum(n), .groups = "drop") %>%
+  pivot_wider(names_from = class, values_from = n)
 
 CAD <- CAD %>% 
-  mutate(n = 1,
-         month = lubridate::month(centraltime),
+  as_tsibble(index = centraltime, key = osm_id) %>%
+  arrange(osm_id, centraltime) %>%
+  group_by(osm_id) %>%
+  # time_interval is defined in RandomForest_Train.R script. 
+  # if time bins are not being used then it just aggregates by hour.
+  index_by(interval = floor_date(x = centraltime, unit = ifelse(time_bins, time_interval, "hours"))) %>%
+  summarise(STALL = sum(STALL),
+            CRASH = sum(CRASH),
+            HAZARD = sum(HAZARD),
+            ROADWORK = sum(ROADWORK),
+            None = sum(None),
+            .groups = "drop") %>%
+  rename(centraltime = interval) %>%
+  replace_na(list(STALL = 0, CRASH = 0, HAZARD = 0, ROADWORK = 0, None = 0)) %>%
+  rename(all_of(lookup)) %>%
+  as.data.frame() %>% 
+  mutate(month = lubridate::month(centraltime),
          day = lubridate::day(centraltime),
          hour = lubridate::hour(centraltime)) %>%
-  group_by(osm_id, month, day, hour, class) %>%
-  summarize(n = sum(n)) %>%
-  pivot_wider(names_from = class, values_from = n)%>%
-  replace_na(list(STALL = 0, CRASH = 0, HAZARD = 0, ROADWORK = 0, None = 0)) %>%
- rename(all_of(lookup))
+  select(!centraltime)

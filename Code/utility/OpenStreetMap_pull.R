@@ -121,7 +121,7 @@ if(file.exists(file.path(inputdir,'Roads_Boundary', state, paste0(state, '_bound
   
 state_network <- st_join(total_network, state_map, join = st_within) %>%
   filter(!is.na(NAME)) %>%
-  select(osm_id, geometry, highway, maxspeed) %>%
+  select(osm_id, geometry, highway, maxspeed, ref) %>%
   mutate(maxspeed = gsub("[^0-9.-]", "", maxspeed), # convert speed limit to numeric, removing "mph" unit label
           maxspeed = substr(maxspeed, start = 1, stop = 2), # take first two characters (rarely the maxspeed is originally expressed as a range)
           maxspeed = as.numeric(maxspeed)) %>% # make maxspeed numeric

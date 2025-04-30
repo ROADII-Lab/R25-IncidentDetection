@@ -7,18 +7,24 @@ get_mode = function(x) {
 }
 
 # Function to fill NA values in a data frame
-fill_na = function(df) {
+fill_na <- function(df) {
   # Apply function to each column
-  df_filled = df
+  df_filled <- df
   for (col in names(df_filled)) {
     if (is.numeric(df_filled[[col]])) {
-      # Fill NA with median for numeric columns
-      median_value = median(df_filled[[col]], na.rm = TRUE)
-      df_filled[[col]][is.na(df_filled[[col]])] = median_value
+      # Check if the column has only NA values
+      if (all(is.na(df_filled[[col]]))) {
+        # Fill with a specific value (e.g., zero or another placeholder)
+        df_filled[[col]][is.na(df_filled[[col]])] <- 0  # Change 0 to desired value if needed
+      } else {
+        # Fill NA with median for numeric columns
+        median_value <- median(df_filled[[col]], na.rm = TRUE)
+        df_filled[[col]][is.na(df_filled[[col]])] <- median_value
+      }
     } else if (is.factor(df_filled[[col]])) {
       # Fill NA with mode for factor columns
-      mode_value = get_mode(df_filled[[col]])
-      df_filled[[col]][is.na(df_filled[[col]])] = mode_value
+      mode_value <- get_mode(df_filled[[col]])
+      df_filled[[col]][is.na(df_filled[[col]])] <- mode_value
     }
   }
   return(df_filled)

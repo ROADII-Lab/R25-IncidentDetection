@@ -9,7 +9,8 @@ DateInfo <- next_week_out %>%
   select(date) %>%
   distinct() %>%
   arrange(date) %>%
-  rename(Date = date)
+  mutate(Date = format(DateInfo$Date, format = "%Y-%m-%d %H:%M")) %>%
+  select(-date)
 
 # Reshape crash predictions
 CrashPredictions <- next_week_out %>%
