@@ -155,6 +155,13 @@ source(file.path("utility", "load_crashes.R"))
 
 source(file.path("utility", "prep_hist_crash2.R"))
 
+if(state == "MN"){
+  source(file.path("utility", "MN_CAD_load_historical.R"))
+  link_x_day <- left_join(link_x_day, CAD_hist) %>% fill_na()
+  rm(CAD_hist)
+  gc()
+}
+
 # Next Week ---------------------------------------------------------------
 
 next_week <- link_x_day %>%
@@ -188,6 +195,9 @@ next_week <- next_week[, new_order]
 
 next_week <- fill_na(next_week) # function defined in RandomForest_Fx.R
 
+predictors <- names(rf.out$forest$xlevels)  # predictors used in training, aka "fitvars"
+next_week_clean <- next_week[, predictors, drop = FALSE]
+
 # Make predictions ----
 
 fitvars <- read.csv(file.path(outputdir, "Random_Forest_Output", paste0('Fitvars_', modelno, '.csv')))
@@ -195,10 +205,10 @@ fitvars <- read.csv(file.path(outputdir, "Random_Forest_Output", paste0('Fitvars
 # see Precision-recall tradeoff plots from re-fit local
 cutoff = 0.05
 
-predict_next_week <- predict(rf.out, next_week, type = "response",
+predict_next_week <- predict(rf.out, next_week_clean, type = "response",
                              cutoff = c(1-cutoff, cutoff)) 
 
-prob_next_week <- predict(rf.out, next_week, type = "prob",
+prob_next_week <- predict(rf.out, next_week_clean, type = "prob",
                           cutoff = c(1-cutoff, cutoff)) 
 
 colnames(prob_next_week) = c('Prob_NoCrash', 'Prob_Crash')

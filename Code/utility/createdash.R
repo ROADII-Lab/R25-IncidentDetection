@@ -30,7 +30,7 @@ create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo) {
   template_path <- file.path(unzip_folder, 'TableauDashboard.twb')
   
   # Repackage the files into a .twbx
-  zipr(file.path(predict_week_out_dir, "TableauDashboard.twbx"), c(data_folder, template_path), recurse = TRUE)
+  zipr(file.path(predict_week_out_dir, paste0("Dashboard_", modelno, "_", today, ".twbx")), c(data_folder, template_path), recurse = TRUE)
   
 }
 

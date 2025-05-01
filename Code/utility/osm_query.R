@@ -302,7 +302,7 @@ for(m in 1:12){
   timediff = Sys.time() - starttime
   
   # clear memory
-  rm(temp_train, waze_temp, waze_averages, CAD_averages)
+  rm(temp_train, waze_temp, waze_averages)
   gc()
   gc()
   cat("Added waze data for month ", m, ". ")

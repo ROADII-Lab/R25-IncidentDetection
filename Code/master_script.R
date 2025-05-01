@@ -8,13 +8,13 @@
 # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 # Note: the full model name gets created by combining the num parameter below with other tags, including the state, 
 # year, whether or not time_bins is TRUE and whether or not imputed_waze is TRUE. Output files are named in this way.
-num <- "01B" 
+num <- "avg_CAD" 
 
 # Define the state, using abbreviation.
-state <- "WA"
+state <- "MN"
 
 # Define the year.
-year <- 2021
+year <- 2020
 
 # Indicate whether to aggregate data into multi-hour bins, 
 # versus training and generating predictions based on individual hours.

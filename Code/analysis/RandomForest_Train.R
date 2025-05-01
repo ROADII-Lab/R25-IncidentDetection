@@ -236,6 +236,14 @@ source(file.path("utility", "load_crashes.R"))
 
 source(file.path("utility", "prep_hist_crash2.R"))
 
+if(state == "MN"){
+  source(file.path("utility", "MN_CAD_load_historical.R"))
+  training_frame <- left_join(training_frame, CAD_hist, by = c("osm_id" = "osm_id", "Month" = "month", "weekday" = "weekday", "Hour" = "hour")) %>% fill_na()
+  test_frame <- left_join(test_frame, CAD_hist, by = c("osm_id" = "osm_id", "Month" = "month", "weekday" = "weekday", "Hour" = "hour")) %>% fill_na()
+  rm(CAD_hist)
+  gc()
+}
+
 prep_data <- function(training_frame){
 
   training_frame <- training_frame %>%
@@ -287,12 +295,12 @@ if(imputed_waze == TRUE){
 }
 
 if((year %in% c(2018,2019,2020)) & (state == "MN")){
-  imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"), 
-                               pattern = paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_CAD", sep = "_"), 
+  imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"),
+                               pattern = paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_CAD", sep = "_"),
                                full.names = TRUE)
-  
+
   imputed_CAD_data <- list()
-  
+
   for(i in seq_along(imputed_values)){
     load(imputed_values[i])
     colnames(CAD_averages)[2:ncol(CAD_averages)] <- str_to_title(colnames(CAD_averages)[2:ncol(CAD_averages)])
@@ -304,13 +312,14 @@ if((year %in% c(2018,2019,2020)) & (state == "MN")){
     imputed_CAD_data[[i]] <- CAD_averages
     gc()
   }
-  
+
   imputed_CAD_frame <- do.call(rbind, imputed_CAD_data)
-  
+
   training_frame <- left_join(training_frame, imputed_CAD_frame) %>% fill_na()
   test_frame <- left_join(test_frame, imputed_CAD_frame) %>% fill_na()
-  
+
   rm(imputed_CAD_frame, imputed_CAD_data)
+
   gc()
 }
 
@@ -364,7 +373,8 @@ response.var = "crash" # binary indicator of whether crash occurred, based on pr
 
 starttime = Sys.time()
 
-omits = c(alwaysomit, c('Avg_cad_stall', 'Avg_cad_crash', 'Avg_cad_hazard', 'Avg_cad_none', 'Avg_cad_roadwork'))
+#omits = c(alwaysomit, c('Avg_cad_stall', 'Avg_cad_crash', 'Avg_cad_hazard', 'Avg_cad_none', 'Avg_cad_roadwork'))
+omits = alwaysomit
 
 # Check to see what we are passing as predictors
 cat('Predictors to use in model', modelno, ': \n\n',
