@@ -2,7 +2,7 @@
 
 config_dir <- file.path(getwd(), "config")
 
-create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo) {
+create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo, normalized) {
   
   # Define paths
   zip_file <- file.path(config_dir, "TableauDashboard.zip")
@@ -30,9 +30,17 @@ create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo) {
   template_path <- file.path(unzip_folder, 'TableauDashboard.twb')
   
   # Repackage the files into a .twbx
-  zipr(file.path(predict_week_out_dir, paste0("Dashboard_", modelno, "_", today, ".twbx")), c(data_folder, template_path), recurse = TRUE)
+  zipr(file.path(predict_week_out_dir, paste0("Dashboard_", modelno, "_", today, normalized, ".twbx")), c(data_folder, template_path), recurse = TRUE)
+  
+  # Clean up the temporary files from the config directory
+  unlink(unzip_folder, recursive = TRUE)
   
 }
 
 # Call the function with the relevant arguments
-create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo)
+create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo, normalized = "Normalized")
+
+# Now create another version that is not normalized
+next_week_out <- next_week_out %>% mutate(Hourly_CrashRisk = Prob_Crash)
+create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo, normalized = "")
+
