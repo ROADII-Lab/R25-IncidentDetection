@@ -41,6 +41,15 @@ create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo, normalized
 create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo, normalized = "Normalized")
 
 # Now create another version that is not normalized
-next_week_out <- next_week_out %>% mutate(Hourly_CrashRisk = Prob_Crash)
+
+next_week_out <- data.frame(next_week, Crash_pred = predict_next_week, prob_next_week)
+
+next_week_out <- next_week_out %>%
+  group_by(Hour, DayOfWeek) %>%
+  mutate(Hourly_CrashRisk = Prob_Crash) %>%
+  ungroup()
+
+source(file.path("utility", "pivotdash.R"))
+
 create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo, normalized = "")
 

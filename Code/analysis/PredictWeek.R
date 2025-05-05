@@ -231,8 +231,8 @@ save_charts <- function(results_df, # the dataframe object with the results
   
   unfaceted_plot = ggplot(data=results_df, mapping=aes(x=Hour, y=Prob_Crash, group = Hour)) + 
     geom_boxplot(fill = "green") + 
-    labs(title = "Boxplot of Crash Probability by Hour",
-         y = "Crash Probability",
+    labs(title = "Boxplot of Crash Risk by Hour",
+         y = "Crash Risk",
          x = "Hour")
   
   ggsave(plot = unfaceted_plot, 
@@ -245,8 +245,8 @@ save_charts <- function(results_df, # the dataframe object with the results
   faceted_plot = ggplot(data=results_df, mapping=aes(x=Hour, y=Prob_Crash, group = Hour)) + 
     geom_boxplot(fill = "green") + 
     facet_wrap(~DayOfWeek) + 
-    labs(title = "Boxplot of Crash Probability by Hour (Faceted by Day)",
-         y = "Crash Probability",
+    labs(title = "Boxplot of Crash Risk by Hour (Faceted by Day)",
+         y = "Crash Risk",
          x = "Hour")
   
   ggsave(plot = faceted_plot, 
@@ -263,8 +263,8 @@ save_charts <- function(results_df, # the dataframe object with the results
   
   mean_by_hour = ggplot(data=by_hour, mapping=aes(x=Hour, y=Mean_Prob_Crash)) + 
     geom_point() + 
-    labs(title = "Mean Crash Probability by Hour",
-         y = "Mean Crash Probability",
+    labs(title = "Mean Crash Risk by Hour",
+         y = "Mean Crash Risk",
          x = "Hour")
   
   ggsave(plot = mean_by_hour, 
@@ -281,8 +281,8 @@ save_charts <- function(results_df, # the dataframe object with the results
   
   mean_by_roadtype = ggplot(data=by_road_type, mapping=aes(x=highway, y=Mean_Prob_Crash)) + 
     geom_point() + 
-    labs(title = "Mean Crash Probability by Road Type",
-         y = "Mean Crash Probability",
+    labs(title = "Mean Crash Risk by Road Type",
+         y = "Mean Crash Risk",
          x = "Hour")
   
   ggsave(plot = mean_by_roadtype, 
