@@ -204,7 +204,7 @@ for(m in 1:12){
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- min(length(crash_sample), length(crash_indices))
+  non_crash_sample_size <- length(crash_sample) * 10
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
