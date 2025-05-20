@@ -216,23 +216,9 @@ for(m in 1:12){
     left_join(waze_temp, by = c('osm_id', 'month', 'day', 'hour')) %>%
     replace_na(list(ACCIDENT = 0, JAM = 0, ROAD_CLOSED = 0, WEATHERHAZARD = 0))
   
-  # If CAD data are applicable, join them in and compute averages
+  # If CAD data are applicable, join them in
   if((year %in% c(2018,2019,2020)) & (state == "MN")){
     temp_train = left_join(temp_train, CAD, by = c('osm_id', 'month', 'day', 'hour'))
-    
-    CAD_averages <- temp_train %>%
-      group_by(osm_id, month, weekday, hour) %>%
-      summarize(avg_CAD_STALL = mean(CAD_STALL),
-                avg_CAD_CRASH = mean(CAD_CRASH),
-                avg_CAD_HAZARD = mean(CAD_HAZARD),
-                avg_CAD_ROADWORK = mean(CAD_ROADWORK),
-                avg_CAD_None = mean(CAD_None)
-      ) %>%
-      ungroup()
-    
-    temp_train <- temp_train %>% 
-      select(-CAD_CRASH, -CAD_HAZARD, -CAD_None, -CAD_ROADWORK, -CAD_STALL)    
-    
   }
   
   # if jams data are available, read them in for that month
@@ -295,9 +281,6 @@ for(m in 1:12){
   # save the objects
   save(list = c('temp_train'), file = file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_waze", m,".RData", sep = "_")))
   save(waze_averages, file = file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_waze", m,".RData", sep = "_")))
-  if((year %in% c(2018,2019,2020)) & (state == "MN")){
-    save(CAD_averages, file = file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_CAD", m,".RData", sep = "_")))
-  }
   file.remove(file.path(intermediatedir,'Month_Frames',paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame", m,".RData", sep = "_")))
   timediff = Sys.time() - starttime
   

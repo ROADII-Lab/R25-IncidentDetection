@@ -238,8 +238,8 @@ source(file.path("utility", "prep_hist_crash2.R"))
 
 if(state == "MN"){
   source(file.path("utility", "MN_CAD_load_historical.R"))
-  training_frame <- left_join(training_frame, CAD_hist, by = c("osm_id" = "osm_id", "Month" = "month", "weekday" = "weekday", "Hour" = "hour")) %>% fill_na()
-  test_frame <- left_join(test_frame, CAD_hist, by = c("osm_id" = "osm_id", "Month" = "month", "weekday" = "weekday", "Hour" = "hour")) %>% fill_na()
+  training_frame <- left_join(training_frame, CAD_hist, by = "osm_id") %>% fill_na()
+  test_frame <- left_join(test_frame, CAD_hist, by =  "osm_id") %>% fill_na()
   rm(CAD_hist)
   gc()
 }
@@ -294,35 +294,6 @@ if(imputed_waze == TRUE){
   gc()
 }
 
-if((year %in% c(2018,2019,2020)) & (state == "MN")){
-  imputed_values <- list.files(file.path(intermediatedir, "Month_Frames"),
-                               pattern = paste(state, year, ifelse(time_bins, "tbins", ""), "month_frame_imputed_CAD", sep = "_"),
-                               full.names = TRUE)
-
-  imputed_CAD_data <- list()
-
-  for(i in seq_along(imputed_values)){
-    load(imputed_values[i])
-    colnames(CAD_averages)[2:ncol(CAD_averages)] <- str_to_title(colnames(CAD_averages)[2:ncol(CAD_averages)])
-    CAD_averages$osm_id <- factor(CAD_averages$osm_id)
-    CAD_averages$Month <- factor(CAD_averages$Month)
-    CAD_averages$Weekday <- factor(CAD_averages$Weekday)
-    CAD_averages$Hour <- factor(CAD_averages$Hour)
-    CAD_averages <- CAD_averages %>% rename(weekday = Weekday)
-    imputed_CAD_data[[i]] <- CAD_averages
-    gc()
-  }
-
-  imputed_CAD_frame <- do.call(rbind, imputed_CAD_data)
-
-  training_frame <- left_join(training_frame, imputed_CAD_frame) %>% fill_na()
-  test_frame <- left_join(test_frame, imputed_CAD_frame) %>% fill_na()
-
-  rm(imputed_CAD_frame, imputed_CAD_data)
-
-  gc()
-}
-
 # sort column positions in alphabetical order
 new_order = sort(colnames(training_frame))
 training_frame <- training_frame[, new_order]
@@ -338,6 +309,7 @@ save(list = c("training_frame", "test_frame"), file = file.path(intermediatedir,
   load(train_fp)
 }
 
+gc()
 # <><><><><><><><><><><><><><><><><><><><><><><><>
 # End data prep 
 # <><><><><><><><><><><><><><><><><><><><><><><><>
@@ -364,9 +336,9 @@ keyoutputs = redo_outputs = list() # to store model diagnostics
 
 # Omit as predictors in this vector:
 if(imputed_waze == TRUE){
-  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week", "ref")
+  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week", "ref", "CAD_CRASH")
 }else{
-  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref")
+  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH")
 }
 
 response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 

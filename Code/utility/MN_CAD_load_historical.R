@@ -1,25 +1,27 @@
 
-lookup <- c(CAD_STALL = "STALL", CAD_CRASH = "CRASH", CAD_HAZARD = "HAZARD", CAD_ROADWORK = "ROADWORK", CAD_None = "None")
+lookup <- c(hist_CAD_STALL = "STALL", hist_CAD_CRASH = "CRASH", hist_CAD_HAZARD = "HAZARD", hist_CAD_ROADWORK = "ROADWORK", hist_CAD_None = "None")
 
 is_weekday <- function(timestamps){lubridate::wday(timestamps, week_start = 1) < 6}
 
 CAD_files <- list.files(file.path(inputdir,"Crash"), pattern = 'cadevents.csv', full.names = TRUE)
 
-CAD <- data.frame()
+CAD_hist <- data.frame()
 for(f in CAD_files){
   temp <- read.csv(f) %>%
     select(class, lat, lon, open, close, p_disposition, t_disposition)
-  CAD <- bind_rows(CAD, temp)
+  CAD_hist <- bind_rows(CAD_hist, temp)
 }
 rm(temp)
 
-CAD <- CAD %>%
+CAD_hist <- CAD_hist %>%
   filter(lon != "None" & lat != "None") %>%
   mutate(lat=as.numeric(lat),
          lon=as.numeric(lon),
          centraltime=as.POSIXct(open,format="%m/%d/%Y %H:%M",tz="America/Chicago"),
          close = as.POSIXct(close,format="%m/%d/%Y %H:%M",tz="America/Chicago"),
-         time_open = difftime(close, centraltime, units = "mins")) %>%
+         time_open = difftime(close, centraltime, units = "mins"),
+         YEAR = as.integer(lubridate::year(centraltime))) %>%
+  filter(YEAR != year) %>%
   # some of the lat and lon values had the string "None," so above function resulted in NAs by coercion.
   # filter them out now
   filter(!is.na(lon)&!is.na(lat)) %>%
@@ -37,41 +39,14 @@ CAD <- CAD %>%
   # associated each record with the road segment it is nearest to
   st_join(state_network %>% select(osm_id), join = st_nearest_feature) %>%
   st_drop_geometry() %>%
-  dplyr::select(osm_id, centraltime, class)
+  dplyr::select(osm_id, class)
 
-CAD <- CAD %>% 
+CAD_hist <- CAD_hist %>% 
   mutate(n = 1) %>%
-  group_by(osm_id, centraltime, class) %>% 
+  group_by(osm_id, class) %>% 
   summarize(n = sum(n), .groups = "drop") %>%
-  pivot_wider(names_from = class, values_from = n)
-
-CAD <- CAD %>% 
-  as_tsibble(index = centraltime, key = osm_id) %>%
-  arrange(osm_id, centraltime) %>%
-  group_by(osm_id) %>%
-  # time_interval is defined in RandomForest_Train.R script. 
-  # if time bins are not being used then it just aggregates by hour.
-  index_by(interval = floor_date(x = centraltime, unit = ifelse(time_bins, time_interval, "hours"))) %>%
-  summarise(STALL = sum(STALL),
-            CRASH = sum(CRASH),
-            HAZARD = sum(HAZARD),
-            ROADWORK = sum(ROADWORK),
-            None = sum(None),
-            .groups = "drop") %>%
-  rename(centraltime = interval) %>%
-  replace_na(list(STALL = 0, CRASH = 0, HAZARD = 0, ROADWORK = 0, None = 0)) %>%
+  pivot_wider(names_from = class, values_from = n) %>%
+  fill_na() %>%
   rename(all_of(lookup)) %>%
-  as.data.frame() %>% 
-  mutate(month = lubridate::month(centraltime),
-         hour = lubridate::hour(centraltime),
-         weekday = is_weekday(centraltime)) %>%
-  select(!centraltime)
-
-CAD_hist <- CAD %>% 
-  select(-CAD_HAZARD, -CAD_ROADWORK, -CAD_None) %>%
-  group_by(osm_id, month, hour, weekday) %>%
-  summarize(hist_CAD_STALL = mean(CAD_STALL),
-            hist_CAD_CRASH = mean(CAD_CRASH)) %>%
-  ungroup()
-
-rm(CAD)
+  #select(-hist_CAD_ROADWORK, -hist_CAD_None) %>%
+  as.data.frame()
