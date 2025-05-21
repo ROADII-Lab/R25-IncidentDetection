@@ -122,12 +122,6 @@ rm(imputed_waze)
 
 source(file.path("utility", "OpenStreetMap_pull.R"))
 
-# If applicable, load CAD data for MN so as to join it in
-if((year %in% c(2018,2019,2020)) & (state == "MN")){
-  source(file.path("utility", "MN_CAD_load.R"))
-  link_x_day <- left_join(link_x_day, CAD, by = c("osm_id", "month", "day", "hour"))
-}
-
 # Get weather for next week ----
 
 source(file.path("utility", "Prep_ForecastWeather.R"))

@@ -218,7 +218,7 @@ for(m in 1:12){
   
   # If CAD data are applicable, join them in
   if((year %in% c(2018,2019,2020)) & (state == "MN")){
-    temp_train = left_join(temp_train, CAD, by = c('osm_id', 'month', 'day', 'hour'))
+    temp_train = left_join(temp_train, CAD %>% select(-CAD_HAZARD, -CAD_STALL, -CAD_ROADWORK, -CAD_None), by = c('osm_id', 'month', 'day', 'hour'))
   }
   
   # if jams data are available, read them in for that month

@@ -164,6 +164,12 @@ for(m in 1:12){
     mutate(crash = ifelse(crash >= 1, 1, 0),
            crash = factor(crash))
   
+  if(state == "MN"){
+    temp_train <- temp_train %>% 
+      mutate(CAD_CRASH = ifelse(CAD_CRASH >= 1, 1, 0),
+             CAD_CRASH = factor(CAD_CRASH))
+  }
+  
   ##### set aside validation set before down-sampling to address class imbalance. #####
   
   trainrows <- sort(sample(1:nrow(temp_train), size = nrow(temp_train)*(1-test_percentage), replace = F))
@@ -336,9 +342,9 @@ keyoutputs = redo_outputs = list() # to store model diagnostics
 
 # Omit as predictors in this vector:
 if(imputed_waze == TRUE){
-  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week", "ref", "CAD_CRASH")
+  alwaysomit = c("crash", "Day", "osm_id", "ACCIDENT", "JAM", "ROAD_CLOSED", "WEATHERHAZARD", "jam_level", "day_of_week", "ref", "CAD_CRASH", "CAD_HAZARD", "CAD_None", "CAD_ROADWORK", "CAD_STALL")
 }else{
-  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH")
+  alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH", "CAD_HAZARD", "CAD_None", "CAD_ROADWORK", "CAD_STALL")
 }
 
 response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
