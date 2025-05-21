@@ -138,6 +138,9 @@ if(!all(file.exists(monthframe_fps))){
   
 }
 
+osm_metro_subset <- read.csv(file = file.path(inputdir, "osm_metro_subset.csv")) %>%
+  mutate(osm_id = as.character(osm_id))
+
 training_frame <- test_frame <-  data.frame(osm_id = character(),
                                             Month = numeric(),
                                             Day = numeric(),
@@ -169,6 +172,9 @@ for(m in 1:12){
       mutate(CAD_CRASH = ifelse(CAD_CRASH >= 1, 1, 0),
              CAD_CRASH = factor(CAD_CRASH))
   }
+  ### Subset to the area and road types of interest
+  matches <- as.character(temp_train$osm_id) %in% osm_metro_subset$osm_id
+  temp_train <- temp_train[matches, ]
   
   ##### set aside validation set before down-sampling to address class imbalance. #####
   
@@ -210,7 +216,7 @@ for(m in 1:12){
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- length(crash_sample) * 10
+  non_crash_sample_size <- length(crash_sample) * 5
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -347,7 +353,7 @@ if(imputed_waze == TRUE){
   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH", "CAD_HAZARD", "CAD_None", "CAD_ROADWORK", "CAD_STALL")
 }
 
-response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
+response.var = "CAD_CRASH" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
 

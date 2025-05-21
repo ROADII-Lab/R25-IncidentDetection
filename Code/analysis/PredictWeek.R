@@ -164,6 +164,14 @@ if("average_jam_level" %in% colnames(next_week)){
     mutate(Average_jam_level = average_jam_level)
 }
 
+### Subset to the area and road types of interest
+osm_metro_subset <- read.csv(file = file.path(inputdir, "osm_metro_subset.csv")) %>%
+  mutate(osm_id = as.character(osm_id))
+
+matches <- as.character(next_week$osm_id) %in% osm_metro_subset$osm_id
+next_week <- next_week[matches, ]
+######################################
+
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]
 
