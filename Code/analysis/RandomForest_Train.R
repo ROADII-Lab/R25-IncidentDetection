@@ -41,6 +41,20 @@ lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (
 
 ##############################################################
 
+# Double check that osm_subset.csv file is there if it is expected.
+if(filter_osm){
+  if(!file.exists(file.path(inputdir, "osm_subset.csv"))){
+    stop('The filter_osm parameter it set to T or TRUE, but the osm_subset.csv file cannot be found in Input folder. Run halted.')
+  }
+}
+
+# Double check that events.csv file is there if it is expected.
+if(include_events){
+  if(!file.exists(file.path(inputdir, "events.csv"))){
+    stop('The include_events parameter it set to T or TRUE, but the events.csv file cannot be found in Input folder. Run halted.')
+  }
+}
+
 # Setup ---- 
 gc()
 
@@ -138,8 +152,17 @@ if(!all(file.exists(monthframe_fps))){
   
 }
 
-osm_metro_subset <- read.csv(file = file.path(inputdir, "osm_metro_subset.csv")) %>%
-  mutate(osm_id = as.character(osm_id))
+if(filter_osm){
+  osm_subset <- read.csv(file = file.path(inputdir, "osm_subset.csv")) %>%
+    mutate(osm_id = as.character(osm_id))
+}
+
+# Load Road Network --------------------------------------------------------------
+
+source(file.path("utility", "OpenStreetMap_pull.R"))
+state_network <- state_network %>% st_drop_geometry()
+
+# --------------------------------------------------------------------------------
 
 training_frame <- test_frame <-  data.frame(osm_id = character(),
                                             Month = numeric(),
@@ -172,9 +195,16 @@ for(m in 1:12){
       mutate(CAD_CRASH = ifelse(CAD_CRASH >= 1, 1, 0),
              CAD_CRASH = factor(CAD_CRASH))
   }
-  ### Subset to the area and road types of interest
-  matches <- as.character(temp_train$osm_id) %in% osm_metro_subset$osm_id
-  temp_train <- temp_train[matches, ]
+  ### Subset to the osm_ids and road types of interest
+  if(filter_osm){
+    matches <- as.character(temp_train$osm_id) %in% osm_subset$osm_id
+    temp_train <- temp_train[matches, ]
+  }
+  
+  temp_train <- temp_train %>% 
+    left_join(state_network, by = "osm_id") %>%
+    filter(highway %in% road_types)
+  
   
   ##### set aside validation set before down-sampling to address class imbalance. #####
   
@@ -234,13 +264,9 @@ for(m in 1:12){
   
 }
 
-# load road network in order to join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
+# join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
 
 cat("Preparing to join data on historical crashes ('hist_crashes'), road type ('highway'), and speed limit ('maxspeed').\n")
-
-# Load Road Network --------------------------------------------------------------
-
-source(file.path("utility", "OpenStreetMap_pull.R"))
 
 # Prep Hist Crashes -----------------------------------------------------------
 
@@ -259,7 +285,6 @@ if(state == "MN"){
 prep_data <- function(training_frame){
 
   training_frame <- training_frame %>%
-    left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
     left_join(hist_crashes, by = "osm_id") %>%
     mutate(Month = factor(Month, ordered = F),
            Day = factor(Day, ordered = F),
@@ -305,6 +330,37 @@ if(imputed_waze == TRUE){
   
   gc()
 }
+
+# Load events data, if applicable and add event attribute
+if(include_events){
+  events <- read.csv(file = file.path(inputdir, "events.csv")) %>%
+    mutate(Date = lubridate::as_date(Date))
+  
+  training_frame <- training_frame %>%
+    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+           event = Date %in% events$Date,
+           event = factor(event, ordered = F)) %>%
+    select(-Date)
+  
+  test_frame <- test_frame %>%
+    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+           event = Date %in% events$Date,
+           event = factor(event, ordered = F)) %>%
+    select(-Date)  
+}
+
+######  Make sure factor levels are the same in training and test frames ############
+
+# Identify factor columns
+factor_cols <- names(training_frame)[sapply(training_frame, is.factor)]
+
+for(col in factor_cols) {
+    training_frame[[col]] <- factor(training_frame[[col]], levels = levels(test_frame[[col]]))
+}
+
+training_frame <- training_frame %>% fill_na()
+
+####################################################################################
 
 # sort column positions in alphabetical order
 new_order = sort(colnames(training_frame))
@@ -417,5 +473,6 @@ ggsave(plot = importance_plot,
        create.dir = T,
        height = 6, width = 8, units = "in")
 
+rm(list = ls())
 gc()
 gc()
