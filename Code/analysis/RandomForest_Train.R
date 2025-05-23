@@ -41,10 +41,10 @@ lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (
 
 ##############################################################
 
-# Double check that osm_subset.csv file is there if it is expected.
+# Double check that AOI shapefile is there if it is expected.
 if(filter_osm){
-  if(!file.exists(file.path(inputdir, "osm_subset.csv"))){
-    stop('The filter_osm parameter it set to T or TRUE, but the osm_subset.csv file cannot be found in Input folder. Run halted.')
+  if(!file.exists(file.path(inputdir, AOI_shp_path))){
+    stop('The filter_osm parameter it set to T or TRUE, but the subpath specified at AOI_shp_path cannot be found in Input folder. Run halted.')
   }
 }
 
@@ -69,7 +69,28 @@ source(file.path("utility", "timezone_adj.R"))
 # read random forest function, do.rf() and other helper functions
 source(file.path("analysis", "RandomForest_Fx.R"))
 
+# Load Road Network --------------------------------------------------------------
+
+source(file.path("utility", "OpenStreetMap_pull.R"))
+
 # -------------------------------------------------------------------------
+# Define the osm_ids to analyze based on area of interest, if applicable
+if(filter_osm){
+  
+  AOI <- read_sf(file.path(inputdir, AOI_shp_path)) %>% st_transform(crs = projection)
+  
+  intersecting_roads <- st_intersection(state_network, AOI)
+  
+  # pull out the osm_ids
+  osm_subset <- intersecting_roads %>%
+    st_drop_geometry() %>%
+    select(osm_id)
+}
+
+#------Convert state network back into a tibble-----------------------------------
+state_network <- state_network %>% st_drop_geometry()
+
+#---------------------------------------------------------------------------------
 
 # The full model identifier gets created in this next step
 
@@ -151,16 +172,6 @@ if(!all(file.exists(monthframe_fps))){
   }
   
 }
-
-if(filter_osm){
-  osm_subset <- read.csv(file = file.path(inputdir, "osm_subset.csv")) %>%
-    mutate(osm_id = as.character(osm_id))
-}
-
-# Load Road Network --------------------------------------------------------------
-
-source(file.path("utility", "OpenStreetMap_pull.R"))
-state_network <- state_network %>% st_drop_geometry()
 
 # --------------------------------------------------------------------------------
 

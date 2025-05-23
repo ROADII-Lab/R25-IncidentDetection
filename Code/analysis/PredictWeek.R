@@ -35,10 +35,10 @@ if(state == "MN"){
 lat_col <- NA # if uploading xlsx, or csv's define the latitude variable name (if left NA, it will choose the best fit)
 lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (if left NA, it will choose the best fit)
 
-# Double check that osm_subset.csv file is there if it is expected.
+# Double check that AOI shapefile is there if it is expected.
 if(filter_osm){
-  if(!file.exists(file.path(inputdir, "osm_subset.csv"))){
-    stop('The filter_osm parameter it set to T or TRUE, but the osm_subset.csv file cannot be found in Input folder. Run halted.')
+  if(!file.exists(file.path(inputdir, AOI_shp_path))){
+    stop('The filter_osm parameter it set to T or TRUE, but the subpath specified at AOI_shp_path cannot be found in Input folder. Run halted.')
   }
 }
 
@@ -193,11 +193,20 @@ if("average_jam_level" %in% colnames(next_week)){
     mutate(Average_jam_level = average_jam_level)
 }
 
+
+# -------------------------------------------------------------------------
+
 ### Subset to the area and road types of interest
 
 if(filter_osm){
-    osm_subset <- read.csv(file = file.path(inputdir, "osm_subset.csv")) %>%
-      mutate(osm_id = as.character(osm_id))
+    AOI <- read_sf(file.path(inputdir, AOI_shp_path)) %>% st_transform(crs = projection)
+    
+    intersecting_roads <- st_intersection(state_network, AOI)
+    
+    # pull out the osm_ids
+    osm_subset <- intersecting_roads %>%
+      st_drop_geometry() %>%
+      select(osm_id)
     
     matches <- as.character(next_week$osm_id) %in% osm_subset$osm_id
     next_week <- next_week[matches, ]

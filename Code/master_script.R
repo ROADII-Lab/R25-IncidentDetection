@@ -54,6 +54,8 @@ road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
 # The first row should be the column header, 'osm_id', and the remaining rows the osm_id values that should be included.
 # File name should be 'osm_subset.csv'
 filter_osm <- T
+# if the above is true, then for AOI_shp_path specify the path (within the Input folder) that leads to the shapefile that defines the area of interest.
+AOI_shp_path <- paste('Shapefiles', 'MN_Metro', 'MN_Metro.shp', sep='/')
 
 # Indicate whether to include events as a predictor.
 # If include_events is set to T or TRUE, you must put a .csv file in the Input folder that specifies special events, such as holidays.
