@@ -221,7 +221,7 @@ if(include_events){
     mutate(Date = lubridate::as_date(Date))
   
   next_week <- next_week %>%
-    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+    mutate(Date = lubridate::as_date(paste(year, Month, day, sep = "-")),
            event = Date %in% events$Date,
            event = factor(event, levels = rf.out$forest$xlevels$event)) %>%
     select(-Date)
