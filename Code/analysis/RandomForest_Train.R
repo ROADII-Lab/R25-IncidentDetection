@@ -87,9 +87,6 @@ if(filter_osm){
     select(osm_id)
 }
 
-#------Convert state network back into a tibble-----------------------------------
-state_network <- state_network %>% st_drop_geometry()
-
 #---------------------------------------------------------------------------------
 
 # The full model identifier gets created in this next step
@@ -213,9 +210,8 @@ for(m in 1:12){
   }
   
   temp_train <- temp_train %>% 
-    left_join(state_network, by = "osm_id") %>%
+    left_join(state_network %>% st_drop_geometry() %>% select(osm_id, highway, maxspeed, ref), by = "osm_id") %>%
     filter(highway %in% road_types)
-  
   
   ##### set aside validation set before down-sampling to address class imbalance. #####
   
