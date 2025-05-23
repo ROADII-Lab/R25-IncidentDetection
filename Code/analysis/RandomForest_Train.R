@@ -41,6 +41,20 @@ lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (
 
 ##############################################################
 
+# Double check that AOI shapefile is there if it is expected.
+if(filter_osm){
+  if(!file.exists(file.path(inputdir, AOI_shp_path))){
+    stop('The filter_osm parameter it set to T or TRUE, but the subpath specified at AOI_shp_path cannot be found in Input folder. Run halted.')
+  }
+}
+
+# Double check that events.csv file is there if it is expected.
+if(include_events){
+  if(!file.exists(file.path(inputdir, "events.csv"))){
+    stop('The include_events parameter it set to T or TRUE, but the events.csv file cannot be found in Input folder. Run halted.')
+  }
+}
+
 # Setup ---- 
 gc()
 
@@ -55,7 +69,28 @@ source(file.path("utility", "timezone_adj.R"))
 # read random forest function, do.rf() and other helper functions
 source(file.path("analysis", "RandomForest_Fx.R"))
 
+# Load Road Network --------------------------------------------------------------
+
+source(file.path("utility", "OpenStreetMap_pull.R"))
+
 # -------------------------------------------------------------------------
+# Define the osm_ids to analyze based on area of interest, if applicable
+if(filter_osm){
+  
+  AOI <- read_sf(file.path(inputdir, AOI_shp_path)) %>% st_transform(crs = projection)
+  
+  intersecting_roads <- st_intersection(state_network, AOI)
+  
+  # pull out the osm_ids
+  osm_subset <- intersecting_roads %>%
+    st_drop_geometry() %>%
+    select(osm_id)
+}
+
+#------Convert state network back into a tibble-----------------------------------
+state_network <- state_network %>% st_drop_geometry()
+
+#---------------------------------------------------------------------------------
 
 # The full model identifier gets created in this next step
 
@@ -138,6 +173,8 @@ if(!all(file.exists(monthframe_fps))){
   
 }
 
+# --------------------------------------------------------------------------------
+
 training_frame <- test_frame <-  data.frame(osm_id = character(),
                                             Month = numeric(),
                                             Day = numeric(),
@@ -169,6 +206,16 @@ for(m in 1:12){
       mutate(CAD_CRASH = ifelse(CAD_CRASH >= 1, 1, 0),
              CAD_CRASH = factor(CAD_CRASH))
   }
+  ### Subset to the osm_ids and road types of interest
+  if(filter_osm){
+    matches <- as.character(temp_train$osm_id) %in% osm_subset$osm_id
+    temp_train <- temp_train[matches, ]
+  }
+  
+  temp_train <- temp_train %>% 
+    left_join(state_network, by = "osm_id") %>%
+    filter(highway %in% road_types)
+  
   
   ##### set aside validation set before down-sampling to address class imbalance. #####
   
@@ -210,7 +257,7 @@ for(m in 1:12){
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- length(crash_sample) * 10
+  non_crash_sample_size <- length(crash_sample) * 5
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -228,13 +275,9 @@ for(m in 1:12){
   
 }
 
-# load road network in order to join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
+# join in the historical crash data, road type ("highway"), and speed limit ("maxspeed")
 
 cat("Preparing to join data on historical crashes ('hist_crashes'), road type ('highway'), and speed limit ('maxspeed').\n")
-
-# Load Road Network --------------------------------------------------------------
-
-source(file.path("utility", "OpenStreetMap_pull.R"))
 
 # Prep Hist Crashes -----------------------------------------------------------
 
@@ -253,7 +296,6 @@ if(state == "MN"){
 prep_data <- function(training_frame){
 
   training_frame <- training_frame %>%
-    left_join(state_network %>% st_drop_geometry(), by = "osm_id") %>%
     left_join(hist_crashes, by = "osm_id") %>%
     mutate(Month = factor(Month, ordered = F),
            Day = factor(Day, ordered = F),
@@ -299,6 +341,37 @@ if(imputed_waze == TRUE){
   
   gc()
 }
+
+# Load events data, if applicable and add event attribute
+if(include_events){
+  events <- read.csv(file = file.path(inputdir, "events.csv")) %>%
+    mutate(Date = lubridate::as_date(Date))
+  
+  training_frame <- training_frame %>%
+    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+           event = Date %in% events$Date,
+           event = factor(event, ordered = F)) %>%
+    select(-Date)
+  
+  test_frame <- test_frame %>%
+    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+           event = Date %in% events$Date,
+           event = factor(event, ordered = F)) %>%
+    select(-Date)  
+}
+
+######  Make sure factor levels are the same in training and test frames ############
+
+# Identify factor columns
+factor_cols <- names(training_frame)[sapply(training_frame, is.factor)]
+
+for(col in factor_cols) {
+    training_frame[[col]] <- factor(training_frame[[col]], levels = levels(test_frame[[col]]))
+}
+
+training_frame <- training_frame %>% fill_na()
+
+####################################################################################
 
 # sort column positions in alphabetical order
 new_order = sort(colnames(training_frame))
@@ -347,7 +420,7 @@ if(imputed_waze == TRUE){
   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH", "CAD_HAZARD", "CAD_None", "CAD_ROADWORK", "CAD_STALL")
 }
 
-response.var = "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
+response.var = "CAD_CRASH" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
 
@@ -411,5 +484,6 @@ ggsave(plot = importance_plot,
        create.dir = T,
        height = 6, width = 8, units = "in")
 
+rm(list = ls())
 gc()
 gc()

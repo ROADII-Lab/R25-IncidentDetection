@@ -8,7 +8,7 @@
 # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 # Note: the full model name gets created by combining the num parameter below with other tags, including the state, 
 # year, whether or not time_bins is TRUE and whether or not imputed_waze is TRUE. Output files are named in this way.
-num <- "avg_CAD" 
+num <- "5to1_CADtarget" 
 
 # Define the state, using abbreviation.
 state <- "MN"
@@ -41,9 +41,28 @@ projection <- 5070
 # Define the percentage of the population to use in the test sample. 
 test_percentage <- 0.03
 
-##Identify road types you'd like to query for; can pick from c('motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential').
-# Note: if including 'residential it may take a long time to query all the data from open street maps.
+##Identify road types you'd like to use for analysis. You can pick from: c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
+# Note: regardless of which subset you pick, all five of the above road types will be queried and added to the state_network file.
+# The road types will later be filtered down to the subset you identify below - this is to avoid errant spatial matches during data processing.
+# Open street maps also has two additional road types ('unclassified' and 'residential'). These are not options to analyze with this tool and 
+# cannot be selected.
+# This page explains more about the road types, which are in the 'highway' attribute: https://wiki.openstreetmap.org/wiki/Key:highway
 road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
+
+# Indicate whether to subset the analysis to only certain road segments. 
+# If filter_osm is set to T or TRUE, you must put a .csv file in the Input folder that specifies a subset of osm_ids to use.
+# The first row should be the column header, 'osm_id', and the remaining rows the osm_id values that should be included.
+# File name should be 'osm_subset.csv'
+filter_osm <- T
+# if the above is true, then for AOI_shp_path specify the path (within the Input folder) that leads to the shapefile that defines the area of interest.
+AOI_shp_path <- paste('Shapefiles', 'MN_Metro', 'MN_Metro.shp', sep='/')
+
+# Indicate whether to include events as a predictor.
+# If include_events is set to T or TRUE, you must put a .csv file in the Input folder that specifies special events, such as holidays.
+# It should contain a column called "Date", with dates specified in the following format: %m/%d/%Y - 
+# for example, January 6, 2026 would be 1/6/2026 in that format.
+# File name should be 'events.csv'
+include_events <- T
 
 # RandomForest_Train.R ----------------------------------------------------
 # Run this source code to train the random forest model.

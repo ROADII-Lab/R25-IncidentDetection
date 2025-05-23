@@ -35,6 +35,20 @@ if(state == "MN"){
 lat_col <- NA # if uploading xlsx, or csv's define the latitude variable name (if left NA, it will choose the best fit)
 lon_col <- NA # if uploading xlsx, or csv's define the longitude variable name (if left NA, it will choose the best fit)
 
+# Double check that AOI shapefile is there if it is expected.
+if(filter_osm){
+  if(!file.exists(file.path(inputdir, AOI_shp_path))){
+    stop('The filter_osm parameter it set to T or TRUE, but the subpath specified at AOI_shp_path cannot be found in Input folder. Run halted.')
+  }
+}
+
+# Double check that events.csv file is there if it is expected.
+if(include_events){
+  if(!file.exists(file.path(inputdir, "events.csv"))){
+    stop('The include_events parameter it set to T or TRUE, but the events.csv file cannot be found in Input folder. Run halted.')
+  }
+}
+
 # Make outputdir and intermediatedir if not already there
 if(!dir.exists(intermediatedir)) { dir.create(intermediatedir) }
 if(!dir.exists(outputdir)) { dir.create(outputdir) }
@@ -65,6 +79,21 @@ modelno = paste(state,
 # This script is based on model 05, which performed the best of the models we tested.
 
 load(file.path(outputdir, 'Random_Forest_Output', paste("Model", modelno, "RandomForest_Output.RData", sep= "_")))
+
+## Double check that settings match the settings for the trained model that was just loaded
+if(!identical(filter_osm, train_filter_osm)){
+  stop('The filter_osm parameter setting is different currently than the way it was set when the loaded model was trained. Run halted.')
+}
+
+if(!setequal(road_types, train_road_types)){
+  stop('The types currently specified in road_types parameter are not the same as those that were specified during model training. Run halted.')
+}
+
+if(!identical(include_events, train_include_events)){
+  stop('The include_events parameter setting is different currently than the way it was set when the loaded model was trained. Run halted.')
+}
+
+#--------------------------------------------------------------------------------------------------------------
 
 # Create week ----
 # Create osm_id by time variables for the next week, to join everything else into 
@@ -163,6 +192,42 @@ if("average_jam_level" %in% colnames(next_week)){
   next_week <- next_week %>% 
     mutate(Average_jam_level = average_jam_level)
 }
+
+
+# -------------------------------------------------------------------------
+
+### Subset to the area and road types of interest
+
+if(filter_osm){
+    AOI <- read_sf(file.path(inputdir, AOI_shp_path)) %>% st_transform(crs = projection)
+    
+    intersecting_roads <- st_intersection(state_network, AOI)
+    
+    # pull out the osm_ids
+    osm_subset <- intersecting_roads %>%
+      st_drop_geometry() %>%
+      select(osm_id)
+    
+    matches <- as.character(next_week$osm_id) %in% osm_subset$osm_id
+    next_week <- next_week[matches, ]
+}
+
+matches <- as.character(next_week$highway) %in% road_types
+next_week <- next_week[matches, ]
+
+# Load events data, if applicable and add event attribute
+if(include_events){
+  events <- read.csv(file = file.path(inputdir, "events.csv")) %>%
+    mutate(Date = lubridate::as_date(Date))
+  
+  next_week <- next_week %>%
+    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+           event = Date %in% events$Date,
+           event = factor(event, levels = rf.out$forest$xlevels$event)) %>%
+    select(-Date)
+}
+
+######################################
 
 new_order = sort(colnames(next_week))
 next_week <- next_week[, new_order]

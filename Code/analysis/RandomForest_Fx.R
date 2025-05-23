@@ -226,7 +226,11 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
             file = file.path(outputdir, 'Random_Forest_Output', paste(model.no, "RandomForest_pred.csv", sep = "_")),
             row.names = F)
   
-  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name", "time_interval") 
+  train_road_types <- road_types
+  train_filter_osm <- filter_osm
+  train_include_events <- include_events
+  # THIS IS WHERE ITEMS CAN BE PASSED THROUGH TO PREDICTWEEK.R - ALL THESE WILL BE LOADED WHEN THE SAVED MODEL IS LOADED IN LINE 81 OF PREDICTWEEK.R.
+  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name", "time_interval", "train_road_types", "train_filter_osm", "train_include_events") 
   if(is.null(test.dat)) savelist = c(savelist, "testrows", "trainrows")
   if(!is.null(thin.dat)) savelist = c(savelist, "test.dat.use")
   
