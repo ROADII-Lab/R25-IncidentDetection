@@ -261,7 +261,7 @@ next_week_out <- next_week_out %>%
   ungroup()
 
 
-write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(modelno,'_', Sys.Date(), '.csv')), row.names = F)
+write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(modelno,'_', today, '.csv')), row.names = F)
 
 ## Save some plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results

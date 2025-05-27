@@ -2,9 +2,9 @@
 # Purpose: This script sources TomorrowIO_pull.R then spatial joins those results with the osm network.
 # Generated Variables: weather_forecast
 
-if(file.exists(file.path(inputdir, 'Weather', paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData")))) { # check if this script has already been ran
+if(file.exists(file.path(inputdir, 'Weather', paste0("OSM_Weather_", state, "_", today, ".RData")))) { # check if this script has already been ran
   
-  load(file.path(inputdir, "Weather", paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData")))
+  load(file.path(inputdir, "Weather", paste0("OSM_Weather_", state, "_", today, ".RData")))
                  
 } else{ # if not, go through a pull osm, tomorrowIO, and then merge.
   

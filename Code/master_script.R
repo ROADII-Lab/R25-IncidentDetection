@@ -8,7 +8,7 @@
 # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 # Note: the full model name gets created by combining the num parameter below with other tags, including the state, 
 # year, whether or not time_bins is TRUE and whether or not imputed_waze is TRUE. Output files are named in this way.
-num <- "10to1_metro"
+num <- "10to1_majorroads"
 
 # Define the state, using abbreviation.
 state <- "WA"
