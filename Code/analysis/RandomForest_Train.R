@@ -253,7 +253,7 @@ for(m in 1:12){
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- length(crash_sample) * 5
+  non_crash_sample_size <- length(crash_sample) * noncrashratio
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -415,8 +415,6 @@ if(imputed_waze == TRUE){
 }else{
   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH", "CAD_HAZARD", "CAD_None", "CAD_ROADWORK", "CAD_STALL")
 }
-
-response.var = "CAD_CRASH" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
 
