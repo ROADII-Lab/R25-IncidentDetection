@@ -176,7 +176,9 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
                     dnn = c("Predicted","Observed"))) 
   bin.mod.diagnostics(predtab)
   
+  # Generate visual of receiver operating characteristic (ROC) curve and its area under the curve (AUC)
   # pROC::roc - response, predictor
+  
   model_auc <- pROC::auc(test.dat.use[,response.var], rf.prob[,colnames(rf.prob)=="1"])
 
   pdf(file = file.path(outputdir, 'Figures', paste0("AUC_", model.no, ".pdf")), width = 6, height = 6)
@@ -187,6 +189,75 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   legend("bottomright", legend = round(model_auc, 4), title = "AUC", inset = 0.25)
   
   dev.off()
+  
+  # Generate visual of precision-recall curve and its area under the curve (AUC) 
+  
+  # Prepare data
+  true_labels <- ifelse(test.dat.use[, response.var] == 1, 1, 0)
+  probs <- rf.prob[, colnames(rf.prob) == "1"]
+  pr <- pr.curve(scores.class0 = probs[true_labels == 1], 
+                 scores.class1 = probs[true_labels == 0], curve = TRUE)
+  pr_auc <- pr$auc.integral
+  random_baseline <- mean(true_labels)
+  multiplier <- if (random_baseline > 0) pr_auc / random_baseline else NA
+  
+  pr_curve_df <- as.data.frame(pr$curve)
+  colnames(pr_curve_df) <- c("Recall", "Precision", "Threshold")
+  
+  # Set up annotation text
+  annotation_text <- if (!is.na(multiplier)) {
+    sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline", pr_auc, multiplier)
+  } else {
+    sprintf("PRAUC = %.4f<br>Random baseline is zero", pr_auc)
+  }
+  
+  # Create the PR curve plot
+  fig <- plot_ly() %>%
+    # Main curve: all hover options fine
+    add_trace(
+      data = pr_curve_df,
+      x = ~Recall,
+      y = ~Precision,
+      type = 'scatter',
+      mode = 'lines+markers',
+      name = "Model",
+      text = ~paste("Recall:", round(Recall, 3), "<br>Precision:", round(Precision, 3)),
+      hoverinfo = 'text'
+    ) %>%
+    # Baseline: NO text argument, no hover!
+    add_trace(
+      x = c(0, 1),
+      y = rep(random_baseline, 2),
+      type = 'scatter',
+      mode = 'lines',
+      line = list(dash = 'dash', color = 'red'),
+      name = 'Random baseline',
+      hoverinfo = 'none' # *crucial!*
+    ) %>%
+    layout(
+      title = paste0("Precision-Recall Curve (Model ", model.no, ")"),
+      xaxis = list(title = "Recall"),
+      yaxis = list(title = "Precision"),
+      hovermode = "closest",
+      annotations = list(
+        list(
+          x = 0,  # far left of plot area
+          y = 1.05,  # just above the plot area
+          text = annotation_text,
+          xref = "paper",
+          yref = "paper",
+          showarrow = FALSE,
+          font = list(size = 14, color = "blue", family = "Arial"),
+          align = "left"
+        )
+      )
+    )
+  
+  # Save as interactive HTML
+  htmlwidgets::saveWidget(
+    fig,
+    file = file.path(outputdir, "Figures", paste0("PR_curve_", model.no, ".html"))
+  )
 
  out.df <- data.frame(test.dat.use[, c("osm_id", "Month", "Day", "Hour", response.var)], rf.pred, rf.prob) %>%
    rename(Obs = {{response.var}},
@@ -343,7 +414,9 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
                       dnn = c("Predicted","Observed"))) 
     bin.mod.diagnostics(predtab)
     
+    # Generate visual of receiver operating characteristic (ROC) curve and its area under the curve (AUC)
     # pROC::roc - response, predictor
+    
     model_auc <- pROC::auc(test.dat.use[,response.var], rf.prob[,colnames(rf.prob)=="1"])
     
     pdf(file = file.path(outputdir, paste0("AUC_", model.no, ".pdf")), width = 6, height = 6)
@@ -355,6 +428,75 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
     
     #dev.print(device = jpeg, file = paste0("AUC_", model.no, ".jpg"), width = 500, height = 500)
     dev.off()
+
+    # Generate visual of precision-recall curve and its area under the curve (AUC) 
+    
+    # Prepare data
+    true_labels <- ifelse(test.dat.use[, response.var] == 1, 1, 0)
+    probs <- rf.prob[, colnames(rf.prob) == "1"]
+    pr <- pr.curve(scores.class0 = probs[true_labels == 1], 
+                   scores.class1 = probs[true_labels == 0], curve = TRUE)
+    pr_auc <- pr$auc.integral
+    random_baseline <- mean(true_labels)
+    multiplier <- if (random_baseline > 0) pr_auc / random_baseline else NA
+    
+    pr_curve_df <- as.data.frame(pr$curve)
+    colnames(pr_curve_df) <- c("Recall", "Precision", "Threshold")
+    
+    # Set up annotation text
+    annotation_text <- if (!is.na(multiplier)) {
+      sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline", pr_auc, multiplier)
+    } else {
+      sprintf("PRAUC = %.4f<br>Random baseline is zero", pr_auc)
+    }
+    
+    # Create the PR curve plot
+    fig <- plot_ly() %>%
+      # Main curve: all hover options fine
+      add_trace(
+        data = pr_curve_df,
+        x = ~Recall,
+        y = ~Precision,
+        type = 'scatter',
+        mode = 'lines+markers',
+        name = "Model",
+        text = ~paste("Recall:", round(Recall, 3), "<br>Precision:", round(Precision, 3)),
+        hoverinfo = 'text'
+      ) %>%
+      # Baseline: NO text argument, no hover!
+      add_trace(
+        x = c(0, 1),
+        y = rep(random_baseline, 2),
+        type = 'scatter',
+        mode = 'lines',
+        line = list(dash = 'dash', color = 'red'),
+        name = 'Random baseline',
+        hoverinfo = 'none' # *crucial!*
+      ) %>%
+      layout(
+        title = paste0("Precision-Recall Curve (Model ", model.no, ")"),
+        xaxis = list(title = "Recall"),
+        yaxis = list(title = "Precision"),
+        hovermode = "closest",
+        annotations = list(
+          list(
+            x = 0,  # far left of plot area
+            y = 1.05,  # just above the plot area
+            text = annotation_text,
+            xref = "paper",
+            yref = "paper",
+            showarrow = FALSE,
+            font = list(size = 14, color = "blue", family = "Arial"),
+            align = "left"
+          )
+        )
+      )
+    
+    # Save as interactive HTML
+    htmlwidgets::saveWidget(
+      fig,
+      file = file.path(outputdir, "Figures", paste0("PR_curve_", model.no, ".html"))
+    )
     
     out.df <- data.frame(test.dat.use[, c("osm_id", "Day", "Hour", response.var)], rf.pred, rf.prob)
     out.df$day <- as.numeric(out.df$day)

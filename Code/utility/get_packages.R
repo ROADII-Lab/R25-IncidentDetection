@@ -14,13 +14,16 @@ requiredpackages <- c("randomForest", # random forest
                       "tsibble", # for working with time bins
                       "RANN", # holds nn2 
                       "osmdata", # pull data from osm servers
+                      "plotly", # for interactive precision-recall graphic
+                      "htmlwidgets", # for interactive precision-recall graphic
                       "ggmap", 
                       "httr", # for GET
                       "xml2", # for xml parsing in tidy way
                       "XML", # for xmlToList
                       "jsonlite",
                       "tigris", # for state shapefiles (or other census geographies)
-                      "pROC",
+                      "pROC", # for receiver operating characteristic (ROC) curve and AUC
+                      "PRROC", # for precision-recall curve and AUC
                       "openxlsx", # used in createdash
                       "zip") # used in createdash
 
