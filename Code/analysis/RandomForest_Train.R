@@ -87,9 +87,6 @@ if(filter_osm){
     select(osm_id)
 }
 
-#------Convert state network back into a tibble-----------------------------------
-state_network <- state_network %>% st_drop_geometry()
-
 #---------------------------------------------------------------------------------
 
 # The full model identifier gets created in this next step
@@ -213,9 +210,8 @@ for(m in 1:12){
   }
   
   temp_train <- temp_train %>% 
-    left_join(state_network, by = "osm_id") %>%
+    left_join(state_network %>% st_drop_geometry() %>% select(osm_id, highway, maxspeed, ref), by = "osm_id") %>%
     filter(highway %in% road_types)
-  
   
   ##### set aside validation set before down-sampling to address class imbalance. #####
   
@@ -257,7 +253,7 @@ for(m in 1:12){
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- length(crash_sample) * 5
+  non_crash_sample_size <- length(crash_sample) * noncrashratio
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -419,8 +415,6 @@ if(imputed_waze == TRUE){
 }else{
   alwaysomit = c("crash", "Day", "osm_id", "day_of_week", "average_jams", "average_weather", "average_closure", "average_accident", "average_jam_level", "ref", "CAD_CRASH", "CAD_HAZARD", "CAD_None", "CAD_ROADWORK", "CAD_STALL")
 }
-
-response.var = "CAD_CRASH" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
 
 starttime = Sys.time()
 

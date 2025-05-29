@@ -8,13 +8,13 @@
 # Use this to create a separate identifier to distinguish when multiple models are attempted for a given state and year.
 # Note: the full model name gets created by combining the num parameter below with other tags, including the state, 
 # year, whether or not time_bins is TRUE and whether or not imputed_waze is TRUE. Output files are named in this way.
-num <- "5to1_CADtarget" 
+num <- "10to1_majorroads"
 
 # Define the state, using abbreviation.
-state <- "MN"
+state <- "WA"
 
 # Define the year.
-year <- 2020
+year <- 2021
 
 # Indicate whether to aggregate data into multi-hour bins, 
 # versus training and generating predictions based on individual hours.
@@ -47,13 +47,13 @@ test_percentage <- 0.03
 # Open street maps also has two additional road types ('unclassified' and 'residential'). These are not options to analyze with this tool and 
 # cannot be selected.
 # This page explains more about the road types, which are in the 'highway' attribute: https://wiki.openstreetmap.org/wiki/Key:highway
-road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
+road_types <- c('motorway', 'trunk', 'primary')
 
 # Indicate whether to subset the analysis to only certain road segments. 
 # If filter_osm is set to T or TRUE, you must put a .csv file in the Input folder that specifies a subset of osm_ids to use.
 # The first row should be the column header, 'osm_id', and the remaining rows the osm_id values that should be included.
 # File name should be 'osm_subset.csv'
-filter_osm <- T
+filter_osm <- F
 # if the above is true, then for AOI_shp_path specify the path (within the Input folder) that leads to the shapefile that defines the area of interest.
 AOI_shp_path <- paste('Shapefiles', 'MN_Metro', 'MN_Metro.shp', sep='/')
 
@@ -63,6 +63,14 @@ AOI_shp_path <- paste('Shapefiles', 'MN_Metro', 'MN_Metro.shp', sep='/')
 # for example, January 6, 2026 would be 1/6/2026 in that format.
 # File name should be 'events.csv'
 include_events <- T
+
+# confirm the name of the crash column that is used as the target, or response variable.
+response.var <- "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
+
+# ratio of non-crash observations to crash observations to use in sampling. actual ratio in natural population is typically 10,000-to-1.
+# try 5 (which means 5-to-1) or 10 (which means 10-to-1)
+noncrashratio <- 10
+
 
 # RandomForest_Train.R ----------------------------------------------------
 # Run this source code to train the random forest model.

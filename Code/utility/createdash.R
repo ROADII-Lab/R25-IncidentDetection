@@ -37,6 +37,12 @@ create_dashboard <- function(RoadNetwork, CrashPredictions, DateInfo, normalized
   
 }
 
+# Filter the state network to the road segments of interest
+matches <- as.character(state_network$osm_id) %in% as.character(next_week$osm_id)
+state_network <- state_network[matches, ]
+
+##########################
+
 # Call the function with the relevant arguments
 create_dashboard(RoadNetwork = state_network, CrashPredictions = CrashPredictions, DateInfo = DateInfo, normalized = "Normalized")
 

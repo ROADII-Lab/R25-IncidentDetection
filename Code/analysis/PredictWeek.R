@@ -221,7 +221,7 @@ if(include_events){
     mutate(Date = lubridate::as_date(Date))
   
   next_week <- next_week %>%
-    mutate(Date = lubridate::as_date(paste(year, Month, Day, sep = "-")),
+    mutate(Date = lubridate::as_date(paste(year, Month, day, sep = "-")),
            event = Date %in% events$Date,
            event = factor(event, levels = rf.out$forest$xlevels$event)) %>%
     select(-Date)
@@ -261,7 +261,7 @@ next_week_out <- next_week_out %>%
   ungroup()
 
 
-write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(modelno,'_', Sys.Date(), '.csv')), row.names = F)
+write.csv(next_week_out, file = file.path(predict_week_out_dir, paste0(modelno,'_', today, '.csv')), row.names = F)
 
 ## Save some plots of the results in the Figures folder ##
 save_charts <- function(results_df, # the dataframe object with the results
