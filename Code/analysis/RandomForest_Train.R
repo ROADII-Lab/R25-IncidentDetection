@@ -246,14 +246,14 @@ for(m in 1:12){
   # 
   # test_frame <- test_frame %>% bind_rows(temp_test)
   
-  is_crash <- temp_train[,"crash"] == 1 
+  is_crash <- temp_train[,response.var] == 1 
   crash_indices <- which(is_crash)
   non_crash_indices <- which (!is_crash) 
 
   crash_sample_size <- length(crash_indices)
   crash_sample <- sample(crash_indices, size = crash_sample_size, replace = FALSE)
 
-  non_crash_sample_size <- length(crash_sample) * noncrashratio
+  non_crash_sample_size <- min(length(crash_sample) * noncrashratio, length(non_crash_indices))
   non_crash_sample <- sample(non_crash_indices, size = non_crash_sample_size, replace = FALSE)
   combined_data <- temp_train[c(crash_sample, non_crash_sample), ]
 
@@ -446,7 +446,7 @@ write.csv(fitvar_df, file = file.path(outputdir, "Random_Forest_Output", paste0(
 keyoutputs[[modelno]] = do.rf(train.dat = training_frame, 
                               test.dat = test_frame,
                               #thin.dat = 0.2,
-                              omits, response.var = "crash", 
+                              omits, response.var = response.var, 
                               model.no = modelno, rf.inputs = rf.inputs,
                               cutoff = c(0.9, 0.1))  
 
