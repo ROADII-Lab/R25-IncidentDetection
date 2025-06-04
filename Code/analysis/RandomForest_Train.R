@@ -463,20 +463,68 @@ importance(rf.out)
 import_df <- as.data.frame(importance(rf.out)) %>%
   arrange(desc(MeanDecreaseGini))
 
-# Barplot
-importance_plot <- ggplot(import_df, aes(x=reorder(row.names(import_df), -MeanDecreaseGini), y=MeanDecreaseGini)) + 
-  geom_bar(stat = "identity", fill = 'purple') +
-  labs(x = 'Predictor Variable',
-       y = 'Importance (Mean Decrease in Gini Impurity)',
-       title = 'Importance of Predictors in Crash Prediction Model') +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+# Update names to be more presentable in importance plot
+new_names <- c(Average_accident = "Waze Accident Alert",  
+               Average_closure = "Waze Closure Alert",   
+               Average_jams = "Waze Jams Alert",
+               Average_jam_level = "Waze Jams (Automated)",
+               Average_weather = "Waze Weather Alert", 
+               event = "Event", 
+               highway = "Highway (Road Type)", 
+               hist_CAD_CRASH = "Historical CAD Crash", 
+               hist_CAD_HAZARD = "Historical CAD Hazard",
+               hist_CAD_None = "Historical CAD None", 
+               hist_CAD_ROADWORK = "Historical CAD Roadwork", 
+               hist_CAD_STALL =  "Historical CAD Stall", 
+               hist_crashes = "Historical Crashes", 
+               Hour = "Hour", 
+               maxspeed = "Max Speed", 
+               Month = "Month",
+               precipitation = "Precipitation",    
+               SNOW = "Snow",
+               temperature = "Temperature",
+               weekday = "Weekday"
+               )
 
-ggsave(plot = importance_plot, 
-       filename = paste0("importance_barplot", modelno, '_', Sys.Date(), ".png"),
-       path = file.path(outputdir, "Figures"),
-       device = "png",
-       create.dir = T,
-       height = 6, width = 8, units = "in")
+old_rownames <- rownames(import_df)
+
+updated_rownames <- ifelse(old_rownames %in% names(new_names),
+                           new_names[old_rownames],
+                           old_rownames)
+
+rownames(import_df) <- updated_rownames
+
+# Barplot
+importance_plot <- ggplot(import_df, aes(
+  x = reorder(row.names(import_df), -MeanDecreaseGini), 
+  y = MeanDecreaseGini
+)) +
+  geom_bar(stat = "identity", fill = 'purple') +
+  labs(
+    x = 'Predictor Variable',
+    y = 'Importance (Decrease in Gini Impurity)',
+    title = 'Importance of Predictors in Crash Prediction Model'
+  ) +
+  annotate("text", x = Inf, y = Inf, label = paste("Target Variable: ", response.var), 
+           hjust = 1.1, vjust = 1.5, size = 5, color = "blue", fontface = "bold") +
+  theme(
+    axis.text.x  = element_text(angle = 60, vjust = 1, hjust = 1, size = 16),
+    axis.text.y  = element_text(size = 14),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    plot.title   = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
+
+ggsave(
+  plot = importance_plot,
+  filename = paste0("importance_barplot", modelno, '_', Sys.Date(), ".png"),
+  path = file.path(outputdir, "Figures"),
+  device = "png",
+  create.dir = TRUE,
+  height = 6,
+  width = 8,
+  units = "in"
+)
 
 rm(list = ls())
 gc()

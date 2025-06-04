@@ -206,9 +206,9 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   
   # Set up annotation text
   annotation_text <- if (!is.na(multiplier)) {
-    sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline", pr_auc, multiplier)
+    sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline<br>Target Variable: %s", pr_auc, multiplier, response.var)
   } else {
-    sprintf("PRAUC = %.4f<br>Random baseline is zero", pr_auc)
+    sprintf("PRAUC = %.4f<br>Random baseline is zero<br>Target Variable: %s", pr_auc, response.var)
   }
   
   # Create the PR curve plot
@@ -300,8 +300,9 @@ do.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", model.
   train_road_types <- road_types
   train_filter_osm <- filter_osm
   train_include_events <- include_events
+  train_response.var <- response.var
   # THIS IS WHERE ITEMS CAN BE PASSED THROUGH TO PREDICTWEEK.R - ALL THESE WILL BE LOADED WHEN THE SAVED MODEL IS LOADED IN LINE 81 OF PREDICTWEEK.R.
-  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name", "time_interval", "train_road_types", "train_filter_osm", "train_include_events") 
+  savelist = c("rf.out", "rf.pred", "rf.prob", "out.df", "one_zone", "time_zone_name", "time_interval", "train_road_types", "train_filter_osm", "train_include_events", "train_response.var") 
   if(is.null(test.dat)) savelist = c(savelist, "testrows", "trainrows")
   if(!is.null(thin.dat)) savelist = c(savelist, "test.dat.use")
   
@@ -445,9 +446,9 @@ reassess.rf <- function(train.dat, omits, response.var = "MatchEDT_buffer_Acc", 
     
     # Set up annotation text
     annotation_text <- if (!is.na(multiplier)) {
-      sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline", pr_auc, multiplier)
+      sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline<br>Target Variable: %s", pr_auc, multiplier, response.var)
     } else {
-      sprintf("PRAUC = %.4f<br>Random baseline is zero", pr_auc)
+      sprintf("PRAUC = %.4f<br>Random baseline is zero<br>Target Variable: %s", pr_auc, response.var)
     }
     
     # Create the PR curve plot

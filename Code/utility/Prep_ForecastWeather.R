@@ -67,8 +67,8 @@ if(time_bins){
    
 save(weather_forecast, file = file.path(inputdir, "Weather", paste0("OSM_Weather_", state, "_", Sys.Date(), ".RData"))) # save the weather forecast by ROAD script
 
-   rm(KNN, ID_geometry, grd, queries, state_map, weather_points, weather_points.proj, wx_dat_i,
-      api_crs, timezone_adj, road_points)
+   rm(KNN, ID_geometry, weather_points, weather_points.proj,
+      timezone_adj, road_points)
   
 } 
     
