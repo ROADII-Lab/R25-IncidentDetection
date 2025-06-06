@@ -93,6 +93,10 @@ if(!identical(include_events, train_include_events)){
   stop('The include_events parameter setting is different currently than the way it was set when the loaded model was trained. Run halted.')
 }
 
+if(!identical(response.var, train_response.var)){
+  stop('The response.var parameter setting is different currently than the way it was set when the loaded model was trained. Run halted.')
+}
+
 #--------------------------------------------------------------------------------------------------------------
 
 # Create week ----
