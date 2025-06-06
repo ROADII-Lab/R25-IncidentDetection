@@ -29,7 +29,7 @@ state_stations <- stations[stations$State==state,]
 
 ## Hourly Nearest Neighbor --------------------------------------------------------
 
-road_points <- state_network %>% st_cast("POINT") %>% group_by(osm_id) %>% slice_head(n=1) %>% arrange(osm_id)
+road_points <- state_network %>% select(osm_id) %>% st_cast("POINT") %>% group_by(osm_id) %>% slice_head(n=1) %>% arrange(osm_id)
 
 state_stations_sf <- state_stations %>%
   st_as_sf(coords = c("Longitude", "Latitude"), crs=4326) %>%
@@ -245,7 +245,7 @@ training_frame_rc <- training_frame_rc %>% rename(all_of(lookup))
 k_hourly <- 20
 KNN <- as.data.frame(nn2(st_coordinates(state_stations_sf), st_coordinates(road_points),  k=k_hourly, treetype = "kd", searchtype = "standard")$nn.id)
 
-state_network_KNN <- state_network %>% arrange(osm_id) %>% st_drop_geometry() %>%
+state_network_KNN <- state_network %>% select(osm_id) %>% arrange(osm_id) %>% st_drop_geometry() %>%
   bind_cols(KNN) #%>% select(-highway, -ref)
 
 training_frame_rc <- training_frame_rc %>% st_drop_geometry() %>% 
@@ -382,7 +382,7 @@ for(x in unique(training_frame_rc$N_Day)){
     
     KNN <- as.data.frame(nn2(st_coordinates(snow), st_coordinates(road_points),  k=1, treetype = "kd", searchtype = "standard")$nn.id)
     
-    state_network_KNN <- state_network %>% 
+    state_network_KNN <- state_network %>% select(osm_id) %>% 
       st_drop_geometry() %>%
       bind_cols(KNN) 
     

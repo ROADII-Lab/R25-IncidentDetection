@@ -105,7 +105,7 @@ for (m in 1:12){
   
   # combine date/time columns from sample with osm_id and then crashes
   # expand road segment frame, multiplying by the number of date/time training samples
-  temp_train <- do.call(bind_rows, replicate(nrow(dates), state_network %>% st_drop_geometry(), simplify = FALSE)) %>% 
+  temp_train <- do.call(bind_rows, replicate(nrow(dates), state_network %>% select(osm_id) %>% st_drop_geometry(), simplify = FALSE)) %>% 
     arrange(osm_id) %>%
     # merge with expanded version of date/time training frame
     cbind(dates_exp, row.names=NULL) 
