@@ -18,7 +18,7 @@
 ![WA Probability Dashboard](./resources/ZoomOutDashLowRisk.png)
 The above image was generated using a model generated for Washington State and reflects the crash probability for road segments on March 7th at 5:00 PM PST. 
 ![WA Probability Zoomed Dashboard](./resources/ZoomedHighSegment.png)
-The above image was generated using a model generated for Washington State and reflects the crash risk for road segments in the Seattle area on March 6th at 12:00 AM PST.
+The above image was generated using a model for Washington State and reflects the crash risk for road segments in the Seattle area on March 6th at 12:00 AM PST.
 - **Purpose of the source code and how it relates to the overall goals of the project:** This repository contains code and documentation exploring techniques for detecting traffic incidents and assessing roadway network vulnerabilities using real-time and historical datasets. Intended audiences are state DOTs and traffic management centers wanting to improve their ability to respond quickly to incidents on their roadways, and better understand crash risk profiles across time and space.
 - **Length of the project:** This is an exploratory pilot. The ROADII team has also been conducting stakeholder outreach with FHWA Office of Operations and state DOT Traffic Management Centers to evaluate interest and feasibility of the use case. 
 
@@ -29,7 +29,7 @@ General Requirements:
 - Internet Connection
 - Tableau Reader (free to download)
 - R 4.3.0 or later (free to download)
-- Rstudio recommended (free to download)
+- RStudio recommended (free to download)
 
 Requirements for Predictions: 
 - API key associated with TomorrowIO account for weather forecasts (available with free version of account)
@@ -49,7 +49,7 @@ The [Code](https://github.com/ROADII-Lab/R25-IncidentDetection/tree/main/Code) f
 - The primary directory is `R25-IncidentPrediction/Code`. All work should be done from the Incident_Prediction.Rproj R project. 
 - The `Analysis` folder contains the primary R scripts used to run the Incident_Prediction tool. 
 - The `utility` folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
-- The `Input` folder stores all raw data files including crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data
+- The `Input` folder stores all raw data files including crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data.
 - The `Intermediate` folder contains data that has undergone some cleaning and manipulation. The datacleaning and preparation process can be computationally intensive so this folder provides storage for data that only needs to be cleaned once and then reused. 
 - The `Output` folder contains the primary results from the Analysis scripts, including trained Random Forest models, model diagnostics, and predictions.
 
@@ -69,6 +69,11 @@ The steps for training models and generating predictions are as follows:
    - `projection`: (integer) Defines the coordinate reference system to convert all geospatial data into and use for geospatial operations, specified as an EPSG number. This should be a projected coordinate system and not a geographic coordinate system. The default is 5070 (NAD83 / Conus Albers which is for North America). 
    - `test_percentage`: (numeric) Defines the percentage of the observations to be used in the test sample (in model training).
    - `road_types`: (character) Road type or list of road types to include. Potential types include motorway, trunk, primary, secondary, and tertiary, defined according to OpenStreetMap. For OpenStreetMap definitions, visit [OSM Highway Key](https://wiki.openstreetmap.org/wiki/Key:highway).
+   - 'filter_osm: (boolean) Indicate whether to subset the analysis to only certain road segments. 
+   - 'AOI_shp_path': (string) File path for the shapefile that defines the area of interest. 
+   - 'include_events': (boolean) Indicate whether to include events as a predictor.
+   - 'response.var': (string) Confirm the name of the crash column that is used as the target, or response variable. 
+   - 'noncrashratio': (integer) Ratio of non-crash observations to crash observations to use in sampling.
 
 3. Click on the scipt immediately below the parameters just described and press Alt+Ctrl+B, or from the Code menu at the top select 'Run Region' and then 'Run from Beginning to Line'.
 

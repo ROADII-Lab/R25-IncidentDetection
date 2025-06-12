@@ -11,7 +11,7 @@
 num <- "10to1_majorroads"
 
 # Define the state, using abbreviation.
-state <- "WA"
+state <- "MN"
 
 # Define the year.
 year <- 2021
@@ -62,7 +62,7 @@ AOI_shp_path <- paste('Shapefiles', 'MN_Metro', 'MN_Metro.shp', sep='/')
 # It should contain a column called "Date", with dates specified in the following format: %m/%d/%Y - 
 # for example, January 6, 2026 would be 1/6/2026 in that format.
 # File name should be 'events.csv'
-include_events <- T
+include_events <- F
 
 # confirm the name of the crash column that is used as the target, or response variable.
 response.var <- "crash" # binary indicator of whether crash occurred, based on processing above. random forest function can also accept numeric target. 
