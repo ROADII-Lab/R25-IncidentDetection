@@ -49,10 +49,9 @@ test_percentage <- 0.03
 # This page explains more about the road types, which are in the 'highway' attribute: https://wiki.openstreetmap.org/wiki/Key:highway
 road_types <- c('motorway', 'trunk', 'primary')
 
-# Indicate whether to subset the analysis to only certain road segments. 
-# If filter_osm is set to T or TRUE, you must put a .csv file in the Input folder that specifies a subset of osm_ids to use.
-# The first row should be the column header, 'osm_id', and the remaining rows the osm_id values that should be included.
-# File name should be 'osm_subset.csv'
+# Indicate whether to subset the analysis to only a certain area of interest.
+# If filter_osm is set to T or TRUE, you must prepare a shapefile or other geospatial file defining the area of interest and 
+# specify the full path to that shapefile in the next parameter (AOI_shp_path)
 filter_osm <- F
 # if the above is true, then for AOI_shp_path specify the path (within the Input folder) that leads to the shapefile that defines the area of interest.
 AOI_shp_path <- paste('Shapefiles', 'MN_Metro', 'MN_Metro.shp', sep='/')
