@@ -20,8 +20,6 @@ if(!dir.exists(waze_jams_dir)){dir.create(waze_jams_dir, recursive = T)}
 # Load Road Network --------------------------------------------------------------
 
 source(file.path("utility", "OpenStreetMap_pull.R"))
-  
-state_network <- state_network %>% select(osm_id)
 
 # Load Crash Data ------------------------------
 
