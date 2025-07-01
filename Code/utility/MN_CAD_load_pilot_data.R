@@ -49,7 +49,7 @@ May20_26_CAD <- May20_26_CAD %>%
   replace_na(list(CRASH = 0)) %>%
   rename(all_of(lookup)) %>%
   as.data.frame() %>% 
-  mutate(month = lubridate::month(centraltime),
+  mutate(Month = lubridate::month(centraltime),
          day = lubridate::day(centraltime),
-         hour = lubridate::hour(centraltime)) %>%
+         Hour = lubridate::hour(centraltime)) %>%
   select(!centraltime)
