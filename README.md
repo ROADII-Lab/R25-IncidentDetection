@@ -46,7 +46,7 @@ Other Optional Data for Training:
 
 The [Code](https://github.com/ROADII-Lab/R25-IncidentDetection/tree/main/Code) folder contains all code and input/output/intermediate folders. 
 
-- The primary directory is `R25-IncidentPrediction/Code`. All work should be done from the Incident_Prediction.Rproj R project. 
+- The primary directory is `R25-IncidentPrediction/Code`. 
 - The `Analysis` folder contains the primary R scripts used to run the Incident_Prediction tool. 
 - The `utility` folder contains scripts used for data cleaning and database querying. Key parameters are passed to these scripts via the scripts in the Analysis folder. 
 - The `Input` folder stores all raw data files including crash data, Open Street Maps road networks, Waze jams and alerts data, and weather data.
@@ -56,7 +56,7 @@ The [Code](https://github.com/ROADII-Lab/R25-IncidentDetection/tree/main/Code) f
 The steps for training models and generating predictions are as follows:
 
 1. Clone the GitHub repository to a directory of your choice on your machine.
-2. Open `Code/master_script.R` 
+2. Open the `Code/Code.Rproj` file and then navigate to open `master_script.R` in the lower right panel of Rstudio. 
 
    This script is where all parameters are set by the user, and the two primary analysis scripts are sourced. Parameters set in this script include:
    
@@ -64,16 +64,16 @@ The steps for training models and generating predictions are as follows:
    - `state`: (string) The state abbreviation for which predictions are being generated.
    - `year` : (integer) The historical year used for training the model.
    - `time_bins`: (boolean) Indicates whether the tool should group data into multi-hour increments (rather than training and generating predictions based on individual hours).
-   - `time_interval` : (string) Specifies the size of the bin, when `time_bins`, above, is set to true (e.g., '6 hours')
+   - `time_interval` : (string) Specifies the size of the bin, when `time_bins`, above, is set to TRUE (e.g., '6 hours')
    - `imputed_waze`: (boolean) Indicates whether Waze data should be imputed for the upcoming week.
    - `projection`: (integer) Defines the coordinate reference system to convert all geospatial data into and use for geospatial operations, specified as an EPSG number. This should be a projected coordinate system and not a geographic coordinate system. The default is 5070 (NAD83 / Conus Albers which is for North America). 
    - `test_percentage`: (numeric) Defines the percentage of the observations to be used in the test sample (in model training).
    - `road_types`: (character) Road type or list of road types to include. Potential types include motorway, trunk, primary, secondary, and tertiary, defined according to OpenStreetMap. For OpenStreetMap definitions, visit [OSM Highway Key](https://wiki.openstreetmap.org/wiki/Key:highway).
-   - 'filter_osm: (boolean) Indicate whether to subset the analysis to only certain road segments. 
-   - 'AOI_shp_path': (string) File path for the shapefile that defines the area of interest. 
-   - 'include_events': (boolean) Indicate whether to include events as a predictor.
-   - 'response.var': (string) Confirm the name of the crash column that is used as the target, or response variable. 
-   - 'noncrashratio': (integer) Ratio of non-crash observations to crash observations to use in sampling.
+   - `filter_osm`: (boolean) Indicate whether to subset the analysis to only a certain area of interest. 
+   - `AOI_shp_path`: (string) File path for the shapefile that defines the area of interest - only used if `filter_osm` is set to TRUE. 
+   - `include_events`: (boolean) Indicate whether to include events as a predictor.
+   - `response.var`: (string) Confirm the name of the crash column that is used as the target, or response variable. 
+   - `noncrashratio`: (integer) Ratio of non-crash observations to crash observations to use in sampling.
 
 3. Click on the scipt immediately below the parameters just described and press Alt+Ctrl+B, or from the Code menu at the top select 'Run Region' and then 'Run from Beginning to Line'.
 
@@ -116,6 +116,10 @@ The dashboard allows the users to filter for crash risk on specific road types, 
 - `utility/osm_query.R`: This script connects the road network with crash data. It first sources `utility/OpenStreetMap_pull.R` to provide the roadway network onto which crashes will be mapped. Crash data is then loaded, transformed to a defined coordinate reference system (5070 by default), and joined to the nearest OSM roadway link. Refer to the HSIS data section if you need to incorporate new crash data.
 - `utility/Join_Road_Weather.R`: This script joins hourly weather data to the historical road network. It integrates hourly National Oceanic and Atmospheric Administration GHCN weather station data, cleans the dataset by removing duplicates, and calculates the mean precipitation, temperature, and maximum snow depth recorded at each hour for every station. The station-hour mapping is then linked to the roadway network by assigning each OSM link to the nearest weather station.
 - `utility/prep_hist_crash.R`: This script is sourced in `RandomForest_Train.R` and reads and prepares user-provided historical crash data. Users will likely need to modify the script based on their specific dataset. The script expects crashes to be in the form of shapefiles. Historical crash data requires precise latitude-longitude coordinates and timestamps at a minimum.
+- `Prep_ForecastWeather.R`:
+- `TomorrowIO_pull.R`: 
+- `pivotdash.R`:
+- `createdash.R`: 
 
 # Additional Notes
 
