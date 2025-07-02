@@ -3,22 +3,46 @@ inputdir <- file.path(getwd(),"Input")
 intermediatedir <- file.path(getwd(),"Intermediate")
 outputdir<- file.path(getwd(),"Output")
 predict_week_out_dir <- file.path(outputdir, "Predict_Week_Outputs")
+pilot_results_dir <- file.path(outputdir, "Pilot_Results")
 
-begin_date <- as.Date("2025-05-20")
+if(!dir.exists(pilot_results_dir)) { dir.create(pilot_results_dir) }
 
-# load predictions
+source(file.path("utility", "get_packages.R")) # installs necessary package
 
-predictions <- read.csv(file.path(predict_week_out_dir, paste0(modelno,'_', begin_date, '.csv')))
+# read helper functions (e.g. fill_na())
+source(file.path("analysis", "RandomForest_Fx.R"))
 
-predictions <- read_csv(file.path(predict_week_out_dir, paste0(modelno,'_', begin_date, '.csv')), 
-                        col_types = cols(osm_id = col_character()))
+# read in road network (needed to load CAD data)
+source(file.path("utility", "OpenStreetMap_pull.R"))
 
-# load actual CAD_CRASH data
-
+# read in functions to load predictions and actual crash data and present results
 source(file.path("utility", "MN_CAD_load_pilot_data.R"))
 
+# The full model identifier gets created in this next step
+modelno = paste(state,
+                year, 
+                ifelse(imputed_waze, "imputed", "NOTimputed"),
+                ifelse(time_bins, "tbins", "hourly"), 
+                num, 
+                sep = "_")
+
+# establish the dates of relevant runs
+runs <- as.Date(c("2025-05-20", "2025-05-21", "2025-05-23"))
+
+# load predictions
+predictions <- load_and_combine_csv(runs)
+
+# load actual CAD_CRASH data
+CAD_result <- load_CAD_pilot_results(file.path(inputdir,"Crash","250520 Metro CAD data.csv"))
+
+max(CAD_result$latest_record)
+max(predictions$date)
+
+# trim off predictions that extend beyond the time frame for which we have actual results
+predictions <- predictions %>% filter(date <= max(CAD_result$latest_record))
+
 # join actual results to predictions
-merge_result <- left_join(predictions, May20_26_CAD, by = c('osm_id','Month', 'day', 'Hour')) %>%
+merge_result <- left_join(predictions, CAD_result$df, by = c('osm_id','Month', 'day', 'Hour')) %>%
   fill_na() %>%
   mutate(CAD_CRASH = ifelse(CAD_CRASH>0, 1, 0))
 
@@ -67,7 +91,7 @@ fig <- plot_ly() %>%
     hoverinfo = 'none' # *crucial!*
   ) %>%
   layout(
-    title = paste0("Precision-Recall Curve (Model ", model.no, ")"),
+    title = paste0("Precision-Recall Curve (Model ", modelno, ")"),
     xaxis = list(title = "Recall"),
     yaxis = list(title = "Precision"),
     hovermode = "closest",
@@ -88,5 +112,5 @@ fig <- plot_ly() %>%
 # Save as interactive HTML
 htmlwidgets::saveWidget(
   fig,
-  file = file.path(outputdir, "Pilot_Results", paste0("PR_curve_", model.no, ".html"))
+  file = file.path(pilot_results_dir, paste0("PR_curve_", date(min(predictions$date)), "_to_", date(max(predictions$date)), ".html"))
 )
