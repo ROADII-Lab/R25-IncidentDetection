@@ -35,9 +35,6 @@ predictions <- load_and_combine_csv(runs)
 # load actual CAD_CRASH data
 CAD_result <- load_CAD_pilot_results(file.path(inputdir,"Crash","250520 Metro CAD data.csv"))
 
-max(CAD_result$latest_record)
-max(predictions$date)
-
 # trim off predictions that extend beyond the time frame for which we have actual results
 predictions <- predictions %>% filter(date <= max(CAD_result$latest_record))
 
@@ -46,69 +43,39 @@ merge_result <- left_join(predictions, CAD_result$df, by = c('osm_id','Month', '
   fill_na() %>%
   mutate(CAD_CRASH = ifelse(CAD_CRASH>0, 1, 0))
 
-# Generate visual of precision-recall curve and its area under the curve (AUC) 
+# Call main function disaggregating by different variables with static threshold
+results_hour_stat <- performance_by_group(merge_result, "Hour", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+results_weekday_stat <- performance_by_group(merge_result, "weekday", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+results_roadtype_stat <- performance_by_group(merge_result, "highway", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+# lower threshold for this one
+results_osm_id_stat <- performance_by_group(merge_result, "osm_id", use_dynamic_threshold = FALSE, fixed_threshold = 0.5)
 
-# Prepare data
-true_labels <- merge_result$CAD_CRASH
-probs <- merge_result$Prob_Crash
-pr <- pr.curve(scores.class0 = probs[true_labels == 1], 
-               scores.class1 = probs[true_labels == 0], curve = TRUE)
-pr_auc <- pr$auc.integral
-random_baseline <- mean(true_labels)
-multiplier <- if (random_baseline > 0) pr_auc / random_baseline else NA
+# Generate some plots
+plot_pr_auc_with_baseline(results_hour_stat, "Hour")
+plot_multiplier(results_hour_stat, "Hour")
+plot_accuracy(results_hour_stat, "Hour")
+plot_f1(results_hour_stat, "Hour")
 
-pr_curve_df <- as.data.frame(pr$curve)
-colnames(pr_curve_df) <- c("Recall", "Precision", "Threshold")
+####################################################################
+results_osm_id_stat <- results_osm_id_stat %>%
+  mutate()
 
-# Set up annotation text
-annotation_text <- if (!is.na(multiplier)) {
-  sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline<br>Target Variable: %s", pr_auc, multiplier, response.var)
-} else {
-  sprintf("PRAUC = %.4f<br>Random baseline is zero<br>Target Variable: %s", pr_auc, response.var)
-}
+test <- results_osm_id_stat %>% filter(pos_fraction > 0)
 
-# Create the PR curve plot
-fig <- plot_ly() %>%
-  # Main curve: all hover options fine
-  add_trace(
-    data = pr_curve_df,
-    x = ~Recall,
-    y = ~Precision,
-    type = 'scatter',
-    mode = 'lines+markers',
-    name = "Model",
-    text = ~paste("Recall:", round(Recall, 3), "<br>Precision:", round(Precision, 3)),
-    hoverinfo = 'text'
-  ) %>%
-  # Baseline: NO text argument, no hover!
-  add_trace(
-    x = c(0, 1),
-    y = rep(random_baseline, 2),
-    type = 'scatter',
-    mode = 'lines',
-    line = list(dash = 'dash', color = 'red'),
-    name = 'Random baseline',
-    hoverinfo = 'none' # *crucial!*
-  ) %>%
-  layout(
-    title = paste0("Precision-Recall Curve (Model ", modelno, ")"),
-    xaxis = list(title = "Recall"),
-    yaxis = list(title = "Precision"),
-    hovermode = "closest",
-    annotations = list(
-      list(
-        x = 0,  # far left of plot area
-        y = 1.05,  # just above the plot area
-        text = annotation_text,
-        xref = "paper",
-        yref = "paper",
-        showarrow = FALSE,
-        font = list(size = 14, color = "blue", family = "Arial"),
-        align = "left"
-      )
-    )
-  )
+test2 <- test %>% filter(f1_score > 0)
 
+####################################################################
+
+# Calculate precision-recall results for May 20-26
+May20to26_PR_result <- calculate_PR(dataframe = merge_result)
+
+# Calculate precision-recall results for May 20-23 (normal week)
+May_20to23 <- merge_result %>% filter(date <= as.Date("2025-05-23"))
+May20to23_PR_result <- 
+
+# Calculate precision-recall results for May 24-26 (Memorial Day holiday weekend)
+May24to26_PR_result <- merge_result %>% filter(date > as.Date("2025-05-23"))
+  
 # Save as interactive HTML
 htmlwidgets::saveWidget(
   fig,

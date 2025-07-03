@@ -87,3 +87,243 @@ load_CAD_pilot_results <- function(fp) {
   
 }
 
+##### function to calculate precision-recall curve and return figure and metrics
+
+# Generate visual of precision-recall curve and its area under the curve (AUC) 
+
+calculate_PR <- function(dataframe){
+  # Prepare data
+  true_labels <- dataframe$CAD_CRASH
+  probs <- dataframe$Prob_Crash
+  pr <- pr.curve(scores.class0 = probs[true_labels == 1], 
+                 scores.class1 = probs[true_labels == 0], curve = TRUE)
+  pr_auc <- pr$auc.integral
+  random_baseline <- mean(true_labels)
+  multiplier <- if (random_baseline > 0) pr_auc / random_baseline else NA
+  
+  pr_curve_df <- as.data.frame(pr$curve)
+  colnames(pr_curve_df) <- c("Recall", "Precision", "Threshold")
+  
+  # Set up annotation text
+  annotation_text <- if (!is.na(multiplier)) {
+    sprintf("PRAUC = %.4f<br>PRAUC is %.2f times random baseline<br>Target Variable: %s", pr_auc, multiplier, response.var)
+  } else {
+    sprintf("PRAUC = %.4f<br>Random baseline is zero<br>Target Variable: %s", pr_auc, response.var)
+  }
+  
+  # Create the PR curve plot
+  fig <- plot_ly() %>%
+    # Main curve: all hover options fine
+    add_trace(
+      data = pr_curve_df,
+      x = ~Recall,
+      y = ~Precision,
+      type = 'scatter',
+      mode = 'lines+markers',
+      name = "Model",
+      text = ~paste("Recall:", round(Recall, 3), "<br>Precision:", round(Precision, 3)),
+      hoverinfo = 'text'
+    ) %>%
+    # Baseline: NO text argument, no hover!
+    add_trace(
+      x = c(0, 1),
+      y = rep(random_baseline, 2),
+      type = 'scatter',
+      mode = 'lines',
+      line = list(dash = 'dash', color = 'red'),
+      name = 'Random baseline',
+      hoverinfo = 'none' # *crucial!*
+    ) %>%
+    layout(
+      title = paste0("Precision-Recall Curve (Model ", modelno, ")"),
+      xaxis = list(title = "Recall"),
+      yaxis = list(title = "Precision"),
+      hovermode = "closest",
+      annotations = list(
+        list(
+          x = 0,  # far left of plot area
+          y = 1.05,  # just above the plot area
+          text = annotation_text,
+          xref = "paper",
+          yref = "paper",
+          showarrow = FALSE,
+          font = list(size = 14, color = "blue", family = "Arial"),
+          align = "left"
+        )
+      )
+    )
+  return(list(fig = fig, pr_auc = pr_auc, multiplier = multiplier, random_baseline = random_baseline))
+}
+
+############## Functions to calculate PR AUC, Accuracy, and F1-score, #########
+############## disaggregated by category                              #########
+
+# Calculate PR AUC given data frame with CAD_CRASH and Prob_Crash
+calculate_pr_auc <- function(df) {
+  true_labels <- df$CAD_CRASH
+  probs <- df$Prob_Crash
+  if(length(unique(true_labels)) < 2) {
+    return(NA_real_)
+  }
+  pr <- pr.curve(scores.class0 = probs[true_labels == 1],
+                 scores.class1 = probs[true_labels == 0], curve = FALSE)
+  return(pr$auc.integral)
+}
+
+# Helper to find threshold maximizing accuracy, returning acc, f1, prec, rec
+find_best_threshold <- function(true_labels, probs) {
+  thresholds <- seq(0, 1, by = 0.01)
+  
+  # For each threshold, compute metrics
+  metrics <- sapply(thresholds, function(thresh) {
+    preds <- ifelse(probs >= thresh, 1, 0)
+    TP <- sum(preds == 1 & true_labels == 1)
+    FP <- sum(preds == 1 & true_labels == 0)
+    FN <- sum(preds == 0 & true_labels == 1)
+    TN <- sum(preds == 0 & true_labels == 0)
+    
+    acc  <- (TP + TN) / (TP + TN + FP + FN)
+    prec <- if (TP + FP > 0) TP / (TP + FP) else 0
+    rec  <- if (TP + FN > 0) TP / (TP + FN) else 0
+    f1   <- if (prec + rec > 0) 2 * (prec * rec) / (prec + rec) else 0
+    
+    c(acc = acc, f1 = f1, precision = prec, recall = rec)
+  })
+  
+  best <- which.max(metrics["acc", ])
+  list(
+    threshold = thresholds[best],
+    accuracy  = metrics["acc", best],
+    f1        = metrics["f1", best],
+    precision = metrics["precision", best],
+    recall    = metrics["recall", best]
+  )
+}
+
+# Main function: PR AUC + baseline + threshold metrics by group
+performance_by_group <- function(data, group_var,
+                                 use_dynamic_threshold = TRUE,
+                                 fixed_threshold = 0.5) {
+  data %>%
+    group_by(.data[[group_var]]) %>%
+    summarise(
+      n              = n(),
+      pos_fraction   = mean(CAD_CRASH),
+      pr_auc         = {
+        df_sub <- pick(CAD_CRASH, Prob_Crash)
+        calculate_pr_auc(df_sub)
+      },
+      random_baseline = mean(CAD_CRASH),
+      multiplier     = ifelse(random_baseline > 0, pr_auc / random_baseline, NA_real_),
+      
+      # Compute a small list-column of performance metrics:
+      perf_list = list(
+        if (use_dynamic_threshold) {
+          find_best_threshold(CAD_CRASH, Prob_Crash)
+        } else {
+          # fixed threshold branch
+          preds <- ifelse(Prob_Crash >= fixed_threshold, 1, 0)
+          TP <- sum(preds == 1 & CAD_CRASH == 1)
+          FP <- sum(preds == 1 & CAD_CRASH == 0)
+          FN <- sum(preds == 0 & CAD_CRASH == 1)
+          TN <- sum(preds == 0 & CAD_CRASH == 0)
+          
+          acc  <- (TP + TN) / (TP + TN + FP + FN)
+          prec <- if (TP + FP > 0) TP / (TP + FP) else 0
+          rec  <- if (TP + FN > 0) TP / (TP + FN) else 0
+          f1   <- if (prec + rec > 0) 2 * (prec * rec) / (prec + rec) else 0
+          
+          list(
+            threshold = fixed_threshold,
+            accuracy  = acc,
+            f1        = f1,
+            precision = prec,
+            recall    = rec
+          )
+        }
+      ),
+      .groups = "drop"
+    ) %>%
+    # Unnest the perf_list into separate columns
+    mutate(
+      threshold_used = map_dbl(perf_list, "threshold"),
+      accuracy       = map_dbl(perf_list, "accuracy"),
+      f1_score       = map_dbl(perf_list, "f1"),
+      precision      = map_dbl(perf_list, "precision"),
+      recall         = map_dbl(perf_list, "recall")
+    ) %>%
+    select(-perf_list)
+}
+
+## plotting
+# PR AUC and Random Baseline grouped bar plot
+plot_pr_auc_with_baseline <- function(df, group_var) {
+  
+  # Convert grouping variable to character (discrete) for plotting bars with equal widths
+  df <- df %>%
+    mutate(!!group_var := as.factor(.data[[group_var]]))
+  
+  plot_df <- df %>%
+    pivot_longer(cols = c("pr_auc", "random_baseline"),
+                 names_to = "Metric", values_to = "Value") %>%
+    mutate(
+      Metric = recode(Metric,
+                      pr_auc = "PR AUC",
+                      random_baseline = "Random Baseline")
+    )
+  
+  # Extract levels to keep all labels
+  x_labels <- levels(df[[group_var]])
+  
+  ggplot(plot_df, aes(x = .data[[group_var]], y = Value, fill = Metric)) +
+    geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+    geom_text(aes(label = round(Value, 3)),
+              position = position_dodge(width = 0.8), vjust = -0.3, size = 3) +
+    labs(title = paste("PR AUC and Random Baseline by", group_var),
+         x = group_var,
+         y = "Value",
+         fill = NULL) +
+    scale_fill_manual(values = c(
+      "PR AUC" = "steelblue",
+      "Random Baseline" = "gray50"
+    )) +
+    scale_x_discrete(breaks = x_labels) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Multiplier plot (PR AUC / baseline)
+plot_multiplier <- function(df, group_var) {
+  ggplot(df, aes(x = .data[[group_var]], y = multiplier)) +
+    geom_col(fill = "forestgreen") +
+    geom_text(aes(label = round(multiplier, 2)), vjust = -0.3, size = 3) +
+    labs(title = paste("Model Improvement over Baseline by", group_var),
+         x = group_var,
+         y = "PR AUC / Baseline") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Accuracy plot
+plot_accuracy <- function(df, group_var) {
+  ggplot(df, aes(x = .data[[group_var]], y = accuracy)) +
+    geom_col(fill = "coral") +
+    geom_text(aes(label = round(accuracy, 3)), vjust = -0.3, size = 3) +
+    labs(title = paste("Accuracy by", group_var),
+         x = group_var,
+         y = "Accuracy") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# F1 Score plot
+plot_f1 <- function(df, group_var) {
+  ggplot(df, aes(x = .data[[group_var]], y = f1_score)) +
+    geom_col(fill = "steelblue") +
+    geom_text(aes(label = round(f1_score, 3)), vjust = -0.3, size = 3) +
+    labs(title = paste("F1 Score by", group_var),
+         x = group_var,
+         y = "F1 Score") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
