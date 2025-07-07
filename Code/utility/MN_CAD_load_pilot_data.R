@@ -277,7 +277,7 @@ plot_pr_auc_with_baseline <- function(df, group_var) {
   
   ggplot(plot_df, aes(x = .data[[group_var]], y = Value, fill = Metric)) +
     geom_col(position = position_dodge(width = 0.8), width = 0.7) +
-    geom_text(aes(label = round(Value, 3)),
+    geom_text(aes(label = sprintf("%.4f", Value)),
               position = position_dodge(width = 0.8), vjust = -0.3, size = 3) +
     labs(title = paste("PR AUC and Random Baseline by", group_var),
          x = group_var,
@@ -308,7 +308,7 @@ plot_multiplier <- function(df, group_var) {
 plot_accuracy <- function(df, group_var) {
   ggplot(df, aes(x = .data[[group_var]], y = accuracy)) +
     geom_col(fill = "coral") +
-    geom_text(aes(label = round(accuracy, 3)), vjust = -0.3, size = 3) +
+    geom_text(aes(label = sprintf("%.4f", accuracy)), vjust = -0.3, size = 3) +
     labs(title = paste("Accuracy by", group_var),
          x = group_var,
          y = "Accuracy") +
@@ -320,10 +320,86 @@ plot_accuracy <- function(df, group_var) {
 plot_f1 <- function(df, group_var) {
   ggplot(df, aes(x = .data[[group_var]], y = f1_score)) +
     geom_col(fill = "steelblue") +
-    geom_text(aes(label = round(f1_score, 3)), vjust = -0.3, size = 3) +
+    geom_text(aes(label = sprintf("%.4f", f1_score)), vjust = -0.3, size = 3) +
     labs(title = paste("F1 Score by", group_var),
          x = group_var,
          y = "F1 Score") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Function to generate and write all plots
+generate_plots <- function(result_df, group_var, save_name){
+  pr_auc_with_baseline = plot_pr_auc_with_baseline(result_df, group_var)
+  multiplier = plot_multiplier(result_df, group_var)
+  accuracy = plot_accuracy(result_df, group_var)
+  F1 = plot_f1(result_df, group_var)
+  
+  ggsave(
+    plot = pr_auc_with_baseline,
+    filename = paste0(save_name, "_pr_auc_with_baseline_by_", group_var,".png"),
+    path = pilot_results_dir,
+    device = "png",
+    create.dir = TRUE,
+    height = 6,
+    width = 8,
+    units = "in"
+  )
+  
+  ggsave(
+    plot = multiplier,
+    filename = paste0(save_name, "_multiplier_by", group_var, ".png"),
+    path = pilot_results_dir,
+    device = "png",
+    create.dir = TRUE,
+    height = 6,
+    width = 8,
+    units = "in"
+  )
+  
+  ggsave(
+    plot = accuracy,
+    filename = paste0(save_name, "_accuracy_by", group_var, ".png"),
+    path = pilot_results_dir,
+    device = "png",
+    create.dir = TRUE,
+    height = 6,
+    width = 8,
+    units = "in"
+  )
+  
+  ggsave(
+    plot = F1,
+    filename = paste0(save_name, "_F1_by", group_var, ".png"),
+    path = pilot_results_dir,
+    device = "png",
+    create.dir = TRUE,
+    height = 6,
+    width = 8,
+    units = "in"
+  )
+  
+}
+
+# Function to generate and save all plots in a grid
+generate_plots <- function(result_df, group_var, save_name){
+  pr_auc_with_baseline <- plot_pr_auc_with_baseline(result_df, group_var)
+  multiplier <- plot_multiplier(result_df, group_var)
+  accuracy <- plot_accuracy(result_df, group_var)
+  F1 <- plot_f1(result_df, group_var)
+  
+  # Arrange plots in a 2x2 grid
+  combined_plot <- (pr_auc_with_baseline | multiplier) / (accuracy | F1)
+  # Alternatively: combined_plot <- pr_auc_with_baseline + multiplier + accuracy + F1 + plot_layout(ncol = 2)
+  
+  ggsave(
+    plot = combined_plot,
+    filename = paste0(save_name, "_all_plots_by_", group_var, ".png"),
+    path = pilot_results_dir,
+    device = "png",
+    create.dir = TRUE,
+    height = 10,  # adjust height and width as needed
+    width = 12,
+    units = "in"
+  )
 }

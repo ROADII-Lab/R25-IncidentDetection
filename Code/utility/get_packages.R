@@ -22,6 +22,7 @@ requiredpackages <- c("randomForest", # random forest
                       "XML", # for xmlToList
                       "jsonlite",
                       "tigris", # for state shapefiles (or other census geographies)
+                      "patchwork", # for arranging plots in a grid
                       "pROC", # for receiver operating characteristic (ROC) curve and AUC
                       "PRROC", # for precision-recall curve and AUC
                       "openxlsx", # used in createdash

@@ -43,41 +43,51 @@ merge_result <- left_join(predictions, CAD_result$df, by = c('osm_id','Month', '
   fill_na() %>%
   mutate(CAD_CRASH = ifelse(CAD_CRASH>0, 1, 0))
 
-# Call main function disaggregating by different variables with static threshold
-results_hour_stat <- performance_by_group(merge_result, "Hour", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
-results_weekday_stat <- performance_by_group(merge_result, "weekday", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
-results_roadtype_stat <- performance_by_group(merge_result, "highway", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
-# lower threshold for this one
-results_osm_id_stat <- performance_by_group(merge_result, "osm_id", use_dynamic_threshold = FALSE, fixed_threshold = 0.5)
+# function to run analysis for a given time period
+run_analysis <- function(df, save_name){
+  
+  # Determine precision-recall curve for the entire set (not disaggregated)
+  # returns fig, pr_auc, multiplier, random_baseline
+  overall_PR = calculate_PR(dataframe = df)
+  
+  # Save as interactive HTML
+  htmlwidgets::saveWidget(
+    overall_PR$fig,
+    file = file.path(pilot_results_dir, paste0("Overall_PR_curve_", save_name, ".html"))
+  )
+  
+  # Then calculate performance disaggregated by different variables with static threshold
+  results_hour_stat = performance_by_group(df, "Hour", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+  results_weekday_stat = performance_by_group(df, "weekday", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+  results_roadtype_stat = performance_by_group(df, "highway", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+  # lower threshold for this one
+  results_osm_id_stat = performance_by_group(df, "osm_id", use_dynamic_threshold = FALSE, fixed_threshold = 0.5)
+  
+  write.csv(results_hour_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_hour_stat.csv")))
+  write.csv(results_weekday_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_weekday_stat.csv")))
+  write.csv(results_roadtype_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_roadtype_stat.csv")))
+  write.csv(results_osm_id_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_osm_id_stat.csv")))
+  
+  generate_plots(result_df = results_hour_stat, group_var = "Hour", save_name = save_name)
+  generate_plots(result_df = results_weekday_stat, group_var = "weekday", save_name = save_name)
+  generate_plots(result_df = results_roadtype_stat, group_var = "highway", save_name = save_name)
+  
+  return(list(overall_PR = overall_PR, hour = results_hour_stat, weekday = results_weekday_stat, highway = results_roadtype_stat, osm_id = results_osm_id_stat))
+}
 
-# Generate some plots
-plot_pr_auc_with_baseline(results_hour_stat, "Hour")
-plot_multiplier(results_hour_stat, "Hour")
-plot_accuracy(results_hour_stat, "Hour")
-plot_f1(results_hour_stat, "Hour")
+May_20_23 <- merge_result %>% filter(date <= as.Date("2025-05-23"))
+
+May24_to_26 <- merge_result %>% filter(date > as.Date("2025-05-23"))
+
+May20_to_23_results <- run_analysis(May_20_23, "May_20_23")
+
+May24_to_26_results <- run_analysis(May24_to_26, "May24_to_26")
+
 
 ####################################################################
-results_osm_id_stat <- results_osm_id_stat %>%
-  mutate()
 
-test <- results_osm_id_stat %>% filter(pos_fraction > 0)
+test <- May_20_23$results_osm_id_stat %>% filter(pos_fraction > 0)
 
 test2 <- test %>% filter(f1_score > 0)
 
 ####################################################################
-
-# Calculate precision-recall results for May 20-26
-May20to26_PR_result <- calculate_PR(dataframe = merge_result)
-
-# Calculate precision-recall results for May 20-23 (normal week)
-May_20to23 <- merge_result %>% filter(date <= as.Date("2025-05-23"))
-May20to23_PR_result <- 
-
-# Calculate precision-recall results for May 24-26 (Memorial Day holiday weekend)
-May24to26_PR_result <- merge_result %>% filter(date > as.Date("2025-05-23"))
-  
-# Save as interactive HTML
-htmlwidgets::saveWidget(
-  fig,
-  file = file.path(pilot_results_dir, paste0("PR_curve_", date(min(predictions$date)), "_to_", date(max(predictions$date)), ".html"))
-)
