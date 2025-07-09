@@ -87,6 +87,27 @@ load_CAD_pilot_results <- function(fp) {
   
 }
 
+# function to load and combine predictions and CAD data into one merged result
+load_combine <- function(runs, CAD_fn){
+  
+  # load predictions
+  predictions <- load_and_combine_csv(runs)
+  
+  # load actual CAD_CRASH data
+  CAD_result <- load_CAD_pilot_results(file.path(inputdir,"Crash",CAD_fn))
+  
+  # trim off predictions that extend beyond the time frame for which we have actual results
+  predictions <- predictions %>% filter(date <= max(CAD_result$latest_record))
+  
+  # join actual results to predictions
+  merge_result <- left_join(predictions, CAD_result$df, by = c('osm_id','Month', 'day', 'Hour')) %>%
+    fill_na() %>%
+    mutate(CAD_CRASH = ifelse(CAD_CRASH>0, 1, 0))
+  
+  return(merge_result)
+  
+}
+
 ##### function to calculate precision-recall curve and return figure and metrics
 
 # Generate visual of precision-recall curve and its area under the curve (AUC) 
@@ -294,36 +315,63 @@ plot_pr_auc_with_baseline <- function(df, group_var) {
 
 # Multiplier plot (PR AUC / baseline)
 plot_multiplier <- function(df, group_var) {
+  
+  # Convert group_var to factor to ensure x-axis discrete labels
+  df <- df %>%
+    mutate(!!group_var := as.factor(.data[[group_var]]))
+  
+  # Extract levels to keep all labels
+  x_labels <- levels(df[[group_var]])
+  
   ggplot(df, aes(x = .data[[group_var]], y = multiplier)) +
     geom_col(fill = "forestgreen") +
     geom_text(aes(label = round(multiplier, 2)), vjust = -0.3, size = 3) +
     labs(title = paste("Model Improvement over Baseline by", group_var),
          x = group_var,
          y = "PR AUC / Baseline") +
+    scale_x_discrete(breaks = x_labels) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
 # Accuracy plot
 plot_accuracy <- function(df, group_var) {
+  
+  # Convert group_var to factor to ensure x-axis discrete labels
+  df <- df %>%
+    mutate(!!group_var := as.factor(.data[[group_var]]))
+  
+  # Extract levels to keep all labels
+  x_labels <- levels(df[[group_var]])
+  
   ggplot(df, aes(x = .data[[group_var]], y = accuracy)) +
     geom_col(fill = "coral") +
     geom_text(aes(label = sprintf("%.4f", accuracy)), vjust = -0.3, size = 3) +
     labs(title = paste("Accuracy by", group_var),
          x = group_var,
          y = "Accuracy") +
+    scale_x_discrete(breaks = x_labels) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
 # F1 Score plot
 plot_f1 <- function(df, group_var) {
+  
+  # Convert group_var to factor to ensure x-axis discrete labels
+  df <- df %>%
+    mutate(!!group_var := as.factor(.data[[group_var]]))
+  
+  # Extract levels to keep all labels
+  x_labels <- levels(df[[group_var]])
+  
   ggplot(df, aes(x = .data[[group_var]], y = f1_score)) +
     geom_col(fill = "steelblue") +
     geom_text(aes(label = sprintf("%.4f", f1_score)), vjust = -0.3, size = 3) +
     labs(title = paste("F1 Score by", group_var),
          x = group_var,
          y = "F1 Score") +
+    scale_x_discrete(breaks = x_labels) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
@@ -403,3 +451,99 @@ generate_plots <- function(result_df, group_var, save_name){
     units = "in"
   )
 }
+
+# function to run analysis for a given time period
+run_analysis <- function(df, save_name){
+  
+  # Determine precision-recall curve for the entire set (not disaggregated)
+  # returns fig, pr_auc, multiplier, random_baseline
+  overall_PR = calculate_PR(dataframe = df)
+  
+  # Compute average predicted risk for actual crashes versus actual non-crashes
+  risk_comparison <- compare_risk(df)
+  
+  # Save as interactive HTML
+  htmlwidgets::saveWidget(
+    overall_PR$fig,
+    file = file.path(pilot_results_dir, paste0("Overall_PR_curve_", save_name, ".html"))
+  )
+  
+  # Then calculate performance disaggregated by different variables with static threshold
+  results_hour_stat = performance_by_group(df, "Hour", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+  results_weekday_stat = performance_by_group(df, "weekday", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+  results_roadtype_stat = performance_by_group(df, "highway", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+  # lower threshold for this one
+  results_osm_id_stat = performance_by_group(df, "osm_id", use_dynamic_threshold = FALSE, fixed_threshold = 0.5)
+  
+  write.csv(risk_comparison, file = file.path(pilot_results_dir, paste0(save_name, "risk_comparison.csv")))
+  write.csv(results_hour_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_hour_stat.csv")))
+  write.csv(results_weekday_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_weekday_stat.csv")))
+  write.csv(results_roadtype_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_roadtype_stat.csv")))
+  write.csv(results_osm_id_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_osm_id_stat.csv")))
+  
+  generate_plots(result_df = results_hour_stat, group_var = "Hour", save_name = save_name)
+  generate_plots(result_df = results_weekday_stat, group_var = "weekday", save_name = save_name)
+  generate_plots(result_df = results_roadtype_stat, group_var = "highway", save_name = save_name)
+  
+  return(list(overall_PR = overall_PR, hour = results_hour_stat, weekday = results_weekday_stat, highway = results_roadtype_stat, osm_id = results_osm_id_stat))
+}
+
+# Function to calculate the average predicted risk for actual crashes and the average predicted risk for non-crashes
+compare_risk <- function(df){
+  risk_comparison <- df %>%
+    group_by(CAD_CRASH) %>%
+    summarise(Average_Risk = mean(Prob_Crash, na.rm = T)) %>%
+    ungroup()
+}
+
+library(dplyr)
+library(ggplot2)
+
+# Your compare_risk function
+compare_risk <- function(df){
+  df %>%
+    group_by(CAD_CRASH) %>%
+    summarise(Average_Risk = mean(Prob_Crash, na.rm = TRUE)) %>%
+    ungroup()
+}
+
+plot_compare_risk_list <- function(df_list, output_file = "compare_risk_plot.png") {
+  # Check if the list has names
+  if (is.null(names(df_list))) {
+    stop("Input list must have names for each data frame")
+  }
+  
+  # Apply compare_risk to each data frame and keep the names
+  results_list <- lapply(names(df_list), function(name) {
+    compare_risk(df_list[[name]]) %>%
+      mutate(DataFrame = name)
+  })
+  
+  # Combine all results into one data frame
+  combined_results <- bind_rows(results_list)
+  
+  # Replace CAD_CRASH values with descriptive labels
+  combined_results <- combined_results %>%
+    mutate(CAD_CRASH = factor(CAD_CRASH, levels = c(0, 1), labels = c("Non-Crash", "Crash")))
+  
+  # Plot
+  p <- ggplot(combined_results, aes(x = DataFrame, y = Average_Risk, fill = CAD_CRASH)) +
+    geom_col(position = "dodge") +
+    labs(title = "Comparison of Average Predicted Risk by Crash Status",
+         x = "Data Frame",
+         y = "Mean Predicted Risk",
+         fill = "Crash Status") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Save the plot
+  ggsave(filename = output_file, plot = p, width = 8, height = 5)
+  
+  # Also print the plot
+  print(p)
+}
+
+
+
+
+

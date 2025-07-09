@@ -16,7 +16,7 @@ source(file.path("analysis", "RandomForest_Fx.R"))
 source(file.path("utility", "OpenStreetMap_pull.R"))
 
 # read in functions to load predictions and actual crash data and present results
-source(file.path("utility", "MN_CAD_load_pilot_data.R"))
+source(file.path("utility", "MN_pilot_helper_functions.R"))
 
 # The full model identifier gets created in this next step
 modelno = paste(state,
@@ -27,61 +27,73 @@ modelno = paste(state,
                 sep = "_")
 
 # establish the dates of relevant runs
-runs <- as.Date(c("2025-05-20", "2025-05-21", "2025-05-23"))
+May_runs <- as.Date(c("2025-05-20", "2025-05-21", "2025-05-23"))
+June_runs <- as.Date(c("2025-06-09", "2025-06-11", "2025-06-13"))
+July_runs <- as.Date(c("2025-07-03"))
 
-# load predictions
-predictions <- load_and_combine_csv(runs)
 
-# load actual CAD_CRASH data
-CAD_result <- load_CAD_pilot_results(file.path(inputdir,"Crash","250520 Metro CAD data.csv"))
-
-# trim off predictions that extend beyond the time frame for which we have actual results
-predictions <- predictions %>% filter(date <= max(CAD_result$latest_record))
-
-# join actual results to predictions
-merge_result <- left_join(predictions, CAD_result$df, by = c('osm_id','Month', 'day', 'Hour')) %>%
-  fill_na() %>%
-  mutate(CAD_CRASH = ifelse(CAD_CRASH>0, 1, 0))
-
-# function to run analysis for a given time period
-run_analysis <- function(df, save_name){
-  
-  # Determine precision-recall curve for the entire set (not disaggregated)
-  # returns fig, pr_auc, multiplier, random_baseline
-  overall_PR = calculate_PR(dataframe = df)
-  
-  # Save as interactive HTML
-  htmlwidgets::saveWidget(
-    overall_PR$fig,
-    file = file.path(pilot_results_dir, paste0("Overall_PR_curve_", save_name, ".html"))
-  )
-  
-  # Then calculate performance disaggregated by different variables with static threshold
-  results_hour_stat = performance_by_group(df, "Hour", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
-  results_weekday_stat = performance_by_group(df, "weekday", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
-  results_roadtype_stat = performance_by_group(df, "highway", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
-  # lower threshold for this one
-  results_osm_id_stat = performance_by_group(df, "osm_id", use_dynamic_threshold = FALSE, fixed_threshold = 0.5)
-  
-  write.csv(results_hour_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_hour_stat.csv")))
-  write.csv(results_weekday_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_weekday_stat.csv")))
-  write.csv(results_roadtype_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_roadtype_stat.csv")))
-  write.csv(results_osm_id_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_osm_id_stat.csv")))
-  
-  generate_plots(result_df = results_hour_stat, group_var = "Hour", save_name = save_name)
-  generate_plots(result_df = results_weekday_stat, group_var = "weekday", save_name = save_name)
-  generate_plots(result_df = results_roadtype_stat, group_var = "highway", save_name = save_name)
-  
-  return(list(overall_PR = overall_PR, hour = results_hour_stat, weekday = results_weekday_stat, highway = results_roadtype_stat, osm_id = results_osm_id_stat))
-}
+May <- load_combine(runs = May_runs, CAD_fn = "250520 Metro CAD data.csv")
 
 May_20_23 <- merge_result %>% filter(date <= as.Date("2025-05-23"))
 
-May24_to_26 <- merge_result %>% filter(date > as.Date("2025-05-23"))
+May_24_26 <- merge_result %>% filter(date > as.Date("2025-05-23"))
 
-May20_to_23_results <- run_analysis(May_20_23, "May_20_23")
+June_9_15 <- load_combine(runs = June_runs, CAD_fn = "250609 Metro CAD data.csv")
 
-May24_to_26_results <- run_analysis(May24_to_26, "May24_to_26")
+July_3_6 <- load_combine(runs = July_runs, CAD_fn = "250703 Metro CAD data.csv")
+
+df_list <- list(Normal_May_Week = May_20_23, Memorial_Day_Weekend = May_24_to_26, Normal_June_Week = June_9_15, July_4_Weekend = July_3_6)
+
+plot_compare_risk_list(df_list, file.path(pilot_results_dir, "risk_comparison.png"))
+
+
+# Run additional analyses for various time periods
+
+May_20_23_results <- run_analysis(May_20_23, "May_20_23")
+
+May_24_26_results <- run_analysis(May_24_26, "May_24_26")
+
+June_9_15_results <- run_analysis(June_9_15, "June_9_15")
+
+July_3_6_results <- run_analysis(July_3_6, "July_3_6")
+
+all_periods <- do.call(bind_rows, df_list) 
+
+all_periods_results <- run_analysis(all_periods, "all_periods")
+
+# Combine a subset of results across all into one data frame
+
+overall_summary <- data.frame(
+  Period = character(),
+  PR_AUC = numeric(),
+  multiplier = numeric(),
+  random_baseline = numeric(),
+  stringsAsFactors = FALSE
+)
+
+results_list <- list(
+  Normal_May_Week = May_20_23_results,
+  Memorial_Day_Weekend = May_24_to_26_results,
+  Normal_June_Week = June_9_15_results,
+  July_4_Weekend = July_3_6_results
+)
+
+for(i in seq_along(results_list)) {
+  # Extract the sublist for convenience
+  res <- results_list[[i]]
+  
+  # Construct a named list (preferred over named vector here)
+  new_row <- list(
+    Period = names(results_list)[i],
+    PR_AUC = res$overall_PR$pr_auc,
+    multiplier = res$overall_PR$multiplier,
+    random_baseline = res$overall_PR$random_baseline
+  )
+  
+  # Add the new row to overall_results
+  overall_summary <- bind_rows(overall_results, new_row)
+}
+
 
 
 ####################################################################
