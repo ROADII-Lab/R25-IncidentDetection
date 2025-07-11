@@ -5,7 +5,7 @@ load_and_combine_csv <- function(runs) {
   df_list <- vector("list", length(runs))
   
   for (i in seq_along(runs)) {
-    filename = file.path(predict_week_out_dir, paste0(modelno,'_', runs[i], '.csv'))
+    filename = file.path(pilot_dir, 'Predictions', paste0(modelno,'_', runs[i], '.csv'))
     df = read_csv(filename, col_types = cols(osm_id = col_character(),
                                              date = col_datetime(format = ""))) %>%
       mutate(date = lubridate::force_tz(date, tzone = "America/Chicago"))
@@ -17,7 +17,8 @@ load_and_combine_csv <- function(runs) {
       df_list[[i]] = df
     } # end of if - else
     
-    combined_df = bind_rows(df_list)
+    combined_df = bind_rows(df_list) %>%
+      mutate(weekday = ifelse(weekday, "Weekend", "Weekday"))
   } # end of for loop
   return(combined_df)
 } # end of load_and_combine_csv function
@@ -94,7 +95,7 @@ load_combine <- function(runs, CAD_fn){
   predictions <- load_and_combine_csv(runs)
   
   # load actual CAD_CRASH data
-  CAD_result <- load_CAD_pilot_results(file.path(inputdir,"Crash",CAD_fn))
+  CAD_result <- load_CAD_pilot_results(file.path(pilot_dir,"CAD_data",CAD_fn))
   
   # trim off predictions that extend beyond the time frame for which we have actual results
   predictions <- predictions %>% filter(date <= max(CAD_result$latest_record))
@@ -278,7 +279,7 @@ performance_by_group <- function(data, group_var,
 
 ## plotting
 # PR AUC and Random Baseline grouped bar plot
-plot_pr_auc_with_baseline <- function(df, group_var) {
+plot_pr_auc_with_baseline <- function(df, group_var, pseudonym) {
   
   # Convert grouping variable to character (discrete) for plotting bars with equal widths
   df <- df %>%
@@ -300,7 +301,7 @@ plot_pr_auc_with_baseline <- function(df, group_var) {
     geom_col(position = position_dodge(width = 0.8), width = 0.7) +
     geom_text(aes(label = sprintf("%.4f", Value)),
               position = position_dodge(width = 0.8), vjust = -0.3, size = 3) +
-    labs(title = paste("PR AUC and Random Baseline by", group_var),
+    labs(title = paste("PR AUC and Random Baseline by", pseudonym),
          x = group_var,
          y = "Value",
          fill = NULL) +
@@ -314,7 +315,7 @@ plot_pr_auc_with_baseline <- function(df, group_var) {
 }
 
 # Multiplier plot (PR AUC / baseline)
-plot_multiplier <- function(df, group_var) {
+plot_multiplier <- function(df, group_var, pseudonym) {
   
   # Convert group_var to factor to ensure x-axis discrete labels
   df <- df %>%
@@ -326,7 +327,7 @@ plot_multiplier <- function(df, group_var) {
   ggplot(df, aes(x = .data[[group_var]], y = multiplier)) +
     geom_col(fill = "forestgreen") +
     geom_text(aes(label = round(multiplier, 2)), vjust = -0.3, size = 3) +
-    labs(title = paste("Model Improvement over Baseline by", group_var),
+    labs(title = paste("Model Improvement over Baseline by", pseudonym),
          x = group_var,
          y = "PR AUC / Baseline") +
     scale_x_discrete(breaks = x_labels) +
@@ -335,7 +336,7 @@ plot_multiplier <- function(df, group_var) {
 }
 
 # Accuracy plot
-plot_accuracy <- function(df, group_var) {
+plot_accuracy <- function(df, group_var, pseudonym) {
   
   # Convert group_var to factor to ensure x-axis discrete labels
   df <- df %>%
@@ -347,7 +348,7 @@ plot_accuracy <- function(df, group_var) {
   ggplot(df, aes(x = .data[[group_var]], y = accuracy)) +
     geom_col(fill = "coral") +
     geom_text(aes(label = sprintf("%.4f", accuracy)), vjust = -0.3, size = 3) +
-    labs(title = paste("Accuracy by", group_var),
+    labs(title = paste("Accuracy by", pseudonym),
          x = group_var,
          y = "Accuracy") +
     scale_x_discrete(breaks = x_labels) +
@@ -356,7 +357,7 @@ plot_accuracy <- function(df, group_var) {
 }
 
 # F1 Score plot
-plot_f1 <- function(df, group_var) {
+plot_f1 <- function(df, group_var, pseudonym) {
   
   # Convert group_var to factor to ensure x-axis discrete labels
   df <- df %>%
@@ -368,7 +369,7 @@ plot_f1 <- function(df, group_var) {
   ggplot(df, aes(x = .data[[group_var]], y = f1_score)) +
     geom_col(fill = "steelblue") +
     geom_text(aes(label = sprintf("%.4f", f1_score)), vjust = -0.3, size = 3) +
-    labs(title = paste("F1 Score by", group_var),
+    labs(title = paste("F1 Score by", pseudonym),
          x = group_var,
          y = "F1 Score") +
     scale_x_discrete(breaks = x_labels) +
@@ -376,65 +377,65 @@ plot_f1 <- function(df, group_var) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-# Function to generate and write all plots
-generate_plots <- function(result_df, group_var, save_name){
-  pr_auc_with_baseline = plot_pr_auc_with_baseline(result_df, group_var)
-  multiplier = plot_multiplier(result_df, group_var)
-  accuracy = plot_accuracy(result_df, group_var)
-  F1 = plot_f1(result_df, group_var)
-  
-  ggsave(
-    plot = pr_auc_with_baseline,
-    filename = paste0(save_name, "_pr_auc_with_baseline_by_", group_var,".png"),
-    path = pilot_results_dir,
-    device = "png",
-    create.dir = TRUE,
-    height = 6,
-    width = 8,
-    units = "in"
-  )
-  
-  ggsave(
-    plot = multiplier,
-    filename = paste0(save_name, "_multiplier_by", group_var, ".png"),
-    path = pilot_results_dir,
-    device = "png",
-    create.dir = TRUE,
-    height = 6,
-    width = 8,
-    units = "in"
-  )
-  
-  ggsave(
-    plot = accuracy,
-    filename = paste0(save_name, "_accuracy_by", group_var, ".png"),
-    path = pilot_results_dir,
-    device = "png",
-    create.dir = TRUE,
-    height = 6,
-    width = 8,
-    units = "in"
-  )
-  
-  ggsave(
-    plot = F1,
-    filename = paste0(save_name, "_F1_by", group_var, ".png"),
-    path = pilot_results_dir,
-    device = "png",
-    create.dir = TRUE,
-    height = 6,
-    width = 8,
-    units = "in"
-  )
-  
-}
+# # Function to generate and write all plots
+# generate_plots <- function(result_df, group_var, save_name){
+#   pr_auc_with_baseline = plot_pr_auc_with_baseline(result_df, group_var)
+#   multiplier = plot_multiplier(result_df, group_var)
+#   accuracy = plot_accuracy(result_df, group_var)
+#   F1 = plot_f1(result_df, group_var)
+#   
+#   ggsave(
+#     plot = pr_auc_with_baseline,
+#     filename = paste0(save_name, "_pr_auc_with_baseline_by_", group_var,".png"),
+#     path = pilot_results_dir,
+#     device = "png",
+#     create.dir = TRUE,
+#     height = 6,
+#     width = 8,
+#     units = "in"
+#   )
+#   
+#   ggsave(
+#     plot = multiplier,
+#     filename = paste0(save_name, "_multiplier_by", group_var, ".png"),
+#     path = pilot_results_dir,
+#     device = "png",
+#     create.dir = TRUE,
+#     height = 6,
+#     width = 8,
+#     units = "in"
+#   )
+#   
+#   ggsave(
+#     plot = accuracy,
+#     filename = paste0(save_name, "_accuracy_by", group_var, ".png"),
+#     path = pilot_results_dir,
+#     device = "png",
+#     create.dir = TRUE,
+#     height = 6,
+#     width = 8,
+#     units = "in"
+#   )
+#   
+#   ggsave(
+#     plot = F1,
+#     filename = paste0(save_name, "_F1_by", group_var, ".png"),
+#     path = pilot_results_dir,
+#     device = "png",
+#     create.dir = TRUE,
+#     height = 6,
+#     width = 8,
+#     units = "in"
+#   )
+#   
+# }
 
 # Function to generate and save all plots in a grid
-generate_plots <- function(result_df, group_var, save_name){
-  pr_auc_with_baseline <- plot_pr_auc_with_baseline(result_df, group_var)
-  multiplier <- plot_multiplier(result_df, group_var)
-  accuracy <- plot_accuracy(result_df, group_var)
-  F1 <- plot_f1(result_df, group_var)
+generate_plots <- function(result_df, group_var, pseudonym, save_name){
+  pr_auc_with_baseline <- plot_pr_auc_with_baseline(result_df, group_var, pseudonym)
+  multiplier <- plot_multiplier(result_df, group_var, pseudonym)
+  accuracy <- plot_accuracy(result_df, group_var, pseudonym)
+  F1 <- plot_f1(result_df, group_var, pseudonym)
   
   # Arrange plots in a 2x2 grid
   combined_plot <- (pr_auc_with_baseline | multiplier) / (accuracy | F1)
@@ -442,7 +443,7 @@ generate_plots <- function(result_df, group_var, save_name){
   
   ggsave(
     plot = combined_plot,
-    filename = paste0(save_name, "_all_plots_by_", group_var, ".png"),
+    filename = paste0(save_name, "_all_plots_by_", pseudonym, ".png"),
     path = pilot_results_dir,
     device = "png",
     create.dir = TRUE,
@@ -475,15 +476,15 @@ run_analysis <- function(df, save_name){
   # lower threshold for this one
   results_osm_id_stat = performance_by_group(df, "osm_id", use_dynamic_threshold = FALSE, fixed_threshold = 0.5)
   
-  write.csv(risk_comparison, file = file.path(pilot_results_dir, paste0(save_name, "risk_comparison.csv")))
-  write.csv(results_hour_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_hour_stat.csv")))
-  write.csv(results_weekday_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_weekday_stat.csv")))
-  write.csv(results_roadtype_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_roadtype_stat.csv")))
-  write.csv(results_osm_id_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_osm_id_stat.csv")))
+  write.csv(risk_comparison, file = file.path(pilot_results_dir, paste0(save_name, "risk_comparison.csv")), row.names = F)
+  write.csv(results_hour_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_hour_stat.csv")), row.names = F)
+  write.csv(results_weekday_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_weekday_stat.csv")), row.names = F)
+  write.csv(results_roadtype_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_roadtype_stat.csv")), row.names = F)
+  write.csv(results_osm_id_stat, file = file.path(pilot_results_dir, paste0(save_name, "results_osm_id_stat.csv")), row.names = F)
   
-  generate_plots(result_df = results_hour_stat, group_var = "Hour", save_name = save_name)
-  generate_plots(result_df = results_weekday_stat, group_var = "weekday", save_name = save_name)
-  generate_plots(result_df = results_roadtype_stat, group_var = "highway", save_name = save_name)
+  generate_plots(result_df = results_hour_stat, group_var = "Hour", pseudonym = "Hour Bin", save_name = save_name)
+  generate_plots(result_df = results_weekday_stat, group_var = "weekday", pseudonym = "Weekday", save_name = save_name)
+  generate_plots(result_df = results_roadtype_stat, group_var = "highway", pseudonym = "Road Type", save_name = save_name)
   
   return(list(overall_PR = overall_PR, hour = results_hour_stat, weekday = results_weekday_stat, highway = results_roadtype_stat, osm_id = results_osm_id_stat))
 }
