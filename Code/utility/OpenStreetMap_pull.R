@@ -49,7 +49,7 @@ rm(x, overpass_urls, valid_link) # clean up
   
 # Define variables for OSM pull -------------------------------------------
 
-query_road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
+#query_road_types <- c('motorway', 'trunk', 'primary', 'secondary', 'tertiary')
   
 # define state osm
 state_osm <- state.name[which(state.abb == state)]
@@ -64,7 +64,7 @@ state_bbox <- getbb(state_osm) # Retrieves relevant coordinates; always a rectan
 
 datalist <- list() # define a list to add the road type df's to
   
-for (i in query_road_types){ # for each road type
+for (i in road_types){ # for each road type
     
   print(paste("File Not Found. Pulling", state, i, "OSM Data from Server"))
   
@@ -135,6 +135,6 @@ write_sf(state_network, file.path(inputdir,'Roads_Boundary', state, paste0(state
 
 #ggplot() + geom_sf(data = state_network) # view road network to test if it's valid
 
-rm(total_network, datalist, lines, map_data, query_road_types, state_bbox, state_osm, state_map) # clean environment
+rm(total_network, datalist, lines, map_data, state_bbox, state_osm, state_map) # clean environment
 
 }
