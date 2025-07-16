@@ -40,7 +40,9 @@
   }
   
   # Prep --------------------------------------------------------------------
-    
+  
+  if(length(list.files(crash_filepath)) == 0){stop(paste0("No files in the relevant crash file directory. To continue, add crash files to this location: ", crash_filepath))}
+  
   datalist <- list()
     
   n <- 0 # n keeps track of total files across all formats
@@ -117,6 +119,8 @@
   # Timezone Adjustment -----------------------------------------------------
   
   crashes <- do.call(bind_rows, datalist) 
+  
+  if(nrow(crashes) == 0){stop(paste0("No crashes were successfully loaded. Make sure the crash files are in one of the following formats: .shp, .gpkg, .csv, .xls, .txt"))}
   
   if(one_zone){
     
