@@ -1,8 +1,7 @@
-from mcp.server.fastmcp import FastMCP
+#from mcp.server.fastmcp import FastMCP
 import pandas as pd
-from pathlib import Path
 import os
-#from fastmcp import FastMCP
+from fastmcp import FastMCP
 
 ####
 
@@ -39,3 +38,16 @@ def add(a: int, b: int) -> int:
 def get_greeting(name: str) -> str:
     """Get a personalized greeting"""
     return f"Hello, {name}!"
+
+'''# server.py
+from fastmcp import FastMCP
+
+mcp = FastMCP("Demo 🚀")
+
+@mcp.tool
+def add(a: int, b: int) -> int:
+    """Add two numbers"""
+    return a + b'''
+
+if __name__ == "__main__":
+    mcp.run()

@@ -2,6 +2,7 @@ from mcp_use import MCPClient, MCPAgent
 import asyncio
 from dotenv import load_dotenv
 import os
+import openai
 
 async def main():
     # Load environment variables from .env file
@@ -11,10 +12,10 @@ async def main():
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
     # Configuration dictionary for custom MCP servers
-    '''config = {
+    config = {
     "mcpServers": {
         "info-server": {
-            "command": "/Users/yuvrajfirodiya/.local/bin/uv",  # or 'uvicorn' if installed globally
+            "command": "/Users/Andrew.Breck/.local/bin/uv",  # or 'uvicorn' if installed globally
             "args": [
                 "--directory",
                 "/Users/Andrew.Breck/Documents/GitHub/R25-IncidentDetection/Code/genAI_overlay_take2",
@@ -26,23 +27,41 @@ async def main():
             }
         }
         }
-    }'''
+    }
 
-    config = {
+    '''config = {
     "mcpServers": {
         "csv_server": {
-        "command": "C:/Users/Andrew.Breck/Anaconda3/condabin/conda.bat",
+        "command": "/Users/Andrew.Breck/Anaconda3/condabin/conda",
         "args": [
             "run",
             "-n",
-            "track3_v2",
+            "track3",
             "python",
             os.path.join(os.getcwd(), "server.py")
         ]
         }
     }
-    }
+    }'''
     
+    '''config = {
+    "mcpServers": {
+        "csv_server": {
+        "command": "/Users/Andrew.Breck/Anaconda3/condabin/conda",
+        "args": [
+            "run",
+            "-n",
+            "track3",
+            "--no-capture-output",
+            "mcp",
+            "run",
+            os.path.join(os.getcwd(), "server.py")
+        ],
+        "version": "0.1.0"
+        }
+    }
+    }'''
+
     # Create MCPClient from configuration dictionary
     client = MCPClient.from_dict(config)
 
@@ -62,7 +81,7 @@ async def main():
 
     # Run the query
     result = await agent.run(
-        "tell me about the file with the filename of 'MN_2020_imputed_tbins_5to1_metro_2025-05-20.csv' ",
+        "add 3 and 5",
     )
     print(f"\nResult: {result}")
 
