@@ -2,14 +2,18 @@ from mcp_use import MCPClient, MCPAgent
 import asyncio
 from dotenv import load_dotenv
 import os
-import openai
+#import openai
+#from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 
 async def main():
     # Load environment variables from .env file
     load_dotenv() 
 
     # Load api key from environment
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+    # Assign the endpoint environmental variable
+    os.environ["AZURE_OPENAI_ENDPOINT"] = "http://10.75.42.137:4000"
 
     # Configuration dictionary for custom MCP servers
     config = {
@@ -66,23 +70,25 @@ async def main():
     client = MCPClient.from_dict(config)
 
     # Create LLM
-    '''llm = ChatGroq(
-        model_name="Llama3-8b-8192",
-        streaming=True
-    )'''
-
-    llm = openai.OpenAI(
-        api_key=OPENAI_API_KEY,
-        base_url="http://10.75.42.137:4000/" 
+    llm = AzureChatOpenAI(
+    azure_deployment="GPT-4.1-nano",  # or your deployment
+    api_version="2025-04-01-preview",  # or your api version
+    api_key = AZURE_OPENAI_API_KEY,
+    azure_endpoint = "http://10.75.42.137:4000/",
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    streaming = True
+    # other params...
     )
 
-    # Create agent with the client
+    # Create agent with the client and the llm defined above
     agent = MCPAgent(llm=llm, client=client, max_steps=30)
 
     # Run the query
     result = await agent.run(
-        "add 3 and 5",
-    )
+        "in the df, which 'highway' category has the highest average value for Prob_Crash?")
     print(f"\nResult: {result}")
 
 if __name__ == "__main__":
