@@ -88,7 +88,7 @@ async def main():
 
     # Run the query
     result = await agent.run(
-        "in the df, which 'highway' category has the highest average value for Prob_Crash?")
+        "what is the average value for the Prob_Crash column in the file called 'MN_2020_imputed_tbins_5to1_metro_2025-05-20.csv'?")
     print(f"\nResult: {result}")
 
 if __name__ == "__main__":

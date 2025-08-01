@@ -19,18 +19,20 @@ df = pd.read_csv(file_path)
 mcp = FastMCP("csv_server")
 
 @mcp.tool()
-def execute_python(code: str) -> str:
+def query_csv(file_name: str, code: str) -> str:
     """
-    Executes the provided code string in a sandboxed dict namespace
-    where `df` is preloaded DataFrame. Expects user code to
+    Executes the provided code string in a sandboxed dict namespace. Expects user code to
     assign the final result to a name called `output`.
     Returns json.dumps(output) or an error message.
     Requires that the code assign the final answer to a variable named output.
     Catch exceptions and return them to surface errors back to the model/user.
     """
+    file_path = os.path.join(DATA_DIR, file_name)
+    data = pd.read_csv(file_path)
+
     # Prepare a sandboxed globals/locals
     sandbox_globals = {"pd": pd}
-    sandbox_locals = {"df": df, "output": None}
+    sandbox_locals = {"data": data, "output": None}
 
     try:
         # Execute the user's code
@@ -47,7 +49,7 @@ def execute_python(code: str) -> str:
             "traceback": tb
         })
 
-@mcp.tool()
+'''@mcp.tool()
 def read_csv_summary(filename: str) -> str:
     """
     Read a CSV file and return a simple summary.
@@ -58,29 +60,7 @@ def read_csv_summary(filename: str) -> str:
     """
     file_path = os.path.join(DATA_DIR, filename)
     df = pd.read_csv(file_path)
-    return f"CSV file '{filename}' has {len(df)} rows and {len(df.columns)} columns."
-
-# Add an addition tool
-@mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    return a + b
-
-# Add a dynamic greeting resource
-@mcp.resource("greeting://{name}")
-def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
-    return f"Hello, {name}!"
-
-'''# server.py
-from fastmcp import FastMCP
-
-mcp = FastMCP("Demo 🚀")
-
-@mcp.tool
-def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    return a + b'''
+    return f"CSV file '{filename}' has {len(df)} rows and {len(df.columns)} columns."'''
 
 if __name__ == "__main__":
     mcp.run()
