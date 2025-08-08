@@ -108,6 +108,8 @@ Below is an example of the Tableau dashboard generated from `Predict_Week.R` whi
 
 The dashboard allows the users to filter for crash risk on specific road types, cycle through days and hours of the week, and access details on a specific segement and time by hovering the cursor over the map. 
 
+Note: Upon launch, you may recieve a warning message about creating a blended relationship between the data sources. This can be ignored, and we recommend clicking "Do Not Show Again" if you will be utilizing the tool repeatedly. 
+
 ## Utility Functions
 
 - `utility/get_packages.R`: This script is sourced in `RandomForest_Train.R` and installs and loads the R packages necessary for using the tool.
