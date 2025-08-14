@@ -310,10 +310,7 @@ plot_pr_auc_with_baseline <- function(df, group_var, pseudonym) {
          x = group_var,
          y = "Value",
          fill = NULL) +
-    scale_fill_manual(values = c(
-      "PR AUC" = "steelblue",
-      "Random Baseline" = "gray50"
-    )) +
+    scale_fill_viridis_d(option = "D") + 
     scale_x_discrete(breaks = x_labels) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
