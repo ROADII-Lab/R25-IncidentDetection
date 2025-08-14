@@ -140,6 +140,7 @@ overall_summary <- data.frame(
   PR_AUC = numeric(),
   multiplier = numeric(),
   random_baseline = numeric(),
+  crashes_per_day = numeric(),
   stringsAsFactors = FALSE
 )
 
@@ -160,7 +161,8 @@ for(i in seq_along(results_list)) {
     Period = names(results_list)[i],
     PR_AUC = res$overall_PR$pr_auc,
     multiplier = res$overall_PR$multiplier,
-    random_baseline = res$overall_PR$random_baseline
+    random_baseline = res$overall_PR$random_baseline,
+    crashes_per_day = res$overall_PR$crashes_per_day
   )
   
   # Add the new row to overall_results
@@ -171,7 +173,7 @@ write.csv(overall_summary, file = file.path(pilot_results_dir, "overall_summary.
 
 ####################################################################
 
-test <- May_20_23$results_osm_id_stat %>% filter(pos_fraction > 0)
+test <- May_20_23$osm_id %>% filter(pos_fraction > 0)
 
 test2 <- test %>% filter(f1_score > 0)
 

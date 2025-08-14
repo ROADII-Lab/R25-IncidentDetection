@@ -26,6 +26,7 @@ requiredpackages <- c("randomForest", # random forest
                       "pROC", # for receiver operating characteristic (ROC) curve and AUC
                       "PRROC", # for precision-recall curve and AUC
                       "openxlsx", # used in createdash
+                      "viridis" , 
                       "zip") # used in createdash
 
 install_load <- function(packages){

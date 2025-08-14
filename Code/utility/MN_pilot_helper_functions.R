@@ -121,6 +121,11 @@ calculate_PR <- function(dataframe){
                  scores.class1 = probs[true_labels == 0], curve = TRUE)
   pr_auc <- pr$auc.integral
   random_baseline <- mean(true_labels)
+  
+  hours <- length(unique(floor_date(dataframe$date[!is.na(dataframe$date)], "hour"))) * 6
+  days <- hours/24
+  crashes_per_day <- true_labels/days
+  
   multiplier <- if (random_baseline > 0) pr_auc / random_baseline else NA
   
   pr_curve_df <- as.data.frame(pr$curve)
@@ -174,7 +179,7 @@ calculate_PR <- function(dataframe){
         )
       )
     )
-  return(list(fig = fig, pr_auc = pr_auc, multiplier = multiplier, random_baseline = random_baseline))
+  return(list(fig = fig, pr_auc = pr_auc, multiplier = multiplier, random_baseline = random_baseline, crashes_per_day = crashes_per_day))
 }
 
 ############## Functions to calculate PR AUC, Accuracy, and F1-score, #########
@@ -489,18 +494,7 @@ run_analysis <- function(df, save_name){
   return(list(overall_PR = overall_PR, hour = results_hour_stat, weekday = results_weekday_stat, highway = results_roadtype_stat, osm_id = results_osm_id_stat))
 }
 
-# Function to calculate the average predicted risk for actual crashes and the average predicted risk for non-crashes
-compare_risk <- function(df){
-  risk_comparison <- df %>%
-    group_by(CAD_CRASH) %>%
-    summarise(Average_Risk = mean(Prob_Crash, na.rm = T)) %>%
-    ungroup()
-}
-
-library(dplyr)
-library(ggplot2)
-
-# Your compare_risk function
+# Function to calculate the median predicted risk for actual crashes and for non-crashes
 compare_risk <- function(df){
   df %>%
     group_by(CAD_CRASH) %>%
@@ -530,10 +524,18 @@ plot_compare_risk_list <- function(df_list, output_file = "compare_risk_plot.png
   # Plot
   p <- ggplot(combined_results, aes(x = DataFrame, y = Average_Risk, fill = CAD_CRASH)) +
     geom_col(position = "dodge") +
-    labs(title = "Comparison of Average Predicted Risk by Crash Status",
-         x = "Data Frame",
+    # Add labels above bars to show values
+    geom_text(aes(label = round(Average_Risk, 2)),                   # label content
+              position = position_dodge(width = 0.9),                # match the dodge width of geom_col
+              vjust = -0.25,                                        # place a bit above the bar
+              size = 3,                                             # text size
+              color = "black") +                                    # label color for contrast
+    labs(title = "Comparison of Mean Predicted Risk by Crash Status",
+         x = "Period",
          y = "Mean Predicted Risk",
          fill = "Crash Status") +
+    scale_x_discrete(labels = function(x) gsub("_", " ", x)) +  # replace underscores with spaces
+    scale_fill_viridis_d(option = "D") + 
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
