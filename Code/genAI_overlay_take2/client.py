@@ -6,7 +6,19 @@ import os
 #from langchain_openai import ChatOpenAI
 from langchain_openai import AzureChatOpenAI
 
-async def main():
+#
+import streamlit as st 
+#import tempfile 
+#from litellm import completion, embedding
+#from dotenv import load_dotenv, find_dotenv
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import RetrievalQA
+from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+#
+
+def main():
     # Load environment variables from .env file
     load_dotenv() 
 
@@ -33,39 +45,6 @@ async def main():
         }
     }
 
-    '''config = {
-    "mcpServers": {
-        "csv_server": {
-        "command": "/Users/Andrew.Breck/Anaconda3/condabin/conda",
-        "args": [
-            "run",
-            "-n",
-            "track3",
-            "python",
-            os.path.join(os.getcwd(), "server.py")
-        ]
-        }
-    }
-    }'''
-    
-    '''config = {
-    "mcpServers": {
-        "csv_server": {
-        "command": "/Users/Andrew.Breck/Anaconda3/condabin/conda",
-        "args": [
-            "run",
-            "-n",
-            "track3",
-            "--no-capture-output",
-            "mcp",
-            "run",
-            os.path.join(os.getcwd(), "server.py")
-        ],
-        "version": "0.1.0"
-        }
-    }
-    }'''
-
     # Create MCPClient from configuration dictionary
     client = MCPClient.from_dict(config)
 
@@ -86,10 +65,34 @@ async def main():
     # Create agent with the client and the llm defined above
     agent = MCPAgent(llm=llm, client=client, max_steps=30)
 
-    # Run the query
-    result = await agent.run(
-        "what is the average value for the Prob_Crash column in the file called 'MN_2020_imputed_tbins_5to1_metro_2025-05-20.csv'?")
-    print(f"\nResult: {result}")
+
+    # -------------------
+    # Async wrapper for Streamlit
+    # -------------------
+    async def ask_question_async(question: str):
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that can answer questions"},
+            {"role": "user", "content": question}
+        ]
+        result = await agent.run(question)
+        return result
+    
+    def ask_question(question: str):
+        # Use asyncio.run to safely run async function
+        return asyncio.run(ask_question_async(question))
+
+    # -------------------
+
+    #
+    # Streamlit UI Title
+    st.set_page_config(page_title="Chatbot Interpretation of Model Results") 
+    st.title("Chatbot Interpretation of Model Results")
+
+    prompt = st.text_area("Ask a question") 
+    if st.button("Submit") and prompt: 
+        result = ask_question(prompt)#['result']
+        st.markdown("### Response") 
+        st.write(result)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
