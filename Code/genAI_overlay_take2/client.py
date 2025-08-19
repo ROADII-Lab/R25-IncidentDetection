@@ -8,9 +8,6 @@ from langchain_openai import AzureChatOpenAI
 
 #
 import streamlit as st 
-#import tempfile 
-#from litellm import completion, embedding
-#from dotenv import load_dotenv, find_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Chroma
