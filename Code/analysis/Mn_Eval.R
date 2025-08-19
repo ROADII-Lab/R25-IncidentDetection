@@ -173,8 +173,8 @@ write.csv(overall_summary, file = file.path(pilot_results_dir, "overall_summary.
 
 ####################################################################
 
-test <- May_20_23$osm_id %>% filter(pos_fraction > 0)
+#test <- May_20_23$osm_id %>% filter(pos_fraction > 0)
 
-test2 <- test %>% filter(f1_score > 0)
+#test2 <- test %>% filter(f1_score > 0)
 
 ####################################################################

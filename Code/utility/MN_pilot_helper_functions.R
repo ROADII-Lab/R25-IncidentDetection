@@ -284,12 +284,13 @@ performance_by_group <- function(data, group_var,
 
 ## plotting
 # PR AUC and Random Baseline grouped bar plot
-plot_pr_auc_with_baseline <- function(df, group_var, pseudonym) {
-  
-  # Convert grouping variable to character (discrete) for plotting bars with equal widths
+plot_pr_auc_with_baseline <- function(df, group_var, pseudonym,
+                                      base_size = 12,     # base font size for theme
+                                      geom_text_size = 3, # size for geom_text
+                                      rotate_x = 45) {    # angle for x labels
+  # Convert grouping variable to factor for plotting bars with equal widths
   df <- df %>%
     mutate(!!group_var := as.factor(.data[[group_var]]))
-  
   plot_df <- df %>%
     pivot_longer(cols = c("pr_auc", "random_baseline"),
                  names_to = "Metric", values_to = "Value") %>%
@@ -298,22 +299,32 @@ plot_pr_auc_with_baseline <- function(df, group_var, pseudonym) {
                       pr_auc = "PR AUC",
                       random_baseline = "Random Baseline")
     )
-  
   # Extract levels to keep all labels
   x_labels <- levels(df[[group_var]])
   
-  ggplot(plot_df, aes(x = .data[[group_var]], y = Value, fill = Metric)) +
+  p <- ggplot(plot_df, aes(x = .data[[group_var]], y = Value, fill = Metric)) +
     geom_col(position = position_dodge(width = 0.8), width = 0.7) +
-    geom_text(aes(label = sprintf("%.4f", Value)),
-              position = position_dodge(width = 0.8), vjust = -0.3, size = 3) +
+    # geom_text(aes(label = sprintf("%.4f", Value)),
+    #           position = position_dodge(width = 0.8), vjust = -0.3,
+    #           size = geom_text_size) +
     labs(title = paste("PR AUC and Random Baseline by", pseudonym),
-         x = group_var,
+         x = pseudonym,
          y = "Value",
          fill = NULL) +
-    scale_fill_viridis_d(option = "D") + 
+    scale_fill_viridis_d(option = "D") +
     scale_x_discrete(breaks = x_labels) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme_minimal(base_size = base_size) +
+    theme(
+      axis.text.x = element_text(angle = rotate_x, hjust = 1, size = base_size * 0.9),
+      axis.text.y = element_text(size = base_size * 0.9),
+      axis.title = element_text(size = base_size),
+      plot.title = element_text(size = base_size * 1.1, face = "bold"),
+      legend.text = element_text(size = base_size * 0.9),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+  
+  return(p)
 }
 
 # Multiplier plot (PR AUC / baseline)
@@ -543,7 +554,23 @@ plot_compare_risk_list <- function(df_list, output_file = "compare_risk_plot.png
   print(p)
 }
 
+##################
 
+results_hour_stat <- performance_by_group(all_periods, "Hour", use_dynamic_threshold = FALSE, fixed_threshold = 0.85) %>%
+  mutate(Hour = case_when(
+    Hour == 0 ~ "12 AM - 6 AM",
+    Hour == 6 ~ "6 AM - 12 PM",
+    Hour == 12 ~ "12 PM - 6 PM",
+    Hour == 18 ~ "6 PM - 12 AM"
+  ))
 
+results_weekday_stat <- performance_by_group(all_periods, "weekday", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
+results_roadtype_stat <- performance_by_group(all_periods, "highway", use_dynamic_threshold = FALSE, fixed_threshold = 0.85)
 
+hour_plot <- plot_pr_auc_with_baseline(df = results_hour_stat, group_var = "Hour", pseudonym = "Hour Bin", base_size = 20, geom_text_size = 7, rotate_x = 45)
+weekday_plot <- plot_pr_auc_with_baseline(df = results_weekday_stat, group_var = "weekday", pseudonym = "Weekday", base_size =20, geom_text_size = 7, rotate_x = 0)
+road_type_plot <- plot_pr_auc_with_baseline(df = results_roadtype_stat, group_var = "highway", pseudonym = "Road Type", base_size = 20, geom_text_size = 7, rotate_x = 0)
 
+ggsave(file.path(pilot_results_dir, "hour_plot.png"), plot = hour_plot, width = 10, height = 4, units = "in", dpi = 300)
+ggsave(file.path(pilot_results_dir, "weekday_plot.png"), plot = weekday_plot, width = 10, height = 4, units = "in", dpi = 300)
+ggsave(file.path(pilot_results_dir, "road_type_plot.png"), plot = road_type_plot, width = 10, height = 4, units = "in", dpi = 300)
