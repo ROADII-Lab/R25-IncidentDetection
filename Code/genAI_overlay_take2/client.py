@@ -60,7 +60,7 @@ def main():
     )
 
     # Create agent with the client and the llm defined above
-    agent = MCPAgent(llm=llm, client=client, max_steps=30)
+    agent = MCPAgent(llm=llm, client=client, max_steps=30, memory_enabled=True)
 
 
     # -------------------
@@ -74,9 +74,29 @@ def main():
         result = await agent.run(question)
         return result
     
+    '''async def stream_agent_output(agent, query):
+        """Streams the output of an MCP agent and prints intermediate steps."""
+        print(f"Executing query: '{query}'")
+        async for chunk in agent.astream(query):
+            if "messages" in chunk:
+                for message in chunk["messages"]:
+                    print(f"Message from agent: {message}")
+            if "actions" in chunk:
+                for action in chunk["actions"]:
+                    print(f"Tool action: {action}")
+            if "steps" in chunk:
+                for step in chunk["steps"]:
+                    print(f"Step: {step}")
+            if "output" in chunk:
+                print(f"Final output: {chunk['output']}")'''    
+
     def ask_question(question: str):
         # Use asyncio.run to safely run async function
         return asyncio.run(ask_question_async(question))
+    
+    '''def ask_question(question: str):
+        # Use asyncio.run to safely run async function
+        return asyncio.run(stream_agent_output(agent, question))'''    
 
     # -------------------
 
