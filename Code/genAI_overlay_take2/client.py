@@ -24,7 +24,7 @@ def main():
     # Assign the endpoint environmental variable
     os.environ["AZURE_OPENAI_ENDPOINT"] = "http://10.75.42.137:4000"
 
-    # Configuration dictionary for custom MCP servers
+    '''# Configuration dictionary for custom MCP servers
     config = {
     "mcpServers": {
         "info-server": {
@@ -39,6 +39,31 @@ def main():
                 "DISPLAY": ":1"
             }
         }
+        }
+    }'''
+    
+    '''# Configuration dictionary for custom MCP servers
+    config = {
+    "mcpServers": {
+        "info-server": {
+            "command": "/Users/Andrew.Breck/.local/bin/uv",  # or 'uvicorn' if installed globally
+            "args": [
+                "-y",
+                "mcp-remote"
+                "http://127.0.0.1:8000/mcp/"
+            ],
+            "env": {
+                "MCP_TRANSPORT_STRATEGY": "http-only"
+            }
+        }
+        }
+    }'''
+
+    config = {
+        "mcpServers": {
+            "http": {
+                "url": "http://127.0.0.1:8000/mcp/"
+            }
         }
     }
 

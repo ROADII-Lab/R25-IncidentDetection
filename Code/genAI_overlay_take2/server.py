@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import sys
 from fastmcp import FastMCP
+from fastmcp.client.transports import StreamableHttpTransport
 import json
 import traceback
 from typing import List, Dict, Optional, Union, Any
@@ -238,4 +239,6 @@ def read_csv_summary(filename: str) -> str:
     return f"CSV file '{filename}' has {len(df)} rows and {len(df.columns)} columns."'''
 
 if __name__ == "__main__":
-    mcp.run()
+    # mcp.run()
+    # Start an HTTP server on port 8000
+    mcp.run(transport="streamable-http", host="127.0.0.1", port=8000)
