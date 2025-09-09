@@ -10,6 +10,30 @@ from typing import List, Dict, Optional, Union, Any
 from datetime import datetime
 import glob
 
+import threading
+from io import StringIO
+import plotly.express as px
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+
+from mcp.server.models import InitializationOptions
+from mcp.types import (
+    TextContent,
+    Tool,
+    Resource,
+    INTERNAL_ERROR,
+    Prompt,
+    PromptArgument,
+    EmbeddedResource,
+    GetPromptResult,
+    PromptMessage,
+)
+from mcp.shared.exceptions import McpError
+from typing import List
+import mcp.server.stdio
 ####
 
 # Base directory where data live
@@ -19,6 +43,65 @@ file_path = os.path.join(DATA_DIR, 'MN_2020_imputed_tbins_5to1_metro_2025-05-20.
 df = pd.read_csv(file_path)
 
 ####
+
+# === ScriptRunner Class to manage dataframes and safe executions ===
+
+class ScriptRunner:
+    def __init__(self):
+        self.data = {}       # dict: name -> DataFrame
+        self.df_count = 0
+        self.notes = []
+
+    def load_csv(self, csv_path: str, df_name: str = None):
+        self.df_count += 1
+        if not df_name:
+            df_name = f"df_{self.df_count}"
+        try:
+            df = pd.read_csv(csv_path)
+        except Exception as e:
+            return {"status": "error", "message": f"Failed to load {csv_path}: {str(e)}"}
+        self.data[df_name] = df
+        self.notes.append(f"Loaded '{csv_path}' as '{df_name}' with {len(df)} rows, {len(df.columns)} columns")
+        return {"status": "ok", "message": f"Loaded '{csv_path}' as '{df_name}'", "df_name": df_name,
+                "rows": len(df), "cols": len(df.columns)}
+
+    def safe_exec(self, script: str, allowed_globals=None, timeout_seconds: int = 10, save_to_memory=None):
+        if allowed_globals is None:
+            allowed_globals = {
+                "pd": pd,
+                "np": np,
+                "RandomForestRegressor": RandomForestRegressor,
+                "LinearRegression": LinearRegression,
+                "train_test_split": train_test_split,
+                "r2_score": r2_score,
+                "mean_squared_error": mean_squared_error,
+            }
+        local_vars = dict(self.data)  # copy current dataframes
+        stdout_capture = StringIO()
+        old_stdout = sys.stdout
+        try:
+            sys.stdout = stdout_capture
+            # Run code in thread with timeout
+            exec_thread = threading.Thread(target=exec, args=(script, allowed_globals, local_vars))
+            exec_thread.start()
+            exec_thread.join(timeout_seconds)
+            if exec_thread.is_alive():
+                raise TimeoutError(f"Script execution timed out after {timeout_seconds} seconds")
+        except Exception as e:
+            return {"status": "error", "message": f"Script error: {str(e)}"}
+        finally:
+            sys.stdout = old_stdout
+        out_text = stdout_capture.getvalue()
+        # Save specified dataframes back to memory
+        if save_to_memory:
+            for dfname in save_to_memory:
+                if dfname in local_vars and isinstance(local_vars[dfname], pd.DataFrame):
+                    self.data[dfname] = local_vars[dfname]
+                    self.notes.append(f"Saved DataFrame '{dfname}' to memory")
+        return {"status": "ok", "output": out_text.strip() or "No stdout output"}
+
+# Global instance for this server
+script_runner = ScriptRunner()
 
 # Create an MCP server
 mcp = FastMCP("file_analysis_server")
@@ -207,6 +290,144 @@ def query_csv(file_name: str, code: str) -> str:
             "traceback": tb
         })
 
+@mcp.tool()
+def load_csv(csv_path: str, df_name: str = None) -> str:
+    """Load CSV from path into memory under DataFrame name"""
+    res = script_runner.load_csv(csv_path, df_name)
+    return json.dumps(res)
+
+@mcp.tool()
+def run_script(script: str, save_to_memory: list[str] = None) -> str:
+    """Run Python script with limited globals, optionally save new DataFrames."""
+    # Defensive: sanitize save_to_memory
+    save_list = save_to_memory if save_to_memory else []
+    res = script_runner.safe_exec(script, save_to_memory=save_list)
+    return json.dumps(res)
+
+@mcp.tool()
+def quick_stats(df_name: str = "df_1", numeric_cols: list[str] = None, top_n_cats: int = 10) -> str:
+    if df_name not in script_runner.data:
+        return json.dumps({"status":"error", "message": f"DataFrame '{df_name}' not loaded"})
+    df = script_runner.data[df_name]
+    result = {"rows": len(df), "cols": len(df.columns)}
+    try:
+        dtypes = df.dtypes.apply(str).to_dict()
+        missing = df.isnull().sum().to_dict()
+        result["dtypes"] = dtypes
+        result["missing_values_count"] = missing
+        numeric = df.select_dtypes(include=["number"])
+        if numeric_cols:
+            numeric = numeric[numeric_cols]
+        result["numeric_summary"] = numeric.describe().to_dict()
+        cats = {c: list(df[c].value_counts().head(top_n_cats).items()) for c in df.select_dtypes(include=["object","category"]).columns}
+        result["top_categories"] = cats
+    except Exception as e:
+        return json.dumps({"status":"error", "message": f"Error computing quick stats: {str(e)}"})
+    return json.dumps({"status":"ok", "summary": result})
+
+@mcp.tool()
+def correlation_summary(df_name: str = "df_1", target: str = "Probability_of_Crash", top_n: int = 10) -> str:
+    if df_name not in script_runner.data:
+        return json.dumps({"status":"error", "message": f"DataFrame '{df_name}' not loaded"})
+    df = script_runner.data[df_name]
+    if target not in df.columns:
+        return json.dumps({"status":"error", "message": f"Target column '{target}' not in dataframe"})
+    try:
+        out = {}
+        numeric_df = df.select_dtypes(include=["number"])
+        if target in numeric_df.columns:
+            corrs = numeric_df.corr()[target].drop(target).abs().sort_values(ascending=False).head(top_n)
+            out["numeric_correlations_abs"] = corrs.to_dict()
+        cat_effects = {}
+        for col in df.select_dtypes(include=["object","category"]).columns:
+            means = df.groupby(col)[target].mean()
+            effect = float(means.max() - means.min()) if not means.empty else 0
+            cat_effects[col] = {"min_mean": float(means.min() if not means.empty else 0),
+                                "max_mean": float(means.max() if not means.empty else 0),
+                                "range": effect}
+        out["categorical_effects"] = cat_effects
+    except Exception as e:
+        return json.dumps({"status":"error", "message": f"Error computing correlations: {str(e)}"})
+    return json.dumps({"status":"ok", "correlation_summary": out})
+
+@mcp.tool()
+def feature_importance_simple(df_name: str = "df_1", target: str = "Probability_of_Crash", features: list[str] = None, model: str = "rf", max_rows: int = 20000) -> str:
+    if df_name not in script_runner.data:
+        return json.dumps({"status":"error", "message": f"DataFrame '{df_name}' not loaded"})
+    df = script_runner.data[df_name].copy()
+    if target not in df.columns:
+        return json.dumps({"status":"error", "message": f"Target column '{target}' not found"})
+
+    try:
+        # Sample large datasets to keep performance safe
+        if len(df) > max_rows:
+            df = df.sample(max_rows, random_state=0)
+
+        if features is None:
+            candidates = [c for c in df.columns if c != target]
+            numeric = df.select_dtypes(include=["number"]).columns.tolist()
+            cats = [c for c in candidates if c not in numeric and df[c].nunique() < 100]
+            features = numeric + cats
+
+        X = df[features].copy()
+        y = df[target]
+
+        # Encode categoricals as int codes, fill missing
+        for col in X.select_dtypes(exclude=["number"]).columns:
+            X[col] = X[col].astype("category").cat.codes.replace(-1, np.nan)
+        X = X.fillna(X.median(numeric_only=True))
+
+        # Train/test split 
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+
+        if model == "rf":
+            estimator = RandomForestRegressor(n_estimators=100, random_state=0, n_jobs=1)
+            estimator.fit(X_train, y_train)
+            importances = estimator.feature_importances_
+            preds = estimator.predict(X_test)
+        else:
+            # default linear regression
+            estimator = LinearRegression()
+            estimator.fit(X_train, y_train)
+            importances = np.abs(estimator.coef_)
+            preds = estimator.predict(X_test)
+
+        imp_dict = dict(zip(X.columns, importances))
+        metrics = {"r2": float(r2_score(y_test, preds)), "rmse": float(np.sqrt(mean_squared_error(y_test, preds)))}
+        sorted_imp = {k: v for k, v in sorted(imp_dict.items(), key=lambda item: item[1], reverse=True)}
+
+        return json.dumps({"status":"ok", "model": model, "metrics": metrics, "importances": sorted_imp})
+
+    except Exception as e:
+        return json.dumps({"status":"error", "message": f"Feature importance error: {str(e)}"})
+
+@mcp.tool()
+def plot_groupby_save(df_name: str, group_by_col: str, target: str = "Probability_of_Crash", out_path: str = "plot_groupby.html", sample_n: int = 5000) -> str:
+    if df_name not in script_runner.data:
+        return json.dumps({"status":"error", "message": "DataFrame not loaded"})
+    df = script_runner.data[df_name]
+    if group_by_col not in df.columns:
+        return json.dumps({"status":"error", "message": f"Column '{group_by_col}' not in dataframe"})
+    if target not in df.columns:
+        return json.dumps({"status":"error", "message": f"Target '{target}' not in dataframe"})
+    try:
+        if len(df) > sample_n:
+            plot_df = df.sample(sample_n, random_state=0)
+        else:
+            plot_df = df
+        summary = plot_df.groupby(group_by_col)[target].agg(["mean", "count"]).reset_index()
+        fig = px.bar(summary, x=group_by_col, y="mean", labels={"mean": f"Mean {target}"})
+        fig.update_layout(title=f"{target} by {group_by_col}", xaxis_tickangle=-45)
+
+        # Ensure directory exists
+        out_dir = os.path.dirname(out_path) or "."
+        os.makedirs(out_dir, exist_ok=True)
+
+        fig.write_html(out_path, include_plotlyjs="cdn")
+        return json.dumps({"status":"ok", "filepath": out_path, "rows_used": len(plot_df)})
+    except Exception as e:
+        return json.dumps({"status":"error", "message": f"Plotting error: {str(e)}"})
+
 # Prompt for .csv file analysis
 @mcp.prompt()
 def analyze_csv(filename: str) -> str:
@@ -225,20 +446,146 @@ def analyze_csv(filename: str) -> str:
 
 You can use the list_files tool to see what's in the directory if the filename is unclear or unspecified, and write_file to create any new files needed."""
 
-'''@mcp.tool()
-def read_csv_summary(filename: str) -> str:
-    """
-    Read a CSV file and return a simple summary.
-    Args:
-        filename: Name of the CSV file (e.g. 'sample.csv')
-    Returns:
-        A string describing the file's contents.
-    """
-    file_path = os.path.join(DATA_DIR, filename)
-    df = pd.read_csv(file_path)
-    return f"CSV file '{filename}' has {len(df)} rows and {len(df.columns)} columns."'''
+# --- TOOL, PROMPT, RESOURCE HANDLERS for MCP Server ---
+
+######################
+# Tools Handling
+######################
+
+@mcp.server.list_tools()
+async def list_tools() -> List[Tool]:
+    # Return all tools your server supports
+    return [
+        Tool(name="read_file", description="Read and return the contents of a text file"),
+        Tool(name="write_file", description="Write content to a file"),
+        Tool(name="list_files", description="List files in a directory"),
+        Tool(name="file_info", description="Get information about a file"),
+        Tool(name="query_csv", description="Run user code on CSV data and return JSON"),
+        # New analysis tools
+        Tool(name="load_csv", description="Load CSV file into internal memory"),
+        Tool(name="run_script", description="Execute Python analysis script on loaded data"),
+        Tool(name="quick_stats", description="Quick statistics summary of a DataFrame"),
+        Tool(name="correlation_summary", description="Correlation and categorical effect analysis"),
+        Tool(name="feature_importance_simple", description="Simple feature importance via ML models"),
+        Tool(name="plot_groupby_save", description="Plot grouped means of target, save to HTML file"),
+    ]
+
+@mcp.server.call_tool()
+async def call_tool(name: str, arguments: dict | None) -> List[TextContent | EmbeddedResource]:
+    # Map tool name to your function, call it and wrap result as TextContent for MCP response
+    try:
+        arguments = arguments or {}
+        if name == "read_file":
+            result = read_file(**arguments)
+        elif name == "write_file":
+            result = write_file(**arguments)
+        elif name == "list_files":
+            result = list_files(**arguments)
+        elif name == "file_info":
+            result = file_info(**arguments)
+        elif name == "query_csv":
+            result = query_csv(**arguments)
+        elif name == "load_csv":
+            result = load_csv(**arguments)
+        elif name == "run_script":
+            result = run_script(**arguments)
+        elif name == "quick_stats":
+            result = quick_stats(**arguments)
+        elif name == "correlation_summary":
+            result = correlation_summary(**arguments)
+        elif name == "feature_importance_simple":
+            result = feature_importance_simple(**arguments)
+        elif name == "plot_groupby_save":
+            result = plot_groupby_save(**arguments)
+        else:
+            raise McpError(INTERNAL_ERROR, f"Unknown tool: {name}")
+        # Return text results wrapped properly
+        return [TextContent(type="text", text=result)]
+    except Exception as e:
+        raise McpError(INTERNAL_ERROR, f"Exception while running tool '{name}': {str(e)}")
+
+######################
+# Prompt Handling
+######################
+
+@mcp.server.list_prompts()
+async def list_prompts() -> List[Prompt]:
+    # Return available prompts
+    return [
+        Prompt(
+            name="analyze_csv",
+            description="Prompt to analyze a CSV file with analytical tools",
+            arguments=[
+                PromptArgument(
+                    name="filename",
+                    description="CSV filename to analyze",
+                    required=True,
+                )
+            ],
+        )
+    ]
+
+@mcp.server.get_prompt()
+async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
+    # Provide prompt content to model on request
+    if name != "analyze_csv":
+        raise ValueError(f"Unknown prompt: {name}")
+    if not arguments or "filename" not in arguments:
+        raise ValueError("Missing required argument: filename")
+    filename = arguments["filename"]
+    prompt_text = f"""
+Please help me derive insights from the CSV file '{filename}'. Use the following analytical tools available on the server: load_csv, quick_stats, correlation_summary, feature_importance_simple, and plot_groupby_save.
+
+Start by loading the CSV file. Then provide:
+1. An overview summary of data statistics.
+2. Correlation and categorical analyses with respect to 'Probability_of_Crash'.
+3. Feature importance ranking showing the strongest predictors.
+4. A grouped mean bar chart for the strongest predictor variable.
+
+Limit outputs to concise JSON results, and save charts as HTML files. Respond step-by-step using the tools. 
+"""
+    return GetPromptResult(
+        description=f"Analyze CSV file: {filename}",
+        messages=[
+            PromptMessage(role="user", content=TextContent(type="text", text=prompt_text.strip()))
+        ],
+    )
+
+######################
+# Resource Handling ##
+######################
+
+@mcp.server.list_resources()
+async def list_resources() -> List[Resource]:
+    # Adjust or extend resources here as needed
+    return [
+        Resource(
+            uri="dir://./",
+            name="Current Working Directory",
+            description="Lists files in the current working directory",
+            mimeType="text/plain",
+        ),
+        Resource(
+            uri="data-exploration://notes",
+            name="Data Exploration Notes",
+            description="Notes generated by the data exploration scripts",
+            mimeType="text/plain",
+        ),
+    ]
+
+@mcp.server.read_resource()
+async def read_resource(uri: str) -> str:
+    # Simple dispatcher for your resources
+    if uri.startswith("dir://"):
+        directory = uri[len("dir://"):]
+        return directory_resource(directory)
+    elif uri == "data-exploration://notes":
+        return "\n".join(script_runner.notes)
+    else:
+        raise ValueError(f"Unknown resource URI: {uri}")
+
 
 if __name__ == "__main__":
-    # mcp.run()
-    # Start an HTTP server on port 8000
-    mcp.run(transport="streamable-http", host="127.0.0.1", port=8000)
+    mcp.run()
+    ## Start an HTTP server on port 8000
+    # mcp.run(transport="streamable-http", host="127.0.0.1", port=8000)
