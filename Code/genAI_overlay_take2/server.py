@@ -453,7 +453,7 @@ You can use the list_files tool to see what's in the directory if the filename i
 ######################
 
 @mcp.server.list_tools()
-async def list_tools() -> List[Tool]:
+def list_tools() -> List[Tool]:
     # Return all tools your server supports
     return [
         Tool(name="read_file", description="Read and return the contents of a text file"),
@@ -471,7 +471,7 @@ async def list_tools() -> List[Tool]:
     ]
 
 @mcp.server.call_tool()
-async def call_tool(name: str, arguments: dict | None) -> List[TextContent | EmbeddedResource]:
+def call_tool(name: str, arguments: dict | None) -> List[TextContent | EmbeddedResource]:
     # Map tool name to your function, call it and wrap result as TextContent for MCP response
     try:
         arguments = arguments or {}
@@ -509,7 +509,7 @@ async def call_tool(name: str, arguments: dict | None) -> List[TextContent | Emb
 ######################
 
 @mcp.server.list_prompts()
-async def list_prompts() -> List[Prompt]:
+def list_prompts() -> List[Prompt]:
     # Return available prompts
     return [
         Prompt(
@@ -526,7 +526,7 @@ async def list_prompts() -> List[Prompt]:
     ]
 
 @mcp.server.get_prompt()
-async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
+def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
     # Provide prompt content to model on request
     if name != "analyze_csv":
         raise ValueError(f"Unknown prompt: {name}")
@@ -556,7 +556,7 @@ Limit outputs to concise JSON results, and save charts as HTML files. Respond st
 ######################
 
 @mcp.server.list_resources()
-async def list_resources() -> List[Resource]:
+def list_resources() -> List[Resource]:
     # Adjust or extend resources here as needed
     return [
         Resource(
@@ -574,7 +574,7 @@ async def list_resources() -> List[Resource]:
     ]
 
 @mcp.server.read_resource()
-async def read_resource(uri: str) -> str:
+def read_resource(uri: str) -> str:
     # Simple dispatcher for your resources
     if uri.startswith("dir://"):
         directory = uri[len("dir://"):]

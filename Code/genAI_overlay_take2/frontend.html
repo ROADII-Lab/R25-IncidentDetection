@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advanced Chat App Demo</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 2rem auto;
+    background: #f5f7fa;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    color: #ff4a4a;
+  }
+  #chat-container {
+    border: 1px solid #ccc;
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 300px;
+    overflow-y: auto;
+    max-height: 500px;
+    margin-bottom: 1rem;
+  }
+  .chat-message {
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  .chat-message.user {
+    text-align: right;
+    color: #007bff;
+  }
+  .chat-message.assistant {
+    text-align: left;
+    color: #444;
+  }
+  #input-form {
+    display: flex;
+    gap: 0.5rem;
+  }
+  #query-input {
+    flex-grow: 1;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  button {
+    background-color: #ff4a4a;
+    color: white;
+    border: none;
+    font-size: 1rem;
+    padding: 0 1.2rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  button:disabled {
+    background-color: #ddd;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) {
+    background-color: #cc3f3f;
+  }
+</style>
+</head>
+<body>
+  <h1>Advanced Chat App Demo</h1>
+
+  <div id="chat-container"></div>
+
+  <form id="input-form">
+    <input
+      type="text"
+      id="query-input"
+      placeholder="Type your message here..."
+      autocomplete="off"
+      required
+    />
+    <button type="submit" id="send-btn">Send</button>
+  </form>
+
+<script>
+  const API_BASE_URL = 'http://10.75.42.135/v1';
+  const API_KEY = 'sk-fFbciGZkSxj_S3w4QL6fXA';       // Replace with your API key
+  const USER_ID = 'user-123';             // Replace with your user identifier
+  const conversationId = '';              // Optional: You can track conversation ID for session persistence
+
+  const chatContainer = document.getElementById('chat-container');
+  const inputForm = document.getElementById('input-form');
+  const inputField = document.getElementById('query-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  let currentAnswerElem = null;
+
+  function appendMessage(text, sender = 'assistant') {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'chat-message ' + sender;
+    msgDiv.textContent = text;
+    chatContainer.appendChild(msgDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    return msgDiv;
+  }
+
+  function clearCurrentAnswer() {
+    if (currentAnswerElem) {
+      chatContainer.removeChild(currentAnswerElem);
+      currentAnswerElem = null;
+    }
+  }
+
+  async function sendMessage(query) {
+    // Show user message
+    appendMessage(query, 'user');
+
+    // Disable input while processing
+    sendBtn.disabled = true;
+    inputField.disabled = true;
+
+    // Clear previous assistant message container
+    clearCurrentAnswer();
+    currentAnswerElem = appendMessage('', 'assistant');
+
+    const url = `${API_BASE_URL}/chat-messages`;
+    const body = {
+      query,
+      inputs: {},
+      response_mode: 'streaming',
+      user: USER_ID,
+      conversation_id: conversationId,
+      files: []
+    };
+
+    // We will open an EventSource stream using fetch & EventSource is not good for POST
+    // So instead, we use fetch + ReadableStream to parse "text/event-stream" ourselves
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        appendMessage(`Error: ${response.status} - ${errorText}`, 'assistant');
+        sendBtn.disabled = false;
+        inputField.disabled = false;
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let partial = '';
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          partial += decoder.decode(value, { stream: true });
+          // Process SSE chunks in partial
+          let lines = partial.split('\n\n');
+          // Keep incomplete last line for next chunk
+          partial = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              const jsonStr = line.substring(5).trim();
+              if (jsonStr.length === 0) continue;
+              try {
+                const sseData = JSON.parse(jsonStr);
+                if (sseData.event === 'message') {
+                  currentAnswerElem.textContent += sseData.answer;
+                  chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else if (sseData.event === 'message_end') {
+                  // Message streaming ended
+                  sendBtn.disabled = false;
+                  inputField.disabled = false;
+                } else if (sseData.event === 'error') {
+                  appendMessage(`Error: ${sseData.message}`, 'assistant');
+                  sendBtn.disabled = false;
+                  inputField.disabled = false;
+                }
+                // (Other event types could be handled here if needed)
+              } catch (e) {
+                console.error('JSON parse error:', e);
+              }
+            }
+          }
+        }
+      }
+
+      // Final enable input
+      sendBtn.disabled = false;
+      inputField.disabled = false;
+
+    } catch (e) {
+      appendMessage(`Exception: ${e.message}`, 'assistant');
+      sendBtn.disabled = false;
+      inputField.disabled = false;
+    }
+  }
+
+  inputForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = inputField.value.trim();
+    if (query.length === 0) return;
+    sendMessage(query);
+    inputField.value = '';
+    inputField.focus();
+  });
+</script>
+</body>
+</html>
