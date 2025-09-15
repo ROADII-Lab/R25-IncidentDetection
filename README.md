@@ -127,7 +127,7 @@ Note: Upon launch, you may recieve a warning message about creating a blended re
 
 - `Analysis/RandomForest_Fx.R`: Sourced in `Analysis/RandomForest_Train`. This script defines a the function `do.rf` which is used for training a random forest model, and saving certain model diagnostics.
 
-The [Demos](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/tree/main/Demos) folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and performance metrics for the solutions developed for this use case. This will be updated once more work is created with partner organizations. 
+The [Demos](https://github.com/ROADII-Lab/R25-IncidentDetection/tree/main/Demos) folder contains pre-built demonstrations of the results of the analysis, data explorations, visualizations, and performance metrics for the solutions developed for this use case. This will be updated once more work is created with partner organizations. 
 
 
 ## Context on Previous Related Work
@@ -163,13 +163,13 @@ At minimum, the crash data must have lat-long coordinates for each crash, and a 
 
 **Retention:** This project will likely remain publicly accessible indefinitely. 
 
-**Release History:**  See [CHANGELOG.md](CHANGELOG.md)**
 
 # License
 This project is licensed under the Creative Commons 1.0 Universal (CC0 1.0) License - see the [License.MD](https://github.com/usdot-jpo-codehub/codehub-readme-template/blob/master/LICENSE) for more details. 
 
 # Contributions
-Please read [CONTRIBUTING.md](https://github.com/ITSJPO-TRIMS/R25-IncidentPrediction/blob/main/Contributing.MD) for details on our Code of Conduct, the process for submitting pull requests to us, and how contributions will be released.
+Please read [Contributing.md](https://github.com/ROADII-Lab/R29-MobilityTrafficCounts/blob/main/Contributing.md) for details on our Code of Conduct, the process for submitting pull requests to us, and how contributions will be released.
+
 
 # Contact Information
 
