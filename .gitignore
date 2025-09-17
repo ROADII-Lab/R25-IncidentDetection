@@ -3,6 +3,7 @@
 *.Rproj.user
 *.Rhistory
 *.Rproj
+*.env
 
 Code/Input/
 Code/Output/
